@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "data": {
+    "watchlists": [
+      {
+        "watchlistId": "1",
+        "name": "Tech Picks",
+        "symbolCount": 3,
+        "createdAt": "2026-05-13T17:15:30Z"
+      }
+    ]
+  },
+  "error": null,
+  "requestId": "e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f"
+}

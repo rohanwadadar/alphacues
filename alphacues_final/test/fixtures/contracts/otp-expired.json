@@ -1,0 +1,9 @@
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "OTP_EXPIRED",
+    "message": "This code has expired. Request a new one."
+  },
+  "requestId": "e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f"
+}

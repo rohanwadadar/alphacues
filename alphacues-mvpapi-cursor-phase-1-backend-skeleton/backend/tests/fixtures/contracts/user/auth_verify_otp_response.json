@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.example",
+    "refreshToken": "eyJhbGciOiJIUzI1NiJ9.refresh",
+    "expiresInSeconds": 900,
+    "user": {
+      "userId": "1",
+      "email": "user@example.com",
+      "name": null,
+      "avatarUrl": null
+    }
+  },
+  "error": null,
+  "meta": {
+    "requestId": "req_abc124",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

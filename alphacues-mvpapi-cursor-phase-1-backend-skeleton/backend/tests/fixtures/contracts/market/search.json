@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "type": "stock",
+      "exchange": "NASDAQ"
+    }
+  ],
+  "error": null,
+  "meta": {
+    "requestId": "11111111-2222-3333-4444-555555555555",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

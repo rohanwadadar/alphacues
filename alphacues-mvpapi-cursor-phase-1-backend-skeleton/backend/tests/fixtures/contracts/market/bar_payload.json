@@ -1,0 +1,13 @@
+{
+  "symbol": "AAPL",
+  "bars": [
+    {
+      "timeStamp": "2026-05-13T14:30:00Z",
+      "openPrice": 188.12,
+      "highPrice": 189.02,
+      "lowPrice": 187.98,
+      "closePrice": 188.9,
+      "volume": 1823400
+    }
+  ]
+}

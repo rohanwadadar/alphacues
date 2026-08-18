@@ -1,0 +1,9 @@
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "OTP_INVALID",
+    "message": "Invalid code. Try again."
+  },
+  "requestId": "e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f"
+}

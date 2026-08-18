@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.example",
+    "refreshToken": "eyJhbGciOiJIUzI1NiJ9.refresh",
+    "expiresIn": 900,
+    "user": {
+      "userId": 1,
+      "email": "user@example.com"
+    }
+  },
+  "error": null,
+  "requestId": "req_abc124"
+}

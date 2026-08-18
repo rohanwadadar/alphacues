@@ -1,0 +1,28 @@
+# Fastlane scaffold for Alpha Cues mobile releases.
+# Adopt when Play Console and App Store Connect credentials are ready.
+
+default_platform(:android)
+
+platform :android do
+  desc "Upload release AAB to Play Store internal track"
+  lane :beta_android do
+    aab_path = ENV.fetch("AAB_PATH", "frontend/build/app/outputs/bundle/release/app-release.aab")
+    upload_to_play_store(
+      track: "internal",
+      aab: aab_path,
+      json_key: ENV.fetch("PLAY_SERVICE_ACCOUNT_JSON_PATH", "/tmp/play-service-account.json"),
+    )
+  end
+end
+
+platform :ios do
+  desc "Upload release IPA to TestFlight"
+  lane :beta_ios do
+    ipa_path = ENV.fetch("IPA_PATH", Dir["frontend/build/ios/ipa/*.ipa"].first)
+    api_key_path = ENV.fetch("APP_STORE_CONNECT_API_KEY_PATH", "/tmp/app-store-connect-api-key.json")
+    upload_to_testflight(
+      ipa: ipa_path,
+      api_key_path: api_key_path,
+    )
+  end
+end

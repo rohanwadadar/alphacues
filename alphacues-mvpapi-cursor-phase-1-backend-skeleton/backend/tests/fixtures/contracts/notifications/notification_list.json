@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "notificationId": "456",
+        "userId": "42",
+        "alertId": "123",
+        "title": "AAPL crossed above 190.00",
+        "body": "Your AAPL ABOVE alert was triggered.",
+        "isRead": false,
+        "createdAt": "2026-05-13T14:30:02Z"
+      },
+      {
+        "notificationId": "455",
+        "userId": "42",
+        "alertId": "122",
+        "title": "MSFT crossed below 300.00",
+        "body": "Your MSFT BELOW alert was triggered.",
+        "isRead": true,
+        "createdAt": "2026-05-13T14:25:02Z"
+      }
+    ]
+  },
+  "error": null,
+  "requestId": "e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f",
+  "meta": {
+    "requestId": "e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f",
+    "apiVersion": "1",
+    "nextCursor": "eyJ2IjoiMjAyNi0wNS0xM1QxNDoyNTowMloiLCAiaWQiOiA0NTV9"
+  }
+}

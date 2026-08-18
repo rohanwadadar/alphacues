@@ -1,0 +1,17 @@
+{
+  "triggerEvent": {
+    "id": "789",
+    "alertId": "123",
+    "symbol": "AAPL",
+    "condition": "ABOVE",
+    "triggerPrice": "191.000000",
+    "triggeredAt": "2026-05-13T14:30:02Z"
+  },
+  "socketPayload": {
+    "notificationId": "456",
+    "alertId": "123",
+    "title": "AAPL crossed above 190.00",
+    "body": "Your AAPL ABOVE alert was triggered.",
+    "createdAt": "2026-05-13T14:30:02Z"
+  }
+}

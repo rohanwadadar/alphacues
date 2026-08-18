@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": [
+    {
+      "symbol": "AAPL",
+      "price": 188.9,
+      "change": 1.1,
+      "changePercent": 0.59,
+      "volume": 1823400,
+      "timestamp": "2026-05-13T14:30:00Z"
+    }
+  ],
+  "error": null,
+  "meta": {
+    "requestId": "11111111-2222-3333-4444-555555555555",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

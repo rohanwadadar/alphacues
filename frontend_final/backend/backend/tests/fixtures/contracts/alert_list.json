@@ -1,0 +1,38 @@
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "alertId": "1",
+        "userId": "42",
+        "symbol": "AAPL",
+        "condition": "ABOVE",
+        "target": "190.000000",
+        "isActive": true,
+        "triggered": false,
+        "cooldownSeconds": 0,
+        "lastTriggeredAt": null,
+        "createdAt": "2026-05-13T14:30:00Z"
+      },
+      {
+        "alertId": "2",
+        "userId": "42",
+        "symbol": "MSFT",
+        "condition": "BELOW",
+        "target": "300.000000",
+        "isActive": true,
+        "triggered": true,
+        "cooldownSeconds": 60,
+        "lastTriggeredAt": "2026-05-13T14:25:00Z",
+        "createdAt": "2026-05-13T14:20:00Z"
+      }
+    ]
+  },
+  "error": null,
+  "requestId": "e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f",
+  "meta": {
+    "requestId": "e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f",
+    "apiVersion": "1",
+    "nextCursor": "eyJ2IjoiMjAyNi0wNS0xM1QxNDoyMDowMFoiLCAiaWQiOiAyfQ=="
+  }
+}

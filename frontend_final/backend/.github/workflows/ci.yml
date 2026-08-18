@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  backend-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: flake8
+        run: flake8 app/ tests/
+      - name: black
+        run: black --check app/ tests/
+      - name: isort
+        run: isort --check-only app/ tests/
+
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: alphacues
+          POSTGRES_PASSWORD: alphacues
+          POSTGRES_DB: alphacues_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U alphacues -d alphacues_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      FLASK_ENV: testing
+      FLASK_APP: wsgi.py
+      DATABASE_URL: postgresql+psycopg://alphacues:alphacues@localhost:5432/alphacues_test
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run migrations
+        run: flask db upgrade
+      - name: Check migrations
+        run: flask db check
+      - name: Run tests
+        run: pytest --cov=app --cov-report=xml
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml

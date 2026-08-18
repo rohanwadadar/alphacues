@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "data": {
+    "symbol": "AAPL",
+    "price": 188.9,
+    "change": 1.1,
+    "changePercent": 0.59,
+    "high": 189.02,
+    "low": 187.98,
+    "open": 188.12,
+    "previousClose": 187.8,
+    "volume": 1823400,
+    "timestamp": "2026-05-13T14:30:00Z"
+  },
+  "error": null,
+  "meta": {
+    "requestId": "11111111-2222-3333-4444-555555555555",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

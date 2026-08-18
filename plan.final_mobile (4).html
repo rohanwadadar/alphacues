@@ -1,0 +1,3265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alpha Cues MVP Final Blueprint — Mobile Edition</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --text: #1a1a2e;
+      --muted: #5c5c7a;
+      --border: #e8e8ef;
+      --accent: #7061f3;
+      --accent-soft: #f0eeff;
+      --code-bg: #f6f8fa;
+      --mobile-tag: #0d6efd;
+    }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--text);
+      background: #fff;
+    }
+    header.doc-header {
+      background: linear-gradient(135deg, #7061f3, #5a4fd4);
+      color: #fff;
+      padding: 2rem 1.5rem;
+    }
+    header.doc-header h1 { margin: 0 0 0.5rem; font-size: 1.75rem; }
+    header.doc-header p { margin: 0; opacity: 0.92; }
+    nav#toc {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #fafafa;
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      font-size: 0.875rem;
+      overflow-x: auto;
+    }
+    nav#toc a { color: var(--accent); margin-right: 1rem; text-decoration: none; }
+    main { max-width: 52rem; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    main h1 { font-size: 1.75rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.35rem; margin-top: 2.5rem; }
+    main h2 { font-size: 1.35rem; margin-top: 2rem; }
+    main h3 { font-size: 1.1rem; margin-top: 1.5rem; }
+    blockquote {
+      margin: 1rem 0;
+      padding: 0.75rem 1rem;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+    }
+    code {
+      font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.875em;
+      background: var(--code-bg);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+    }
+    pre {
+      background: #1e1e2e;
+      color: #e8e8ef;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: var(--accent-soft); }
+    tr:nth-child(even) { background: #fafafa; }
+    .mermaid {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .tag-mobile {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--mobile-tag);
+      padding: 0.1em 0.45em;
+      border-radius: 4px;
+      margin-right: 0.35em;
+      vertical-align: middle;
+    }
+    footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.875rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body id="top">
+  <header class="doc-header">
+    <h1>Alpha Cues MVP — Mobile Edition Blueprint</h1>
+    <p>HTML export of plan.final_mobile.md · Native iOS + Android</p>
+  </header>
+  <nav id="toc"><a href="#top">Top</a>
+    <a href="#1-architecture">1. Architecture</a>
+    <a href="#11-system-overview">· 1.1 System Overview</a>
+    <a href="#12-frontend-structure">· 1.2 Frontend Structure</a>
+    <a href="#13-backend-structure">· 1.3 Backend Structure</a>
+    <a href="#14-api-design">· 1.4 API Design</a>
+    <a href="#15-database-design">· 1.5 Database Design</a>
+    <a href="#16-data-flow-diagram">· 1.6 Data Flow Diagram</a>
+    <a href="#17-key-technical-decisions-and-why">· 1.7 Key Technical Decisions and Why</a>
+    <a href="#2-implementation-plan">2. Implementation Plan</a>
+    <a href="#phase-1-mvp-foundation">· Phase 1: MVP Foundation</a>
+    <a href="#phase-2-core-features">· Phase 2: Core Features</a>
+    <a href="#phase-3-enhancements">· Phase 3: Enhancements</a>
+    <a href="#rollout-and-commit-strategy">· Rollout and commit strategy</a>
+    <a href="#global-blocker-checklist">· Global blocker checklist</a>
+    <a href="#3-readme-developer-guide">3. README / Developer Guide</a>
+    <a href="#31-project-overview">· 3.1 Project Overview</a>
+    <a href="#32-tech-stack">· 3.2 Tech Stack</a>
+    <a href="#33-setup-instructions">· 3.3 Setup Instructions</a>
+    <a href="#34-environment-variables-env-example">· 3.4 Environment Variables (.env example)</a>
+    <a href="#35-how-to-run-locally">· 3.5 How to Run Locally</a>
+    <a href="#36-basic-usage-flow">· 3.6 Basic Usage Flow</a>
+    <a href="#37-mock-and-stub-strategy">· 3.7 Mock and Stub Strategy</a>
+    <a href="#38-contracts-and-compatibility-rules">· 3.8 Contracts and Compatibility Rules</a>
+    <a href="#39-edge-cases-and-degraded-behavior">· 3.9 Edge Cases and Degraded Behavior</a>
+    <a href="#310-recommended-reading-order">· 3.10 Recommended Reading Order</a>
+    <a href="#311-current-repository-status">· 3.11 Current Repository Status</a>
+    <a href="#4-appendix-docker-composeyml">4. Appendix: docker-compose.yml</a>
+    <a href="#51-how-right-were-you-110">· 5.1 How right were you? (1–10)</a></nav>
+  <main>
+<h1 id="alpha-cues-mvp-final-blueprint-mobile-edition">Alpha Cues MVP Final Blueprint — Mobile Edition</h1>
+<blockquote>
+<p><strong>Source:</strong> Derived from <code>alphacues_mvp_design_86b7618e_final.plan.md</code> (unchanged sections preserved verbatim).<br />
+<strong>Mobile variant:</strong> <code>plan.final_mobile.md</code> — web-to-native (iOS + Android) conversion.<br />
+<strong>Change tag:</strong> All mobile-specific additions, updates, and deletions are marked <strong><code><span class="tag-mobile">Mobile</span></code></strong>. Search the document for that tag to review only mobile deltas.</p>
+</blockquote>
+<p><strong><span class="tag-mobile">Mobile</span> Mobile conversion summary</strong></p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Web (original)</th>
+<th>Mobile (this document)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Client targets</td>
+<td>Flutter Web on Vercel</td>
+<td>Flutter iOS + Android (App Store + Play Store)</td>
+</tr>
+<tr>
+<td>Auth token storage</td>
+<td>Browser storage</td>
+<td><code>flutter_secure_storage</code></td>
+</tr>
+<tr>
+<td>Navigation shell</td>
+<td>Sidebar / top-nav web shell</td>
+<td><code>BottomNavigationBar</code> + platform back gesture</td>
+</tr>
+<tr>
+<td>Push</td>
+<td>In-app + email only</td>
+<td>In-app + email + <strong>FCM (Android)</strong> + <strong>APNs via FCM (iOS)</strong></td>
+</tr>
+<tr>
+<td>Deep links</td>
+<td>Path URLs in browser</td>
+<td>Universal/App Links + <code>go_router</code> + <code>AndroidManifest.xml</code> / <code>Info.plist</code></td>
+</tr>
+<tr>
+<td>CI release</td>
+<td>Web static build</td>
+<td><code>flutter build apk</code> / <code>flutter build appbundle</code> / <code>flutter build ipa</code></td>
+</tr>
+<tr>
+<td>Android toolchain</td>
+<td>N/A</td>
+<td><strong>compileSdk / targetSdk 36</strong> (Play policy for 2026)</td>
+</tr>
+</tbody>
+</table>
+<p>This file merges the generated project artifacts into one detailed reference document so the MVP can be reviewed from a single place:<br />
+- <code>ARCHITECTURE.md</code><br />
+- <code>IMPLEMENTATION_PLAN.md</code><br />
+- <code>README.md</code><br />
+- <code>docker-compose.yml</code></p>
+<p>It preserves the target canon already established:<br />
+- Flask-owned email OTP auth<br />
+- <code>/api/v1</code> as the canonical public API<br />
+- <code>Authorization: Bearer &lt;JWT&gt;</code><br />
+- shared API response envelope<br />
+- preserved table and field vocabulary such as <code>otp_tokens</code>, <code>portfolio_event</code>, <code>stock_tick</code>, <code>watchlist_items</code>, <code>BUY</code>, <code>SELL</code>, <code>ABOVE</code>, <code>BELOW</code>, <code>PERCENT_CHANGE</code></p>
+<hr />
+<h2 id="1-architecture">1. Architecture</h2>
+<h3 id="11-system-overview">1.1 System Overview</h3>
+<p>Alpha Cues is a production-ready stock market alert and notification MVP built as a <strong>modular monolith</strong>: one Flutter client (<strong>Web + iOS + Android</strong>; this mobile edition targets <strong>native iOS and Android</strong>), one Flask backend, one primary PostgreSQL database, and one Redis instance for caching, pub-sub, and background-job transport. The system is optimized for fast MVP iteration while remaining safe to operate for roughly <strong>3,000 to 5,000 concurrent users</strong>.</p>
+<p><strong><span class="tag-mobile">Mobile</span></strong> The same Flutter codebase may retain a <strong>web</strong> target for admin or marketing, but the <strong>primary MVP ship target</strong> for this document is <strong>native mobile stores</strong>, not a browser-only deployment.</p>
+<p>The architecture keeps strict module boundaries:<br />
+- one deployable backend application<br />
+- one shared database schema, but tables grouped by module ownership<br />
+- no module imports another module's internal files directly<br />
+- every cross-module call goes through the owning module's exported service API<br />
+- feature flags keep runtime behavior swappable without changing the upstream contract</p>
+<p><strong>Deployment topology</strong><br />
+- <code>frontend-web</code> <em>(optional)</em>: Flutter Web static build on Vercel<br />
+- <strong><code><span class="tag-mobile">Mobile</span></code> <code>frontend-mobile</code></strong>: Flutter <strong>iOS</strong> (TestFlight → App Store) and <strong>Android</strong> (internal testing → Play Store) release artifacts; not served as static HTML<br />
+- <code>backend-api</code>: Flask REST API + Socket.IO gateway on Railway<br />
+- <code>backend-worker</code>: Celery worker on Railway<br />
+- <code>backend-scheduler</code>: Celery Beat or APScheduler process on Railway<br />
+- <code>backend-streamer</code>: dedicated long-lived market-stream consumer on Railway<br />
+- <code>postgres</code>: single Railway PostgreSQL database<br />
+- <code>redis</code>: single Railway Redis instance</p>
+<p><strong>External integrations</strong><br />
+- <code>Alpaca</code>: real-time price stream and quote/history data<br />
+- <code>Alpha Vantage</code>: fundamentals and fallback market metadata<br />
+- <code>SendGrid</code>: transactional OTP email delivery<br />
+- <strong><code><span class="tag-mobile">Mobile</span></code> <code>Firebase Cloud Messaging (FCM)</code></strong>: push delivery to Android; iOS delivery via FCM → APNs<br />
+- <strong><code><span class="tag-mobile">Mobile</span></code> <code>Apple Push Notification service (APNs)</code></strong>: required for iOS; configure APNs Auth Key (<code>.p8</code>) in Firebase and Apple Developer</p>
+<p><strong><span class="tag-mobile">Mobile</span> App Store / Play Store deployment pipeline (high level)</strong></p>
+<ol>
+<li><strong>Developer accounts:</strong> Apple Developer Program ($99/yr), Google Play Console (one-time fee).</li>
+<li><strong>Signing:</strong> iOS — certificates, provisioning profiles, App ID with Push Notifications capability; Android — upload keystore (Play App Signing recommended).</li>
+<li><strong>CI builds:</strong> <code>flutter build appbundle --release</code> (Play preferred over raw APK for production), <code>flutter build ipa --release</code> (or <code>flutter build ios</code> + Xcode archive on macOS runner).</li>
+<li><strong>Internal testing:</strong> TestFlight (iOS), Play internal / closed testing (Android).</li>
+<li><strong>Store assets:</strong> icons, screenshots (6.7" / 6.5" iPhone, phone + tablet Android), privacy policy URL, data-safety / App Privacy questionnaires.</li>
+<li><strong>Submission:</strong> App Store Connect + Play Console review; plan <strong>1–2 weeks</strong> first-review buffer.</li>
+<li><strong>Post-release:</strong> staged rollout (Play %), phased release (App Store), crash monitoring (Firebase Crashlytics or Sentry Flutter).</li>
+</ol>
+<p><strong>Operational goals</strong><br />
+- REST is the source of truth; WebSocket is an incremental live-update layer<br />
+- all API responses follow a single shared envelope<br />
+- feature flags are stored in the <code>feature_flags</code> table and can change behavior without deployment<br />
+- Redis is treated as a performance layer, not the only source of truth for critical business events<br />
+- critical side effects use a database outbox so Redis or worker failures do not silently lose alerts or notifications</p>
+<div class="mermaid">
+flowchart TD
+  FlutterWeb[FlutterWeb_Optional]
+  FlutterMobile[FlutterMobile_iOS_Android]
+  FlutterWeb -->|"REST /api/v1"| FlaskApi[FlaskApi]
+  FlutterMobile -->|"REST /api/v1"| FlaskApi
+  FlutterWeb -->|"Socket.IO /stream"| RealtimeGateway[RealtimeGateway]
+  FlutterMobile -->|"Socket.IO /stream"| RealtimeGateway
+  FlutterMobile -->|"FCM token register"| FlaskApi
+  WorkerProc -->|"FCM/APNs send"| FCM[FirebaseFCM]
+  FCM --> FlutterMobile
+  FlaskApi --> PostgresDb[Postgres]
+  FlaskApi --> RedisLayer[Redis]
+  FlaskApi --> SendGridSvc[SendGrid]
+  FlaskApi --> MarketAdapters[AlpacaAndAlphaVantage]
+  RealtimeGateway --> RedisLayer
+  WorkerProc[Worker] --> PostgresDb
+  WorkerProc --> RedisLayer
+  SchedulerProc[Scheduler] --> PostgresDb
+  SchedulerProc --> RedisLayer
+  StreamerProc[Streamer] --> MarketAdapters
+  StreamerProc --> RedisLayer
+  StreamerProc --> PostgresDb
+</div>
+
+<p><strong>Security and reliability baseline</strong><br />
+- OTP auth with email normalization, hashed OTP storage, expiry, attempt tracking, and lockouts<br />
+- short-lived access JWT plus refresh token rotation<br />
+- SQLAlchemy and parameterized queries only<br />
+- endpoint-specific rate limiting<br />
+- structured logs with request IDs<br />
+- Sentry-ready error reporting<br />
+- health/readiness endpoints and queue-lag monitoring<br />
+- retry with exponential backoff for external providers</p>
+<h3 id="12-frontend-structure">1.2 Frontend Structure</h3>
+<p>The frontend is a <strong>Flutter</strong> application (Web + <strong>iOS + Android</strong> for this mobile edition) designed for fast iteration, responsive dashboards, and contract-safe integration with the Flask API. It uses <code>go_router</code> for navigation, Riverpod for state management, <code>dio</code> for HTTP, and Socket.IO for live quotes and notifications.</p>
+<p><strong><span class="tag-mobile">Mobile</span> Platform targets and packages</strong></p>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Package / approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Secure token storage</td>
+<td><code>flutter_secure_storage</code> (replaces web <code>browser_storage</code> on mobile)</td>
+</tr>
+<tr>
+<td>Push notifications</td>
+<td><code>firebase_core</code>, <code>firebase_messaging</code></td>
+</tr>
+<tr>
+<td>Local notifications (foreground display)</td>
+<td><code>flutter_local_notifications</code></td>
+</tr>
+<tr>
+<td>Deep links</td>
+<td><code>go_router</code> deep link support + <code>app_links</code> (optional) + platform manifest config</td>
+</tr>
+<tr>
+<td>Device info / OS version</td>
+<td><code>device_info_plus</code>, <code>package_info_plus</code></td>
+</tr>
+<tr>
+<td>Connectivity / offline</td>
+<td><code>connectivity_plus</code></td>
+</tr>
+<tr>
+<td>Haptics (optional)</td>
+<td><code>flutter_haptics</code> or platform channels</td>
+</tr>
+<tr>
+<td>Crash reporting</td>
+<td><code>sentry_flutter</code> or <code>firebase_crashlytics</code></td>
+</tr>
+<tr>
+<td>App icon / splash</td>
+<td><code>flutter_launcher_icons</code>, <code>flutter_native_splash</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><span class="tag-mobile">Mobile</span> Mobile-specific UI considerations</strong></p>
+<ul>
+<li><strong>Safe areas:</strong> Wrap primary screen bodies in <code>SafeArea</code> (or <code>Scaffold</code> with <code>resizeToAvoidBottomInset</code>) so content does not sit under the iPhone notch, Dynamic Island, or Android gesture/nav bars.</li>
+<li><strong>Touch targets:</strong> Minimum <strong>48×48 logical pixels</strong> for tappable controls (Material); avoid hover-only affordances from web.</li>
+<li><strong>Navigation:</strong> Replace web sidebar/top-nav with <strong><code>BottomNavigationBar</code></strong> (4–5 primary tabs: Dashboard, Watchlists, Alerts, Portfolio; Screener gated by flag). Use <strong><code>NavigationBar</code></strong> (Material 3) on Android and Cupertino tab patterns where appropriate for iOS sub-flows.</li>
+<li><strong>Back behavior:</strong> Honor Android system back and iOS swipe-back via <code>go_router</code> stack; avoid web-only <code>pop</code> assumptions.</li>
+<li><strong>Keyboard:</strong> OTP and form screens must scroll above the keyboard (<code>SingleChildScrollView</code> + <code>viewInsets</code>).</li>
+<li><strong>Charts:</strong> Prefer pan/zoom gestures over mouse hover tooltips; larger hit areas on timeframe chips.</li>
+<li><strong>Biometrics (post-MVP optional):</strong> Local auth to unlock app after background — not required for MVP but reserve <code>local_auth</code> hook.</li>
+<li><strong>Orientation:</strong> Lock portrait for MVP unless tablet layout is explicitly designed.</li>
+<li><strong>Text scaling:</strong> Test with system font scale up to 1.3×; avoid fixed-height rows that clip prices.</li>
+</ul>
+<p><strong><span class="tag-mobile">Mobile</span> Responsive layout strategy (mobile-first)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Breakpoint</th>
+<th>Layout</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phone (&lt; 600dp)</td>
+<td>Single column, bottom nav, full-width cards</td>
+</tr>
+<tr>
+<td>Tablet (600–900dp)</td>
+<td>Optional two-column dashboard; still bottom or rail nav</td>
+</tr>
+<tr>
+<td>Desktop / Web (optional)</td>
+<td>Retain original sidebar shell if web target ships</td>
+</tr>
+</tbody>
+</table>
+<p><strong><span class="tag-mobile">Mobile</span> PWA note:</strong> A <strong>Progressive Web App</strong> (service worker + <code>manifest.json</code>) is <strong>out of scope</strong> for native store delivery. If a lightweight web install is needed later, treat PWA as a <strong>separate 2–3 day spike</strong>, not a substitute for App Store / Play Store binaries.</p>
+<h4 id="ui-and-design-system">UI and design system</h4>
+<ul>
+<li>font: <code>Inter</code></li>
+<li>primary CTA color: <code>#7061F3</code></li>
+<li>background: <code>#FFFFFF</code></li>
+<li>surface/background-alt: <code>#F8F9FA</code></li>
+<li>uptrend color: green</li>
+<li>downtrend color: red</li>
+<li>spacing: 8px grid</li>
+<li>design direction: modern, clean, investor-friendly, mobile-first, still professional on desktop</li>
+</ul>
+<h4 id="planned-frontend-folder-structure">Planned frontend folder structure</h4>
+<pre><code class="language-text">frontend/
+  lib/
+    main.dart
+    app/
+      app.dart
+      router/
+        app_router.dart
+        route_guards.dart
+      theme/
+        app_theme.dart
+        app_colors.dart
+        app_spacing.dart
+        app_typography.dart
+    core/
+      config/
+        app_config.dart
+      network/
+        api_client.dart
+        api_envelope.dart
+        api_error.dart
+        retry_policy.dart
+      auth/
+        auth_session.dart
+        auth_token_store.dart
+        auth_interceptor.dart
+      realtime/
+        socket_client.dart
+        socket_events.dart
+        quote_subscription_manager.dart
+      storage/
+        browser_storage.dart          # web only
+        secure_token_store.dart       # <span class="tag-mobile">Mobile</span> mobile: flutter_secure_storage
+      push/                           # <span class="tag-mobile">Mobile</span>
+        push_service.dart
+        push_token_repository.dart
+        notification_tap_handler.dart
+      platform/                       # <span class="tag-mobile">Mobile</span>
+        platform_info.dart
+        connectivity_service.dart
+      widgets/
+        app_shell.dart                # web: sidebar shell
+        mobile_shell.dart             # <span class="tag-mobile">Mobile</span> BottomNavigationBar shell
+        loading_skeleton.dart
+        empty_state.dart
+        error_state.dart
+        stale_banner.dart
+        safe_screen.dart              # <span class="tag-mobile">Mobile</span> SafeArea wrapper
+    features/
+      auth/
+      dashboard/
+      market/
+      watchlist/
+      alerts/
+      notifications/
+      portfolio/
+      screener/
+    test/
+  android/                            # <span class="tag-mobile">Mobile</span>
+    app/
+      build.gradle.kts
+      src/main/AndroidManifest.xml
+      google-services.json
+  ios/                                # <span class="tag-mobile">Mobile</span>
+    Runner/
+      Info.plist
+      Runner.entitlements
+      GoogleService-Info.plist
+</code></pre>
+<h4 id="navigation-and-routing-map">Navigation and routing map</h4>
+<p><code>go_router</code> uses path-based URLs and a single authenticated shell route. Public routes stay small; authenticated routes are deep-linkable.</p>
+<p><strong><span class="tag-mobile">Mobile</span> Deep linking configuration</strong></p>
+<p><code>go_router</code> route paths stay <strong>unchanged</strong>; platform files wire HTTPS / custom-scheme URLs into the same paths.</p>
+<p><strong>Universal link / app link host (example):</strong> <code>https://app.alphacues.com</code></p>
+<table>
+<thead>
+<tr>
+<th>App path</th>
+<th>Deep link example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/verify-otp</code></td>
+<td><code>https://app.alphacues.com/verify-otp?challengeId=...</code></td>
+</tr>
+<tr>
+<td><code>/symbols/AAPL</code></td>
+<td><code>https://app.alphacues.com/symbols/AAPL</code></td>
+</tr>
+<tr>
+<td><code>/watchlists/42</code></td>
+<td><code>https://app.alphacues.com/watchlists/42</code></td>
+</tr>
+<tr>
+<td><code>/alerts</code></td>
+<td><code>https://app.alphacues.com/alerts</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Android — <code>android/app/src/main/AndroidManifest.xml</code> (inside <code>MainActivity</code>):</strong></p>
+<pre><code class="language-xml">&lt;!-- <span class="tag-mobile">Mobile</span> --&gt;
+&lt;intent-filter android:autoVerify=&quot;true&quot;&gt;
+    &lt;action android:name=&quot;android.intent.action.VIEW&quot; /&gt;
+    &lt;category android:name=&quot;android.intent.category.DEFAULT&quot; /&gt;
+    &lt;category android:name=&quot;android.intent.category.BROWSABLE&quot; /&gt;
+    &lt;data android:scheme=&quot;https&quot; android:host=&quot;app.alphacues.com&quot; /&gt;
+&lt;/intent-filter&gt;
+&lt;intent-filter&gt;
+    &lt;action android:name=&quot;android.intent.action.VIEW&quot; /&gt;
+    &lt;category android:name=&quot;android.intent.category.DEFAULT&quot; /&gt;
+    &lt;category android:name=&quot;android.intent.category.BROWSABLE&quot; /&gt;
+    &lt;data android:scheme=&quot;alphacues&quot; android:host=&quot;open&quot; /&gt;
+&lt;/intent-filter&gt;
+</code></pre>
+<p>Host <strong><code>/.well-known/assetlinks.json</code></strong> on the marketing/API domain for Android App Links verification.</p>
+<p><strong>iOS — <code>ios/Runner/Runner.entitlements</code>:</strong></p>
+<pre><code class="language-xml">&lt;!-- <span class="tag-mobile">Mobile</span> --&gt;
+&lt;key&gt;com.apple.developer.associated-domains&lt;/key&gt;
+&lt;array&gt;
+    &lt;string&gt;applinks:app.alphacues.com&lt;/string&gt;
+&lt;/array&gt;
+</code></pre>
+<p>Host <strong><code>/.well-known/apple-app-site-association</code></strong> (no file extension) for Universal Links.</p>
+<p><strong>Push notification deep links:</strong> FCM <code>data</code> payload includes <code>deepLink</code> (e.g. <code>/symbols/AAPL</code>); <code>notification_tap_handler.dart</code> calls <code>GoRouter.go(deepLink)</code> on cold start (<code>getInitialMessage</code>) and warm resume (<code>onMessageOpenedApp</code>).</p>
+<p><strong><span class="tag-mobile">Mobile</span> Bottom navigation map (authenticated shell)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tab index</th>
+<th>Label</th>
+<th>Root path</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Home</td>
+<td><code>/dashboard</code></td>
+<td></td>
+</tr>
+<tr>
+<td>1</td>
+<td>Watchlists</td>
+<td><code>/watchlists</code></td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Alerts</td>
+<td><code>/alerts</code></td>
+<td>badge for unread</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Portfolio</td>
+<td><code>/portfolio</code></td>
+<td></td>
+</tr>
+<tr>
+<td>—</td>
+<td>Screener</td>
+<td><code>/screener</code></td>
+<td>hidden when <code>enable_screener=false</code>; optional 5th tab or overflow menu</td>
+</tr>
+</tbody>
+</table>
+<p>Symbol detail (<code>/symbols/:symbol</code>) and watchlist detail remain <strong>stack pushes</strong> above the shell, not separate bottom tabs.</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Screen</th>
+<th>Auth</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td>redirect</td>
+<td>mixed</td>
+<td><code>/dashboard</code> if authenticated, else <code>/login</code></td>
+</tr>
+<tr>
+<td><code>/login</code></td>
+<td>email entry</td>
+<td>public</td>
+<td>send OTP</td>
+</tr>
+<tr>
+<td><code>/verify-otp</code></td>
+<td>OTP verification</td>
+<td>public</td>
+<td>accepts <code>challengeId</code> query param</td>
+</tr>
+<tr>
+<td><code>/dashboard</code></td>
+<td>home dashboard</td>
+<td>private</td>
+<td>overview, top movers, watchlist summary</td>
+</tr>
+<tr>
+<td><code>/watchlists</code></td>
+<td>watchlist list</td>
+<td>private</td>
+<td>empty state includes create CTA</td>
+</tr>
+<tr>
+<td><code>/watchlists/:watchlistId</code></td>
+<td>watchlist detail</td>
+<td>private</td>
+<td>prices, add/remove symbols</td>
+</tr>
+<tr>
+<td><code>/symbols/:symbol</code></td>
+<td>symbol detail</td>
+<td>private</td>
+<td>chart, quote, fundamentals, alert CTA</td>
+</tr>
+<tr>
+<td><code>/alerts</code></td>
+<td>alerts and notifications</td>
+<td>private</td>
+<td>active alerts, history, unread state</td>
+</tr>
+<tr>
+<td><code>/portfolio</code></td>
+<td>portfolio summary</td>
+<td>private</td>
+<td>manual holdings for MVP</td>
+</tr>
+<tr>
+<td><code>/screener</code></td>
+<td>strategy and screener</td>
+<td>private</td>
+<td>gated by <code>enable_screener</code></td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>not found</td>
+<td>mixed</td>
+<td>redirect to a safe route</td>
+</tr>
+</tbody>
+</table>
+<h4 id="riverpod-provider-hierarchy">Riverpod provider hierarchy</h4>
+<p>The frontend must avoid tangled auth state. The provider graph is explicit:</p>
+<ol>
+<li><code>appConfigProvider</code><br />
+   Reads API base URL, feature toggles for local mock mode, and environment settings.</li>
+<li><code>browserStorageProvider</code> <em>(web only)</em><br />
+   Owns secure-ish browser storage abstraction for tokens and cached read models.<br />
+2b. <strong><code><span class="tag-mobile">Mobile</span></code> <code>secureTokenStoreProvider</code></strong><br />
+   Wraps <code>flutter_secure_storage</code> for access/refresh tokens on iOS Keychain and Android EncryptedSharedPreferences.</li>
+<li><code>authRepositoryProvider</code><br />
+   Talks only to auth endpoints.</li>
+<li><code>authSessionProvider</code><br />
+   Canonical session state:</li>
+<li><code>null</code> means logged out</li>
+<li><code>AuthSession</code> contains access token, refresh token, expiry, and user object</li>
+<li>methods: <code>sendOtp</code>, <code>verifyOtp</code>, <code>refreshTokens</code>, <code>logout</code></li>
+<li><code>apiClientProvider</code><br />
+   Injects <code>Authorization: Bearer &lt;JWT&gt;</code> for authenticated requests and centralizes error mapping.</li>
+<li><code>socketClientProvider</code><br />
+   Owns one socket connection per authenticated session (browser or mobile app instance).<br />
+6b. <strong><code><span class="tag-mobile">Mobile</span></code> <code>pushServiceProvider</code></strong><br />
+   Registers FCM token with backend after login; refreshes token on <code>onTokenRefresh</code>; clears registration on logout.</li>
+<li>Feature repository providers<br />
+<code>dashboardRepositoryProvider</code>, <code>watchlistRepositoryProvider</code>, <code>alertsRepositoryProvider</code>, <code>portfolioRepositoryProvider</code>, <code>screenerRepositoryProvider</code>, <code>marketRepositoryProvider</code></li>
+<li>Feature controller providers<br />
+   Own <code>AsyncValue</code> screens and mutation flows.</li>
+</ol>
+<h4 id="token-refresh-and-logout-propagation">Token refresh and logout propagation</h4>
+<ul>
+<li>Access token expiry returns <code>401 TOKEN_EXPIRED</code></li>
+<li><code>dio</code> interceptor uses a <strong>single-flight refresh lock</strong> so only one refresh request runs at a time</li>
+<li>queued requests wait for that refresh result and replay once on success</li>
+<li>on refresh failure:</li>
+<li>persisted tokens are cleared</li>
+<li>socket is disconnected</li>
+<li>all user-scoped providers are invalidated</li>
+<li>router redirects to <code>/login</code></li>
+</ul>
+<h4 id="realtime-behavior">Realtime behavior</h4>
+<ul>
+<li>one Socket.IO connection per authenticated session</li>
+<li>namespace: <code>/stream</code></li>
+<li>initial page load always comes from REST</li>
+<li>socket updates only visible symbols plus notification events</li>
+<li>after reconnect, client re-subscribes and refetches REST snapshots before clearing the stale banner</li>
+</ul>
+<h4 id="offline-loading-empty-and-error-states">Offline, loading, empty, and error states</h4>
+<p>Every major screen must render one of: loading, data, empty, error, or degraded/offline. Blank screens are not allowed.</p>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>Loading</th>
+<th>Empty</th>
+<th>Error</th>
+<th>Offline / degraded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard</td>
+<td>skeleton cards and chart placeholders</td>
+<td>create first watchlist CTA</td>
+<td>retry banner plus per-widget fallback</td>
+<td>show cached snapshot with stale timestamp</td>
+</tr>
+<tr>
+<td>Watchlists</td>
+<td>list skeleton</td>
+<td>"No watchlists yet"</td>
+<td>page-level retry</td>
+<td>read cached watchlists, disable mutating actions if needed</td>
+</tr>
+<tr>
+<td>Watchlist detail</td>
+<td>row skeletons</td>
+<td>"Add symbols to start tracking"</td>
+<td>inline row errors plus top retry</td>
+<td>stale price badges</td>
+</tr>
+<tr>
+<td>Symbol detail</td>
+<td>chart placeholder</td>
+<td>invalid symbol routes to not found</td>
+<td>market-data unavailable state</td>
+<td>show last known candle and quote timestamp</td>
+</tr>
+<tr>
+<td>Alerts</td>
+<td>list skeleton</td>
+<td>"No alerts yet"</td>
+<td>form/list errors inline</td>
+<td>pause live badge if socket is down</td>
+</tr>
+<tr>
+<td>Portfolio</td>
+<td>holdings skeleton</td>
+<td>"No holdings yet"</td>
+<td>retry</td>
+<td>use last known prices with stale note</td>
+</tr>
+<tr>
+<td>Screener</td>
+<td>filter placeholder and table skeleton</td>
+<td>"No matches" after a completed run</td>
+<td>preserve filters and show retry</td>
+<td>view last saved preset but disable fresh scans</td>
+</tr>
+</tbody>
+</table>
+<h4 id="frontend-testing-approach">Frontend testing approach</h4>
+<ul>
+<li>provider tests for auth, refresh locking, and logout invalidation</li>
+<li>widget tests for route guards and major loading/empty/error states</li>
+<li>contract tests that parse committed backend JSON fixtures</li>
+<li>limited Chrome E2E flows for login, watchlist, alerts, and reconnect behavior</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> integration tests: <code>integration_test/</code> on Android emulator + iOS simulator (login, bottom nav, deep link cold start)</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> device matrix: at least one physical iPhone (notch) and one physical Android (API 34+); release-mode smoke: <code>flutter run --release</code></li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> push: manual TestFlight / internal track verification for foreground, background, and terminated tap-to-navigate</li>
+</ul>
+<p><strong><span class="tag-mobile">Mobile</span> Android SDK / toolchain requirements</strong></p>
+<p>In <code>android/app/build.gradle.kts</code> (or <code>build.gradle</code>):</p>
+<pre><code class="language-kotlin">// <span class="tag-mobile">Mobile</span> Google Play 2026 policy: target API 36 (Android 16)
+android {
+    compileSdk = 36
+    defaultConfig {
+        minSdk = 24        // Android 7.0+; adjust only with product approval
+        targetSdk = 36
+    }
+}
+</code></pre>
+<ul>
+<li>Install <strong>Android SDK Platform 36</strong> and latest build-tools via Android Studio SDK Manager.</li>
+<li>Use <strong>JDK 17</strong> (Flutter 3.16+ default).</li>
+<li><strong>Android 13+ (API 33):</strong> request <code>POST_NOTIFICATIONS</code> at runtime before showing notifications.</li>
+<li>CI image: <code>ghcr.io/cirruslabs/flutter</code> or <code>subosito/flutter-action</code> with pre-installed SDK 36.</li>
+</ul>
+<p><strong><span class="tag-mobile">Mobile</span> iOS toolchain requirements</strong></p>
+<ul>
+<li><strong>Xcode 15+</strong> (16 recommended for latest iOS SDK).</li>
+<li><strong>Minimum deployment target:</strong> iOS 13.0+ (recommend <strong>15.0</strong> for broader Swift/Flutter plugin support).</li>
+<li>Enable capabilities: <strong>Push Notifications</strong>, <strong>Associated Domains</strong> (Universal Links).</li>
+<li>CocoaPods: run <code>pod install</code> in <code>ios/</code> after <code>flutter pub get</code>.</li>
+</ul>
+<p><strong><span class="tag-mobile">Mobile</span> Release build commands</strong></p>
+<pre><code class="language-bash"># Android — Play Store (preferred)
+flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info/android
+
+# Android — sideload / internal QA APK
+flutter build apk --release --obfuscate --split-debug-info=build/debug-info/android
+
+# iOS — requires macOS + signing
+flutter build ipa --release --obfuscate --split-debug-info=build/debug-info/ios
+# Alternative: flutter build ios --release then Archive in Xcode
+</code></pre>
+<h3 id="13-backend-structure">1.3 Backend Structure</h3>
+<p>The backend is a Flask modular monolith that owns the business contract, auth lifecycle, persistence model, and realtime fan-out. Each module owns its tables, service layer, routes, schemas, and tests. Cross-module access is allowed only through exported service APIs.</p>
+<h4 id="planned-backend-folder-structure">Planned backend folder structure</h4>
+<pre><code class="language-text">backend/
+  app/
+    __init__.py
+    extensions.py
+    config/
+      base.py
+      development.py
+      production.py
+      testing.py
+    modules/
+      user/
+        __init__.py
+        routes.py
+        service.py
+        models.py
+        schemas.py
+        tests/
+      portfolio/
+        __init__.py
+        routes.py
+        service.py
+        models.py
+        schemas.py
+        tests/
+      market/
+        __init__.py
+        routes.py
+        service.py
+        models.py
+        schemas.py
+        tests/
+      watchlist/
+        __init__.py
+        routes.py
+        service.py
+        models.py
+        schemas.py
+        tests/
+      alerts/
+        __init__.py
+        routes.py
+        service.py
+        models.py
+        schemas.py
+        tests/
+      notifications/
+        __init__.py
+        routes.py
+        service.py
+        models.py
+        schemas.py
+        tests/
+      screener/
+        __init__.py
+        routes.py
+        service.py
+        models.py
+        schemas.py
+        tests/
+    shared/
+      db.py
+      cache.py
+      limiter.py
+      logging.py
+      error_handler.py
+      auth.py
+      feature_flags.py
+      response.py
+      pagination.py
+      validators.py
+      websocket.py
+    adapters/
+      protocols.py
+      market_data.py
+      fake_market_data.py
+      email_sender.py
+      fake_email_sender.py
+  migrations/
+  worker.py
+  scheduler.py
+  streamer.py
+  wsgi.py
+  tests/
+</code></pre>
+<h4 id="module-ownership-and-public-services">Module ownership and public services</h4>
+<ul>
+<li><code>user</code>: <code>UserService</code>, <code>SessionService</code></li>
+<li><code>portfolio</code>: <code>PortfolioService</code></li>
+<li><code>market</code>: <code>MarketService</code></li>
+<li><code>watchlist</code>: <code>WatchlistService</code></li>
+<li><code>alerts</code>: <code>AlertsService</code>, <code>AlertEvaluationService</code></li>
+<li><code>notifications</code>: <code>NotificationService</code></li>
+<li><code>screener</code>: <code>ScreenerService</code></li>
+<li><code>shared</code>: <code>FeatureFlagService</code>, <code>CacheService</code>, <code>ResponseFactory</code></li>
+</ul>
+<p><strong>Boundary rule</strong><br />
+- allowed: <code>from app.modules.watchlist.service import WatchlistService</code><br />
+- not allowed: direct imports into another module's <code>models.py</code> or internal helper files</p>
+<h4 id="process-responsibilities">Process responsibilities</h4>
+<ul>
+<li><code>backend-api</code></li>
+<li>serves <code>/api/v1/*</code></li>
+<li>validates JWT</li>
+<li>serves Socket.IO namespace <code>/stream</code></li>
+<li>exposes <code>/health/live</code> and <code>/health/ready</code></li>
+<li><code>backend-worker</code></li>
+<li>sends OTP emails</li>
+<li>processes outbox events</li>
+<li>marks notifications delivered</li>
+<li>runs slower async work</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> sends push notifications via FCM HTTP v1 API (Android + iOS)</li>
+<li><code>backend-scheduler</code></li>
+<li>OTP cleanup</li>
+<li>alert reconciliation</li>
+<li>cache warmers</li>
+<li>periodic backfills</li>
+<li><code>backend-streamer</code></li>
+<li>owns upstream Alpaca real-time connection</li>
+<li>normalizes ticks</li>
+<li>stores latest prices</li>
+<li>publishes quote updates</li>
+</ul>
+<h4 id="auth-design">Auth design</h4>
+<p>Flask owns auth. Supabase is intentionally excluded from the runtime path to keep a single business/API contract and one primary database.</p>
+<p><strong>Flow</strong><br />
+1. user requests OTP with email<br />
+2. backend creates or reuses a <code>users</code> row and inserts an <code>otp_tokens</code> challenge row<br />
+3. OTP is hashed at rest and sent by SendGrid<br />
+4. user submits OTP plus <code>otpChallengeId</code><br />
+5. backend verifies the challenge, enforces attempt limits, issues access and refresh tokens, and returns the canonical user object</p>
+<p><strong>Edge cases</strong><br />
+- OTP expires after 5 minutes<br />
+- 5 wrong attempts lock email + IP for 15 minutes<br />
+- resend is rate-limited and invalidates previous unused challenge<br />
+- generic messaging reduces account enumeration</p>
+<h4 id="realtime-architecture">Realtime architecture</h4>
+<ul>
+<li>client connection: Socket.IO namespace <code>/stream</code></li>
+<li>upstream source: Alpaca quote stream</li>
+<li>internal fan-out: Redis pub-sub for non-critical live updates</li>
+<li>drift correction: client refreshes REST state after reconnect</li>
+<li>durability: alert outcomes and notifications are first written to Postgres before any websocket push</li>
+</ul>
+<h4 id="reliability-design">Reliability design</h4>
+<ul>
+<li>Redis cache TTLs:</li>
+<li>quotes: 3 to 5 seconds</li>
+<li>watchlist summary: 15 to 30 seconds</li>
+<li>chart bars: 1 to 5 minutes</li>
+<li>fundamentals: 1 to 6 hours</li>
+<li>retries:</li>
+<li>external APIs use exponential backoff with jitter</li>
+<li>side-effecting tasks must be idempotent</li>
+<li>rate limits:</li>
+<li>OTP request: <code>5/minute/IP</code>, <code>3/15 minutes/email</code></li>
+<li>OTP verify: lock on the 5th wrong attempt</li>
+<li>market search: <code>30/minute/user</code></li>
+<li>batch quote reads capped by symbol count</li>
+</ul>
+<h4 id="local-development-without-live-keys">Local development without live keys</h4>
+<p>Use adapters and environment flags:<br />
+- <code>MOCK_EXTERNAL_SERVICES=true</code><br />
+- <code>EMAIL_BACKEND=console</code> or <code>smtp</code><br />
+- fake market data fixtures for Alpaca and Alpha Vantage<br />
+- console OTP or Mailpit for dev email</p>
+<p>This keeps auth and dashboard flows testable before any live provider key is added.</p>
+<h3 id="14-api-design">1.4 API Design</h3>
+<h4 id="canonical-api-rules">Canonical API rules</h4>
+<ul>
+<li>public base path: <code>/api/v1</code></li>
+<li>auth header: <code>Authorization: Bearer &lt;JWT&gt;</code></li>
+<li>content type: <code>application/json</code></li>
+<li>timestamps: ISO-8601 UTC, example <code>2026-05-13T17:15:30Z</code></li>
+<li>numeric precision:</li>
+<li>API numbers may be serialized as JSON numbers</li>
+<li>stored money and price values use <code>NUMERIC(18,6)</code></li>
+<li>ID format:</li>
+<li><code>userId</code>, <code>watchlistId</code>, <code>alertId</code>, <code>notificationId</code>, <code>portfolioId</code> are decimal strings backed by <code>BIGSERIAL</code></li>
+<li><code>eventId</code> and request IDs are UUID strings</li>
+<li>symbol format:</li>
+<li>uppercase ticker strings, <code>^[A-Z][A-Z0-9._-]{0,14}$</code></li>
+</ul>
+<h4 id="response-envelope-contract">Response envelope contract</h4>
+<p><strong>Success</strong></p>
+<pre><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;data&quot;: {},
+  &quot;error&quot;: null,
+  &quot;meta&quot;: {
+    &quot;requestId&quot;: &quot;e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f&quot;,
+    &quot;apiVersion&quot;: &quot;1&quot;
+  }
+}
+</code></pre>
+<p><strong>Error</strong></p>
+<pre><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;data&quot;: null,
+  &quot;error&quot;: {
+    &quot;code&quot;: &quot;OTP_EXPIRED&quot;,
+    &quot;message&quot;: &quot;This code expired. Request a new one.&quot;,
+    &quot;details&quot;: {}
+  },
+  &quot;meta&quot;: {
+    &quot;requestId&quot;: &quot;e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f&quot;,
+    &quot;apiVersion&quot;: &quot;1&quot;
+  }
+}
+</code></pre>
+<h4 id="error-contract">Error contract</h4>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th style="text-align: right;">HTTP</th>
+<th><code>error.code</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>invalid input</td>
+<td style="text-align: right;">422</td>
+<td><code>VALIDATION_ERROR</code></td>
+</tr>
+<tr>
+<td>missing or bad JWT</td>
+<td style="text-align: right;">401</td>
+<td><code>UNAUTHORIZED</code></td>
+</tr>
+<tr>
+<td>expired access token</td>
+<td style="text-align: right;">401</td>
+<td><code>TOKEN_EXPIRED</code></td>
+</tr>
+<tr>
+<td>wrong OTP</td>
+<td style="text-align: right;">401</td>
+<td><code>OTP_INVALID</code></td>
+</tr>
+<tr>
+<td>expired OTP</td>
+<td style="text-align: right;">401</td>
+<td><code>OTP_EXPIRED</code></td>
+</tr>
+<tr>
+<td>unknown challenge</td>
+<td style="text-align: right;">404</td>
+<td><code>OTP_CHALLENGE_NOT_FOUND</code></td>
+</tr>
+<tr>
+<td>too many OTP attempts</td>
+<td style="text-align: right;">429</td>
+<td><code>OTP_LOCKED</code></td>
+</tr>
+<tr>
+<td>endpoint rate limited</td>
+<td style="text-align: right;">429</td>
+<td><code>RATE_LIMITED</code></td>
+</tr>
+<tr>
+<td>duplicate symbol in watchlist</td>
+<td style="text-align: right;">409</td>
+<td><code>DUPLICATE_SYMBOL</code></td>
+</tr>
+<tr>
+<td>feature flag disabled</td>
+<td style="text-align: right;">403</td>
+<td><code>FEATURE_DISABLED</code></td>
+</tr>
+<tr>
+<td>upstream timeout</td>
+<td style="text-align: right;">504</td>
+<td><code>UPSTREAM_TIMEOUT</code></td>
+</tr>
+<tr>
+<td>degraded dependency</td>
+<td style="text-align: right;">503</td>
+<td><code>SERVICE_UNAVAILABLE</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="auth-contract">Auth contract</h4>
+<p><strong>JWT claims</strong><br />
+- <code>sub</code>: <code>userId</code><br />
+- <code>email</code>: normalized email<br />
+- <code>sid</code>: session identifier<br />
+- <code>typ</code>: <code>access</code> or <code>refresh</code><br />
+- <code>iat</code>, <code>exp</code></p>
+<p><strong>Session policy</strong><br />
+- access token TTL: 15 minutes<br />
+- refresh token TTL: 7 days<br />
+- refresh rotates on every successful refresh<br />
+- refresh failure logs the user out</p>
+<p><strong>Endpoints</strong><br />
+| Method | Endpoint | Notes |<br />
+|---|---|---|<br />
+| <code>POST</code> | <code>/api/v1/auth/send-otp</code> | request OTP to email |<br />
+| <code>POST</code> | <code>/api/v1/auth/verify-otp</code> | verify OTP and issue tokens |<br />
+| <code>POST</code> | <code>/api/v1/auth/refresh</code> | refresh access and refresh tokens |<br />
+| <code>POST</code> | <code>/api/v1/auth/logout</code> | revoke session and clear refresh token |<br />
+| <code>GET</code> | <code>/api/v1/auth/verify</code> | verify current access token |<br />
+| <code>GET</code> | <code>/api/v1/auth/me</code> | current user profile |<br />
+| <code>PUT</code> | <code>/api/v1/auth/me</code> | update display name and avatar URL |</p>
+<p><strong>Request and response shapes</strong><br />
+- <code>POST /api/v1/auth/send-otp</code><br />
+  - request body: <code>{ "email": "user@example.com" }</code><br />
+  - success data:<br />
+<code>json
+    {
+      "otpChallengeId": "8f38ef28-6b85-44c1-b1e5-06658ff52e4f",
+      "emailMasked": "u***@example.com",
+      "expiresInSeconds": 300
+    }</code><br />
+- <code>POST /api/v1/auth/verify-otp</code><br />
+  - request body: <code>{ "email": "user@example.com", "otpChallengeId": "uuid", "otpCode": "123456" }</code><br />
+  - success data:<br />
+<code>json
+    {
+      "accessToken": "jwt",
+      "refreshToken": "jwt",
+      "expiresInSeconds": 900,
+      "user": {
+        "userId": "123",
+        "email": "user@example.com",
+        "name": "Alex",
+        "avatarUrl": null
+      }
+    }</code></p>
+<h4 id="market-and-dashboard-contract">Market and dashboard contract</h4>
+<p><strong>Canonical query parameters</strong><br />
+- <code>symbol</code><br />
+- <code>symbols</code><br />
+- <code>q</code><br />
+- <code>timeframe</code><br />
+- <code>limit</code><br />
+- <code>cursor</code><br />
+- <code>sort</code><br />
+- <code>range</code></p>
+<p><strong>Timeframe and range rules</strong><br />
+- <code>timeframe</code> means bar granularity only:<br />
+  - <code>5min</code>, <code>15min</code>, <code>30min</code>, <code>1hour</code>, <code>1day</code>, <code>1week</code>, <code>1month</code><br />
+- <code>range</code> means chart period:<br />
+  - <code>1D</code>, <code>1W</code>, <code>1M</code>, <code>3M</code>, <code>6M</code>, <code>1Y</code>, <code>5Y</code>, <code>MAX</code></p>
+<p><strong>Endpoints</strong><br />
+| Method | Endpoint | Notes |<br />
+|---|---|---|<br />
+| <code>GET</code> | <code>/api/v1/market/quote?symbol=AAPL</code> | latest quote |<br />
+| <code>GET</code> | <code>/api/v1/market/bars?symbol=AAPL&amp;timeframe=5min&amp;range=1D</code> | OHLCV bars |<br />
+| <code>GET</code> | <code>/api/v1/market/snapshot?symbols=AAPL,TSLA</code> | batch snapshot |<br />
+| <code>GET</code> | <code>/api/v1/market/search?q=apple&amp;limit=10</code> | search/autocomplete |<br />
+| <code>GET</code> | <code>/api/v1/market/movers?sort=gainers&amp;limit=10</code> | dashboard movers |<br />
+| <code>GET</code> | <code>/api/v1/market/fundamentals?symbol=AAPL</code> | company fundamentals |<br />
+| <code>GET</code> | <code>/api/v1/dashboard</code> | dashboard aggregate payload |</p>
+<p><strong>Bar contract</strong></p>
+<pre><code class="language-json">{
+  &quot;symbol&quot;: &quot;AAPL&quot;,
+  &quot;bars&quot;: [
+    {
+      &quot;timeStamp&quot;: &quot;2026-05-13T14:30:00Z&quot;,
+      &quot;openPrice&quot;: 188.120000,
+      &quot;highPrice&quot;: 189.020000,
+      &quot;lowPrice&quot;: 187.980000,
+      &quot;closePrice&quot;: 188.900000,
+      &quot;volume&quot;: 1823400
+    }
+  ]
+}
+</code></pre>
+<h4 id="watchlist-contract">Watchlist contract</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Endpoint</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/watchlist</code></td>
+<td>list watchlists</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/watchlist</code></td>
+<td>create watchlist</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/watchlist/:id</code></td>
+<td>watchlist detail</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/api/v1/watchlist/:id</code></td>
+<td>rename watchlist</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/v1/watchlist/:id</code></td>
+<td>delete watchlist</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/watchlist/:id/items</code></td>
+<td>add symbol</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/v1/watchlist/:id/items/:symbol</code></td>
+<td>remove symbol</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Domain semantics</strong><br />
+- a <code>watchlist item</code> is a unique symbol within one watchlist<br />
+- duplicate symbols are rejected with <code>409 DUPLICATE_SYMBOL</code><br />
+- watchlists are user-owned only; no shared watchlists in MVP</p>
+<h4 id="alerts-and-notifications-contract">Alerts and notifications contract</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Endpoint</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/alerts</code></td>
+<td>list alerts</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/alerts</code></td>
+<td>create alert</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/api/v1/alerts/:id</code></td>
+<td>update alert</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/v1/alerts/:id</code></td>
+<td>delete alert</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/alerts/history</code></td>
+<td>triggered-alert history</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/notifications</code></td>
+<td>notification feed</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/api/v1/notifications/:id/read</code></td>
+<td>mark read</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/api/v1/notifications/read-all</code></td>
+<td>mark all read</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Enum contract</strong><br />
+- <code>action</code>: <code>BUY</code>, <code>SELL</code><br />
+- <code>condition</code>: <code>ABOVE</code>, <code>BELOW</code>, <code>PERCENT_CHANGE</code><br />
+- <code>notificationChannel</code>: <code>IN_APP</code>, <code>EMAIL</code>, <strong><code>PUSH</code></strong> <code><span class="tag-mobile">Mobile</span></code></p>
+<p><strong><span class="tag-mobile">Mobile</span> Push notification API (additive)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Endpoint</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/devices/register</code></td>
+<td>Register or update FCM device token</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/v1/devices/:deviceId</code></td>
+<td>Unregister on logout</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/api/v1/devices/:deviceId/preferences</code></td>
+<td>Opt in/out of push per category (optional MVP: global on/off)</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>POST /api/v1/devices/register</code> request body (example):</strong></p>
+<pre><code class="language-json">{
+  &quot;fcmToken&quot;: &quot;string&quot;,
+  &quot;platform&quot;: &quot;ios&quot;,
+  &quot;appVersion&quot;: &quot;1.0.0&quot;,
+  &quot;deviceId&quot;: &quot;client-generated-uuid&quot;
+}
+</code></pre>
+<p><strong>FCM <code>data</code> payload for alert triggers (example):</strong></p>
+<pre><code class="language-json">{
+  &quot;deepLink&quot;: &quot;/symbols/AAPL&quot;,
+  &quot;notificationId&quot;: &quot;456&quot;,
+  &quot;alertId&quot;: &quot;123&quot;
+}
+</code></pre>
+<p><strong>Business rules</strong><br />
+- <code>alert triggered</code> means the latest evaluated market price crosses the alert threshold from the non-triggered side while the alert is active and outside any cooldown window<br />
+- one alert should not generate duplicate notifications for the same evaluation window<br />
+- an alert can be re-armed if edited or re-enabled</p>
+<h4 id="portfolio-contract">Portfolio contract</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Endpoint</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/portfolio</code></td>
+<td>portfolio summary</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/portfolio/history</code></td>
+<td>portfolio performance</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/portfolio/transactions</code></td>
+<td>BUY/SELL event ledger</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/portfolio/event</code></td>
+<td>record BUY/SELL event</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/api/v1/portfolio/event/:id</code></td>
+<td>edit manual event before settlement window closes</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/v1/portfolio/event/:id</code></td>
+<td>delete manual event if allowed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Domain semantics</strong><br />
+- <code>BUY/SELL event</code> means a user-recorded portfolio transaction in the MVP, not a broker-executed order<br />
+- <code>portfolio total</code> / <code>totalValue</code> means current marked-to-market value of all current positions<br />
+- <code>availableBalance</code> is present for contract compatibility and defaults to <code>0.000000</code> until cash tracking is introduced</p>
+<p><strong>Portfolio summary shape</strong></p>
+<pre><code class="language-json">{
+  &quot;portfolioId&quot;: &quot;12&quot;,
+  &quot;totalValue&quot;: 12500.500000,
+  &quot;availableBalance&quot;: 0.000000,
+  &quot;totalProfit&quot;: 500.500000,
+  &quot;totalReturn&quot;: 4.170000,
+  &quot;dayChange&quot;: -125.220000,
+  &quot;asOf&quot;: &quot;2026-05-13T14:30:00Z&quot;
+}
+</code></pre>
+<h4 id="screener-contract">Screener contract</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Endpoint</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/screener/strategies</code></td>
+<td>saved strategies</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/screener/strategies</code></td>
+<td>save strategy</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/v1/screener/strategies/:id</code></td>
+<td>delete strategy</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/screener/run</code></td>
+<td>execute a screen</td>
+</tr>
+</tbody>
+</table>
+<h4 id="pagination-sorting-filtering-and-idempotency">Pagination, sorting, filtering, and idempotency</h4>
+<ul>
+<li>list endpoints return <code>meta.nextCursor</code></li>
+<li><code>limit</code> defaults to 20, max 100 unless the endpoint documents otherwise</li>
+<li><code>sort</code> uses explicit enums per endpoint, not free-form SQL-like fields</li>
+<li>mutations support an optional <code>Idempotency-Key</code> header for retry-safe create operations such as <code>send-otp</code>, <code>create alert</code>, and <code>record portfolio event</code></li>
+</ul>
+<h4 id="backward-compatibility-rules">Backward compatibility rules</h4>
+<ul>
+<li><code>/api/v1</code> is canonical</li>
+<li>older <code>/api/*</code> paths from the current proxy backend can stay as legacy aliases during migration, but no old path is silently repurposed to new semantics</li>
+<li>breaking changes require <code>/api/v2</code></li>
+<li>additive fields are allowed in <code>v1</code></li>
+<li>deprecated fields remain for at least one frontend release window</li>
+</ul>
+<h4 id="realtime-contract">Realtime contract</h4>
+<p><strong>Namespace</strong><br />
+- Socket.IO namespace: <code>/stream</code></p>
+<p><strong>Client events</strong><br />
+- <code>subscribe_quotes</code><br />
+- <code>unsubscribe_quotes</code><br />
+- <code>subscribe_notifications</code><br />
+- <code>resume_session</code></p>
+<p><strong>Server events</strong><br />
+- <code>quote_update</code><br />
+- <code>notification_new</code><br />
+- <code>alert_triggered</code><br />
+- <code>connection_state</code><br />
+- <code>error</code></p>
+<p><strong><code>quote_update</code> payload</strong></p>
+<pre><code class="language-json">{
+  &quot;symbol&quot;: &quot;AAPL&quot;,
+  &quot;lastPrice&quot;: 188.900000,
+  &quot;changeAmount&quot;: 1.240000,
+  &quot;changePercent&quot;: 0.661200,
+  &quot;asOf&quot;: &quot;2026-05-13T14:30:01Z&quot;
+}
+</code></pre>
+<p><strong><code>notification_new</code> payload</strong></p>
+<pre><code class="language-json">{
+  &quot;notificationId&quot;: &quot;456&quot;,
+  &quot;alertId&quot;: &quot;123&quot;,
+  &quot;title&quot;: &quot;AAPL crossed above 190.00&quot;,
+  &quot;body&quot;: &quot;Your AAPL ABOVE alert was triggered.&quot;,
+  &quot;createdAt&quot;: &quot;2026-05-13T14:30:02Z&quot;
+}
+</code></pre>
+<h3 id="15-database-design">1.5 Database Design</h3>
+<p>The primary database is PostgreSQL. Table and column names preserve the current backend structure document wherever possible. Schema evolution is additive-first.</p>
+<h4 id="database-relationship-diagram">Database relationship diagram</h4>
+<div class="mermaid">
+erDiagram
+    users ||--o{ otp_tokens : has
+    users ||--o{ user_sessions : owns
+    users ||--o{ watchlists : owns
+    watchlists ||--o{ watchlist_items : contains
+    users ||--o{ portfolio_event : records
+    users ||--o{ positions : holds
+    users ||--o{ portfolio_snapshot : snapshots
+    users ||--o{ alerts : creates
+    alerts ||--o{ notifications : generates
+    alerts ||--o{ alert_trigger_events : triggers
+    users ||--o{ notifications : receives
+    users ||--o{ screener_strategies : saves
+
+    users {
+      BIGSERIAL user_id PK
+      TEXT email UK
+      TEXT name
+      TEXT avatar_url
+      BOOLEAN is_active
+      TIMESTAMPTZ created_at
+      TIMESTAMPTZ updated_at
+    }
+
+    otp_tokens {
+      BIGSERIAL id PK
+      UUID challenge_id UK
+      BIGINT user_id FK
+      TEXT email
+      TEXT otp_hash
+      TIMESTAMPTZ expires_at
+      BOOLEAN used
+      INTEGER failed_attempts
+      TIMESTAMPTZ locked_until
+    }
+
+    user_sessions {
+      UUID session_id PK
+      BIGINT user_id FK
+      TEXT refresh_token_hash
+      TIMESTAMPTZ expires_at
+      TIMESTAMPTZ revoked_at
+    }
+
+    watchlists {
+      BIGSERIAL watchlist_id PK
+      BIGINT user_id FK
+      TEXT name
+      TIMESTAMPTZ created_at
+    }
+
+    watchlist_items {
+      BIGSERIAL id PK
+      BIGINT watchlist_id FK
+      TEXT symbol
+      TIMESTAMPTZ added_at
+    }
+
+    portfolio_event {
+      UUID event_id PK
+      TIMESTAMPTZ time_stamp
+      BIGINT user_id FK
+      TEXT symbol
+      TEXT action
+      NUMERIC price
+      INTEGER volume
+    }
+
+    positions {
+      BIGINT user_id FK
+      TEXT symbol PK
+      INTEGER volume
+      NUMERIC total_price
+      TIMESTAMPTZ updated_at
+    }
+
+    portfolio_snapshot {
+      BIGINT user_id FK
+      TIMESTAMPTZ time_stamp PK
+      TEXT symbol PK
+      BIGINT quantity
+      NUMERIC total_price
+    }
+
+    stock_tick {
+      TEXT symbol PK
+      TIMESTAMPTZ time_stamp PK
+      NUMERIC open_price
+      NUMERIC high_price
+      NUMERIC low_price
+      NUMERIC close_price
+      BIGINT volume
+    }
+
+    alerts {
+      BIGSERIAL alert_id PK
+      BIGINT user_id FK
+      TEXT symbol
+      TEXT condition
+      NUMERIC target
+      BOOLEAN is_active
+      BOOLEAN triggered
+      INTEGER cooldown_seconds
+      TIMESTAMPTZ last_triggered_at
+    }
+
+    alert_trigger_events {
+      BIGSERIAL id PK
+      BIGINT alert_id FK
+      TIMESTAMPTZ triggered_at
+      NUMERIC trigger_price
+    }
+
+    notifications {
+      BIGSERIAL notification_id PK
+      BIGINT user_id FK
+      BIGINT alert_id FK
+      TEXT title
+      TEXT body
+      BOOLEAN is_read
+      TIMESTAMPTZ created_at
+    }
+
+    screener_strategies {
+      BIGSERIAL strategy_id PK
+      BIGINT user_id FK
+      TEXT name
+      JSONB filters
+      TIMESTAMPTZ created_at
+    }
+
+    feature_flags {
+      TEXT flag_key PK
+      BOOLEAN is_enabled
+      TEXT description
+      TIMESTAMPTZ updated_at
+    }
+</div>
+
+<h4 id="core-module-tables">Core module tables</h4>
+<p><strong>User and session</strong><br />
+- <code>users</code><br />
+  - <code>user_id BIGSERIAL PRIMARY KEY</code><br />
+  - <code>email TEXT NOT NULL UNIQUE</code><br />
+  - <code>name TEXT NULL</code><br />
+  - <code>avatar_url TEXT NULL</code><br />
+  - <code>is_active BOOLEAN NOT NULL DEFAULT TRUE</code><br />
+  - <code>created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+  - <code>updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+- <code>otp_tokens</code><br />
+  - <code>id BIGSERIAL PRIMARY KEY</code><br />
+  - <code>challenge_id UUID NOT NULL UNIQUE</code><br />
+  - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+  - <code>email TEXT NOT NULL</code><br />
+  - <code>otp_hash TEXT NOT NULL</code><br />
+  - <code>expires_at TIMESTAMPTZ NOT NULL</code><br />
+  - <code>used BOOLEAN NOT NULL DEFAULT FALSE</code><br />
+  - <code>failed_attempts INTEGER NOT NULL DEFAULT 0</code><br />
+  - <code>locked_until TIMESTAMPTZ NULL</code><br />
+  - <code>created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+- <code>user_sessions</code><br />
+  - <code>session_id UUID PRIMARY KEY</code><br />
+  - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+  - <code>refresh_token_hash TEXT NOT NULL</code><br />
+  - <code>expires_at TIMESTAMPTZ NOT NULL</code><br />
+  - <code>revoked_at TIMESTAMPTZ NULL</code><br />
+  - <code>created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code></p>
+<p><strong>Watchlist</strong><br />
+- <code>watchlists</code><br />
+  - <code>watchlist_id BIGSERIAL PRIMARY KEY</code><br />
+  - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+  - <code>name TEXT NOT NULL</code><br />
+  - <code>created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+- <code>watchlist_items</code><br />
+  - <code>id BIGSERIAL PRIMARY KEY</code><br />
+  - <code>watchlist_id BIGINT NOT NULL REFERENCES watchlists(watchlist_id)</code><br />
+  - <code>symbol TEXT NOT NULL</code><br />
+  - <code>added_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+  - <code>UNIQUE (watchlist_id, symbol)</code></p>
+<p><strong>Portfolio</strong><br />
+- <code>portfolio_event</code><br />
+  - <code>event_id UUID PRIMARY KEY</code><br />
+  - <code>time_stamp TIMESTAMPTZ NOT NULL</code><br />
+  - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+  - <code>symbol TEXT NOT NULL</code><br />
+  - <code>action TEXT NOT NULL CHECK (action IN ('BUY','SELL'))</code><br />
+  - <code>price NUMERIC(18,6) NOT NULL</code><br />
+  - <code>volume INTEGER NOT NULL</code><br />
+- <code>positions</code><br />
+  - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+  - <code>symbol TEXT NOT NULL</code><br />
+  - <code>volume INTEGER NOT NULL DEFAULT 0</code><br />
+  - <code>total_price NUMERIC(18,6) NOT NULL DEFAULT 0</code><br />
+  - <code>updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+  - <code>PRIMARY KEY (user_id, symbol)</code><br />
+- <code>portfolio_snapshot</code><br />
+  - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+  - <code>time_stamp TIMESTAMPTZ NOT NULL</code><br />
+  - <code>symbol TEXT NOT NULL</code><br />
+  - <code>quantity BIGINT NOT NULL</code><br />
+  - <code>total_price NUMERIC(18,6) NOT NULL</code><br />
+  - <code>PRIMARY KEY (user_id, time_stamp, symbol)</code></p>
+<p><strong>Canonical semantics for portfolio math</strong><br />
+- <code>positions.total_price</code> means remaining cost basis of the current open quantity<br />
+- on <code>SELL</code>, the system reduces <code>total_price</code> by weighted average cost, not by sale proceeds<br />
+- realized P/L is derived separately; this avoids ambiguous cost-basis math</p>
+<p><strong>Market</strong><br />
+- <code>stock_tick</code><br />
+  - <code>symbol TEXT NOT NULL</code><br />
+  - <code>time_stamp TIMESTAMPTZ NOT NULL</code><br />
+  - <code>open_price NUMERIC(18,6) NULL</code><br />
+  - <code>high_price NUMERIC(18,6) NULL</code><br />
+  - <code>low_price NUMERIC(18,6) NULL</code><br />
+  - <code>close_price NUMERIC(18,6) NULL</code><br />
+  - <code>volume BIGINT NULL</code><br />
+  - <code>PRIMARY KEY (symbol, time_stamp)</code><br />
+- rollup views or materialized views<br />
+  - <code>stock_tick_5min</code><br />
+  - <code>stock_tick_15min</code><br />
+  - <code>stock_tick_30min</code><br />
+  - <code>stock_tick_1hour</code><br />
+  - <code>stock_tick_1day</code><br />
+  - <code>stock_tick_1week</code><br />
+  - <code>stock_tick_1month</code></p>
+<p>Phase 1 uses PostgreSQL-safe tables and materialized views. If TimescaleDB is enabled later on Railway, the same public table and view names remain; only the storage engine and refresh strategy change.</p>
+<p><strong>Alerts and notifications</strong><br />
+- <code>alerts</code><br />
+  - <code>alert_id BIGSERIAL PRIMARY KEY</code><br />
+  - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+  - <code>symbol TEXT NOT NULL</code><br />
+  - <code>condition TEXT NOT NULL CHECK (condition IN ('ABOVE','BELOW','PERCENT_CHANGE'))</code><br />
+  - <code>target NUMERIC(18,6) NOT NULL</code><br />
+  - <code>is_active BOOLEAN NOT NULL DEFAULT TRUE</code><br />
+  - <code>triggered BOOLEAN NOT NULL DEFAULT FALSE</code><br />
+  - <code>cooldown_seconds INTEGER NOT NULL DEFAULT 0</code><br />
+  - <code>last_triggered_at TIMESTAMPTZ NULL</code><br />
+  - <code>created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+- <code>notifications</code><br />
+  - <code>notification_id BIGSERIAL PRIMARY KEY</code><br />
+  - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+  - <code>alert_id BIGINT NULL REFERENCES alerts(alert_id)</code><br />
+  - <code>title TEXT NOT NULL</code><br />
+  - <code>body TEXT NOT NULL</code><br />
+  - <code>is_read BOOLEAN NOT NULL DEFAULT FALSE</code><br />
+  - <code>created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+- additive support tables<br />
+  - <code>alert_trigger_events</code><br />
+  - <code>notification_deliveries</code><br />
+  - <code>outbox_events</code><br />
+  - <strong><code><span class="tag-mobile">Mobile</span></code> <code>device_push_tokens</code></strong><br />
+    - <code>device_id UUID PRIMARY KEY</code> (client-stable id)<br />
+    - <code>user_id BIGINT NOT NULL REFERENCES users(user_id)</code><br />
+    - <code>fcm_token TEXT NOT NULL</code><br />
+    - <code>platform TEXT NOT NULL CHECK (platform IN ('ios','android'))</code><br />
+    - <code>app_version TEXT NULL</code><br />
+    - <code>is_active BOOLEAN NOT NULL DEFAULT TRUE</code><br />
+    - <code>last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+    - <code>created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code><br />
+    - <code>UNIQUE (user_id, fcm_token)</code></p>
+<p><strong>Screener and flags</strong><br />
+- <code>screener_strategies</code><br />
+  - saved user-defined screen filters<br />
+- <code>feature_flags</code><br />
+  - <code>flag_key TEXT PRIMARY KEY</code><br />
+  - <code>is_enabled BOOLEAN NOT NULL DEFAULT FALSE</code><br />
+  - <code>description TEXT NULL</code><br />
+  - <code>updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()</code></p>
+<h4 id="required-feature-flags">Required feature flags</h4>
+<p>Preserve these keys:<br />
+- <code>use_microservice_auth</code><br />
+- <code>use_microservice_portfolio</code><br />
+- <code>use_microservice_market</code><br />
+- <code>enable_live_trading</code><br />
+- <code>enable_simulator</code><br />
+- <code>enable_screener</code></p>
+<h4 id="indexing-strategy">Indexing strategy</h4>
+<ul>
+<li><code>idx_users_email</code></li>
+<li><code>idx_otp_email</code></li>
+<li><code>idx_otp_expires</code></li>
+<li><code>idx_user_sessions_user</code></li>
+<li><code>idx_watchlist_user</code></li>
+<li><code>idx_watchlist_items_watchlist</code></li>
+<li><code>idx_positions_user</code></li>
+<li><code>idx_alerts_user</code></li>
+<li><code>idx_alerts_active</code></li>
+<li><code>idx_alerts_symbol_active</code></li>
+<li><code>idx_notifications_user</code></li>
+<li><code>idx_notifications_unread</code></li>
+<li><code>idx_outbox_events_status_next_attempt</code></li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> <code>idx_device_push_tokens_user_active</code></li>
+</ul>
+<h4 id="data-ownership">Data ownership</h4>
+<ul>
+<li><code>users</code>, <code>otp_tokens</code>, <code>user_sessions</code>: auth and identity source of truth</li>
+<li><code>watchlists</code>, <code>watchlist_items</code>: watchlist module source of truth</li>
+<li><code>portfolio_event</code>, <code>positions</code>, <code>portfolio_snapshot</code>: portfolio source of truth</li>
+<li><code>stock_tick</code> and rollup views: market cache and history source of truth inside the monolith</li>
+<li><code>alerts</code>, <code>alert_trigger_events</code>: alert definition and trigger source of truth</li>
+<li><code>notifications</code>, <code>notification_deliveries</code>: user notification source of truth</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> <code>device_push_tokens</code>: FCM registration source of truth per user/device</li>
+<li><code>feature_flags</code>: runtime behavior control source of truth</li>
+</ul>
+<h4 id="migration-and-rollback-strategy">Migration and rollback strategy</h4>
+<ul>
+<li>all schema changes are additive first</li>
+<li>destructive changes wait until at least one release after deprecation</li>
+<li>production rollback prefers forward-fix over blind schema downgrade</li>
+<li>contract-breaking API changes require <code>/api/v2</code></li>
+<li>additive field changes preserve existing JSON shape and nullability rules</li>
+</ul>
+<h3 id="16-data-flow-diagram">1.6 Data Flow Diagram</h3>
+<h4 id="1-login-and-otp-verification">1. Login and OTP verification</h4>
+<ol>
+<li>Flutter calls <code>POST /api/v1/auth/send-otp</code> with normalized email.</li>
+<li>Flask checks rate limits and lock status.</li>
+<li>Flask creates or updates a <code>users</code> row and inserts an <code>otp_tokens</code> challenge.</li>
+<li>Worker sends OTP through SendGrid, or console/Mailpit in local mock mode.</li>
+<li>Flutter calls <code>POST /api/v1/auth/verify-otp</code>.</li>
+<li>Flask validates challenge, expiry, attempt count, and OTP hash.</li>
+<li>On success, Flask creates <code>user_sessions</code>, returns access/refresh tokens, and the client stores them.</li>
+</ol>
+<h4 id="2-dashboard-load">2. Dashboard load</h4>
+<ol>
+<li>Flutter loads <code>/dashboard</code>.</li>
+<li>Backend returns dashboard aggregates from Postgres plus cached market snapshots.</li>
+<li>Flutter renders the REST payload immediately.</li>
+<li>Socket.IO connects to <code>/stream</code> and subscribes only to visible symbols.</li>
+<li>Live quote updates patch the screen without replacing the canonical REST model.</li>
+</ol>
+<h4 id="3-watchlist-read-and-symbol-updates">3. Watchlist read and symbol updates</h4>
+<ol>
+<li>Flutter requests <code>/api/v1/watchlist</code>.</li>
+<li>Backend returns watchlists and symbol counts from <code>watchlists</code> and <code>watchlist_items</code>.</li>
+<li>For detail pages, backend joins watchlist symbols with quote cache and returns current or stale prices.</li>
+<li>Add/remove symbol mutations invalidate server cache and refresh the corresponding client provider.</li>
+</ol>
+<h4 id="4-alert-evaluation-and-notification-delivery">4. Alert evaluation and notification delivery</h4>
+<ol>
+<li>Streamer receives new Alpaca quotes.</li>
+<li>Streamer writes current quote cache and publishes lightweight symbol events.</li>
+<li>Alert evaluator checks active <code>alerts</code> for affected symbols.</li>
+<li>When an alert crosses its threshold:</li>
+<li>write <code>alert_trigger_events</code></li>
+<li>insert <code>notifications</code></li>
+<li>insert <code>outbox_events</code></li>
+<li>Worker processes the outbox:</li>
+<li>push websocket notification</li>
+<li>send email if enabled</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> send FCM push if user has active device token and channel includes <code>PUSH</code></li>
+<li>mark delivery status</li>
+</ol>
+<h4 id="5-websocket-reconnect">5. WebSocket reconnect</h4>
+<ol>
+<li>Client loses socket connection mid-session.</li>
+<li>Client shows "Live prices reconnecting..." and retries with exponential backoff.</li>
+<li>On reconnect, client re-authenticates, re-subscribes, and refetches REST snapshots.</li>
+<li>Client clears the stale banner only after the REST snapshot confirms current state.</li>
+</ol>
+<h4 id="6-degraded-mode-behavior">6. Degraded-mode behavior</h4>
+<ul>
+<li><strong>Redis down</strong></li>
+<li>cache is bypassed</li>
+<li>auth endpoints fail closed if rate-limit state cannot be trusted</li>
+<li>read-heavy dashboard requests may get slower</li>
+<li>websocket fan-out becomes degraded</li>
+<li><strong>SendGrid down</strong></li>
+<li><code>send-otp</code> returns a retriable error</li>
+<li>challenge rows are not consumed until email send succeeds or timeout policy expires</li>
+<li><strong>Alpaca/Alpha Vantage down</strong></li>
+<li>API returns stale cached values where safe</li>
+<li>websocket may pause</li>
+<li>dashboard and symbol pages display stale timestamps</li>
+<li><strong>Postgres unavailable</strong></li>
+<li>app returns <code>503 SERVICE_UNAVAILABLE</code></li>
+<li>readiness endpoint fails</li>
+</ul>
+<h3 id="17-key-technical-decisions-and-why">1.7 Key Technical Decisions and Why</h3>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Choice</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>application architecture</td>
+<td>modular monolith</td>
+<td>simplest deploy and operations model for MVP, while keeping clean module boundaries and an extraction path later</td>
+</tr>
+<tr>
+<td>auth ownership</td>
+<td>Flask-owned email OTP + JWT</td>
+<td>avoids split runtime ownership between Flask, Supabase Auth, and a different primary database; keeps one API contract and one source of truth</td>
+</tr>
+<tr>
+<td>primary database</td>
+<td>Railway PostgreSQL</td>
+<td>supports the whole MVP with simpler operations than multiple datastores</td>
+</tr>
+<tr>
+<td>cache and async transport</td>
+<td>Redis</td>
+<td>enough for caching, queue transport, and lightweight pub-sub at MVP scale</td>
+</tr>
+<tr>
+<td>realtime transport</td>
+<td>Socket.IO namespace <code>/stream</code></td>
+<td>robust reconnect behavior on web and mobile; easy Flutter integration</td>
+</tr>
+<tr>
+<td>client platforms</td>
+<td>Flutter Web + iOS + Android <code><span class="tag-mobile">Mobile</span></code></td>
+<td>single codebase; native stores for primary MVP mobile delivery</td>
+</tr>
+<tr>
+<td>push delivery</td>
+<td>FCM + APNs via Firebase <code><span class="tag-mobile">Mobile</span></code></td>
+<td>reaches users when app is backgrounded or killed; complements in-app socket</td>
+</tr>
+<tr>
+<td>mobile distribution</td>
+<td>App Store + Play Store <code><span class="tag-mobile">Mobile</span></code></td>
+<td>standard trust and update channel for consumer finance-adjacent apps</td>
+</tr>
+<tr>
+<td>realtime consistency model</td>
+<td>REST authoritative, websocket incremental</td>
+<td>prevents drift and makes reconnect/replay behavior predictable</td>
+</tr>
+<tr>
+<td>market storage</td>
+<td><code>stock_tick</code> plus Postgres rollups first, optional Timescale later</td>
+<td>safe phase-1 deployment on standard Railway Postgres while preserving future scale-up path</td>
+</tr>
+<tr>
+<td>feature-flag strategy</td>
+<td><code>feature_flags</code> table</td>
+<td>changes behavior without deployment and preserves later microservice cutover points</td>
+</tr>
+<tr>
+<td>shared contract</td>
+<td>single response envelope + exact field names</td>
+<td>prevents frontend/backend mismatch such as <code>userId</code> versus <code>id</code></td>
+</tr>
+<tr>
+<td>portfolio semantics</td>
+<td><code>BUY/SELL</code> events are user-recorded transactions</td>
+<td>fits the MVP without brokerage execution or KYC</td>
+</tr>
+<tr>
+<td>external service strategy</td>
+<td>ports/adapters + mock mode</td>
+<td>local development should work before live Alpaca, Alpha Vantage, or SendGrid keys exist</td>
+</tr>
+<tr>
+<td>reliability strategy</td>
+<td>DB outbox for critical alerts and notifications</td>
+<td>avoids losing critical user-visible events when Redis or workers misbehave</td>
+</tr>
+<tr>
+<td>migration strategy</td>
+<td>additive-first schema changes and <code>/api/v2</code> for breaking changes</td>
+<td>safest way to evolve the MVP contract without breaking Flutter clients</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-implementation-plan">2. Implementation Plan</h2>
+<p>This plan is intentionally split into <strong>backend-first</strong> and <strong>frontend-first</strong> tasks so the project can be developed and committed in small, reviewable units without entangling UI and API work.</p>
+<h3 id="phase-1-mvp-foundation">Phase 1: MVP Foundation</h3>
+<p>Goal: establish the repo skeleton, local development environment, contract-safe auth flow, shared infrastructure, and test harness.</p>
+<h4 id="1-local-infrastructure-and-repo-skeleton">1. Local infrastructure and repo skeleton</h4>
+<p><strong>Backend</strong><br />
+- create <code>backend/</code> application root<br />
+- add <code>docker-compose.yml</code> for PostgreSQL 16 and Redis 7<br />
+- add optional Mailpit profile for local email capture<br />
+- add <code>backend/.env.example</code><br />
+- create <code>backend/requirements.txt</code>, <code>backend/wsgi.py</code>, <code>backend/worker.py</code>, <code>backend/scheduler.py</code>, <code>backend/streamer.py</code></p>
+<p><strong>Frontend</strong><br />
+- create <code>frontend/</code> Flutter app (<strong>iOS + Android + optional Web</strong>)<br />
+- add core dependencies: <code>flutter_riverpod</code>, <code>go_router</code>, <code>dio</code>, <code>socket_io_client</code>, <code>google_fonts</code><br />
+- <strong><code><span class="tag-mobile">Mobile</span></code></strong> add <code>firebase_core</code>, <code>firebase_messaging</code>, <code>flutter_secure_storage</code>, <code>flutter_local_notifications</code>, <code>connectivity_plus</code>, <code>package_info_plus</code><br />
+- <strong><code><span class="tag-mobile">Mobile</span></code></strong> run <code>flutter create .</code> platform folders if missing; configure <code>android/</code> (<code>compileSdk</code>/<code>targetSdk</code> 36) and <code>ios/</code> (deployment target, capabilities)<br />
+- add environment/config bootstrap</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>docker-compose.yml</code><br />
+- <code>backend/app/__init__.py</code><br />
+- <code>backend/app/extensions.py</code><br />
+- <code>backend/app/config/base.py</code><br />
+- <code>backend/app/config/development.py</code><br />
+- <code>backend/app/config/production.py</code><br />
+- <code>backend/app/config/testing.py</code><br />
+- <code>backend/wsgi.py</code><br />
+- <code>backend/worker.py</code><br />
+- <code>backend/scheduler.py</code><br />
+- <code>backend/streamer.py</code><br />
+- <code>frontend/lib/main.dart</code><br />
+- <code>frontend/lib/app/app.dart</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- none; this is the foundation for all other work</p>
+<p><strong>Testing strategy</strong><br />
+- backend smoke test: app boots with <code>docker compose up</code><br />
+- frontend smoke test: app renders shell route in Chrome <em>(web)</em> and on Android emulator / iOS simulator <strong><code><span class="tag-mobile">Mobile</span></code></strong><br />
+- CI smoke job: install dependencies and run the smallest boot test for both apps<br />
+- <strong><code><span class="tag-mobile">Mobile</span></code></strong> CI: <code>flutter analyze</code>, <code>flutter test</code>, <code>flutter build apk --debug</code> on Linux; <code>flutter build ios --no-codesign</code> on macOS runner</p>
+<p><strong>Risks or blockers</strong><br />
+- Apple Silicon image mismatch: use official multi-arch Docker images<br />
+- Railway runtime mismatch: align local Python and PostgreSQL versions with production</p>
+<h4 id="2-shared-backend-infrastructure">2. Shared backend infrastructure</h4>
+<p><strong>Backend</strong><br />
+- implement <code>ResponseFactory</code> / <code>json_response()</code> for the canonical API envelope<br />
+- add global error handler with <code>requestId</code><br />
+- add SQLAlchemy setup, Alembic migration wiring, and Redis client<br />
+- add rate limiter config<br />
+- add validation helpers for email, symbol, pagination, and sorting<br />
+- add feature-flag access service reading from <code>feature_flags</code><br />
+- add auth decorators for JWT verification<br />
+- add logging and request correlation middleware</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/shared/response.py</code><br />
+- <code>backend/app/shared/error_handler.py</code><br />
+- <code>backend/app/shared/db.py</code><br />
+- <code>backend/app/shared/cache.py</code><br />
+- <code>backend/app/shared/limiter.py</code><br />
+- <code>backend/app/shared/validators.py</code><br />
+- <code>backend/app/shared/feature_flags.py</code><br />
+- <code>backend/app/shared/auth.py</code><br />
+- <code>backend/app/shared/logging.py</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 1 backend skeleton</p>
+<p><strong>Testing strategy</strong><br />
+- unit tests for response envelope helper and validators<br />
+- integration tests for 404, 422, and 500 error shapes<br />
+- integration test that <code>requestId</code> appears in every response <code>meta</code></p>
+<p><strong>Risks or blockers</strong><br />
+- response-envelope drift if routes bypass the helper<br />
+- Redis-dependent rate limiting must fail closed for <code>/auth/*</code></p>
+<h4 id="3-initial-database-schema-and-migrations">3. Initial database schema and migrations</h4>
+<p><strong>Backend</strong><br />
+- create migrations for:<br />
+  - <code>users</code><br />
+  - <code>otp_tokens</code><br />
+  - <code>user_sessions</code><br />
+  - <code>feature_flags</code><br />
+- seed required feature flags:<br />
+  - <code>use_microservice_auth</code><br />
+  - <code>use_microservice_portfolio</code><br />
+  - <code>use_microservice_market</code><br />
+  - <code>enable_live_trading</code><br />
+  - <code>enable_simulator</code><br />
+  - <code>enable_screener</code></p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/migrations/versions/*</code><br />
+- <code>backend/app/modules/user/models.py</code><br />
+- <code>backend/app/shared/feature_flags.py</code><br />
+- <code>backend/scripts/seed_feature_flags.py</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 2 shared DB wiring</p>
+<p><strong>Testing strategy</strong><br />
+- migration test on a clean database<br />
+- seed test verifying exact flag names<br />
+- downgrade smoke test in local/dev only</p>
+<p><strong>Risks or blockers</strong><br />
+- inconsistent naming if migrations diverge from architecture contract<br />
+- destructive migration habits early in the project</p>
+<h4 id="4-auth-module-backend">4. Auth module backend</h4>
+<p><strong>Backend</strong><br />
+- implement email normalization<br />
+- implement OTP challenge creation, hashing, expiry, resend invalidation, lockouts, and verification<br />
+- implement JWT issuance and refresh rotation<br />
+- implement session persistence in <code>user_sessions</code><br />
+- add auth routes:<br />
+  - <code>POST /api/v1/auth/send-otp</code><br />
+  - <code>POST /api/v1/auth/verify-otp</code><br />
+  - <code>POST /api/v1/auth/refresh</code><br />
+  - <code>POST /api/v1/auth/logout</code><br />
+  - <code>GET /api/v1/auth/verify</code><br />
+  - <code>GET /api/v1/auth/me</code><br />
+  - <code>PUT /api/v1/auth/me</code><br />
+- implement <code>EmailSender</code> interface with:<br />
+  - <code>SendGridEmailSender</code><br />
+  - <code>ConsoleEmailSender</code><br />
+  - optional SMTP/Mailpit sender</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/modules/user/routes.py</code><br />
+- <code>backend/app/modules/user/service.py</code><br />
+- <code>backend/app/modules/user/models.py</code><br />
+- <code>backend/app/modules/user/schemas.py</code><br />
+- <code>backend/app/adapters/protocols.py</code><br />
+- <code>backend/app/adapters/email_sender.py</code><br />
+- <code>backend/app/adapters/fake_email_sender.py</code><br />
+- <code>backend/app/modules/user/tests/test_auth_service.py</code><br />
+- <code>backend/app/modules/user/tests/test_auth_routes.py</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Tasks 2 and 3</p>
+<p><strong>Testing strategy</strong><br />
+- unit tests:<br />
+  - OTP generation and hash comparison<br />
+  - OTP expiry boundary<br />
+  - resend invalidates previous challenge<br />
+  - wrong OTP 5 times triggers lock<br />
+  - refresh token rotation<br />
+- integration tests:<br />
+  - send OTP success<br />
+  - verify OTP success<br />
+  - refresh access token<br />
+  - logout clears session<br />
+- contract tests:<br />
+  - fixture for <code>send-otp</code> success<br />
+  - fixture for <code>verify-otp</code> success<br />
+  - fixtures for <code>OTP_INVALID</code>, <code>OTP_EXPIRED</code>, <code>OTP_LOCKED</code></p>
+<p><strong>Risks or blockers</strong><br />
+- bad OTP retry policy can enable abuse or accidental lockout<br />
+- token refresh bugs can cause hard-to-debug frontend loops</p>
+<h4 id="5-frontend-app-shell-and-routing">5. Frontend app shell and routing</h4>
+<p><strong>Frontend</strong><br />
+- implement app theme, typography, color system, spacing<br />
+- configure <code>go_router</code><br />
+- add route guards and authenticated shell<br />
+- add reusable empty/error/loading widgets<br />
+- add environment config and API base URL handling</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>frontend/lib/app/router/app_router.dart</code><br />
+- <code>frontend/lib/app/router/route_guards.dart</code><br />
+- <code>frontend/lib/app/theme/app_theme.dart</code><br />
+- <code>frontend/lib/app/theme/app_colors.dart</code><br />
+- <code>frontend/lib/app/theme/app_typography.dart</code><br />
+- <code>frontend/lib/core/widgets/loading_skeleton.dart</code><br />
+- <code>frontend/lib/core/widgets/empty_state.dart</code><br />
+- <code>frontend/lib/core/widgets/error_state.dart</code><br />
+- <code>frontend/lib/core/config/app_config.dart</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 1 frontend skeleton</p>
+<p><strong>Testing strategy</strong><br />
+- widget test: unauthenticated <code>/dashboard</code> redirects to <code>/login</code><br />
+- widget test: authenticated root redirects to <code>/dashboard</code><br />
+- widget test: <code>enable_screener=false</code> hides screener route entry</p>
+<p><strong>Risks or blockers</strong><br />
+- routing complexity grows quickly if route guards also own data loading<br />
+- inconsistent state widgets make the UI feel unfinished</p>
+<h4 id="6-frontend-auth-flow">6. Frontend auth flow</h4>
+<p><strong>Frontend</strong><br />
+- implement auth repository and session provider<br />
+- implement email entry screen<br />
+- implement OTP verification screen with countdown, resend, and error states<br />
+- implement token refresh lock in the <code>dio</code> interceptor<br />
+- implement logout invalidation across feature providers</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>frontend/lib/core/network/api_client.dart</code><br />
+- <code>frontend/lib/core/auth/auth_session.dart</code><br />
+- <code>frontend/lib/core/auth/auth_token_store.dart</code><br />
+- <code>frontend/lib/features/auth/data/auth_repository.dart</code><br />
+- <code>frontend/lib/features/auth/presentation/login_screen.dart</code><br />
+- <code>frontend/lib/features/auth/presentation/verify_otp_screen.dart</code><br />
+- <code>frontend/test/features/auth/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 4 backend contract and Task 5 routing shell</p>
+<p><strong>Testing strategy</strong><br />
+- provider tests:<br />
+  - send OTP<br />
+  - verify OTP<br />
+  - single-flight refresh lock<br />
+  - logout invalidates user-scoped providers<br />
+- widget tests:<br />
+  - expired OTP error copy<br />
+  - locked account state<br />
+  - resend countdown state</p>
+<p><strong>Risks or blockers</strong><br />
+- storing refresh tokens insecurely in browser storage<br />
+- infinite refresh loops if 401 handling is not carefully guarded</p>
+<h4 id="7-ci-and-local-developer-workflow">7. CI and local developer workflow</h4>
+<p><strong>Backend</strong><br />
+- add <code>pytest</code>, lint, and migration checks<br />
+- add fixture-driven contract tests</p>
+<p><strong>Frontend</strong><br />
+- add <code>flutter test</code>, formatting, and analyzer checks</p>
+<p><strong><span class="tag-mobile">Mobile</span> Mobile CI/CD (add alongside Task 7)</strong></p>
+<p><strong>File/module-level breakdown (mobile release)</strong><br />
+- <code>.github/workflows/mobile-release.yml</code> — tagged releases only<br />
+- <code>frontend/fastlane/</code> <em>(optional)</em> — Fastlane lanes for TestFlight + Play upload</p>
+<p><strong>Mobile CI jobs</strong><br />
+| Job | Runner | Command / action |<br />
+|---|---|---|<br />
+| <code>mobile-analyze-test</code> | ubuntu-latest | <code>flutter analyze</code>, <code>flutter test</code> |<br />
+| <code>android-build</code> | ubuntu-latest | <code>flutter build appbundle --release</code> |<br />
+| <code>ios-build</code> | macos-latest | <code>flutter build ipa --release</code> with signing secrets |<br />
+| <code>android-submit</code> | manual | upload AAB to Play internal track |<br />
+| <code>ios-submit</code> | manual | upload IPA to TestFlight |</p>
+<p><strong>Secrets (GitHub Actions)</strong><br />
+- <code>ANDROID_KEYSTORE_BASE64</code>, <code>ANDROID_KEY_ALIAS</code>, <code>ANDROID_KEY_PASSWORD</code><br />
+- <code>PLAY_SERVICE_ACCOUNT_JSON</code><br />
+- <code>IOS_DIST_CERT_P12</code>, <code>IOS_PROVISION_PROFILE</code>, <code>APP_STORE_CONNECT_API_KEY</code><br />
+- <code>FIREBASE_SERVICE_ACCOUNT_JSON</code> (backend worker FCM send)</p>
+<p><strong>Estimated effort:</strong> 3–5 days for first green mobile CI pipeline.</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>.github/workflows/ci.yml</code><br />
+- <strong><code>.github/workflows/mobile-release.yml</code></strong> <code><span class="tag-mobile">Mobile</span></code><br />
+- <code>backend/tests/fixtures/contracts/*</code><br />
+- <code>frontend/test/contracts/*</code><br />
+- <code>Makefile</code> or root scripts for local commands</p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Tasks 1 through 6</p>
+<p><strong>Testing strategy</strong><br />
+- CI must run backend unit/integration tests and frontend tests on every PR<br />
+- CI must boot Postgres and Redis using service containers or compose</p>
+<p><strong>Risks or blockers</strong><br />
+- if contract fixtures are added late, frontend and backend drift becomes expensive to unwind</p>
+<h4 id="phase-1-summary-dependencies">Phase 1 summary dependencies</h4>
+<p>1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 6<br />
+1 -&gt; 5 -&gt; 6<br />
+1..6 -&gt; 7</p>
+<h4 id="phase-1-main-risks">Phase 1 main risks</h4>
+<ul>
+<li>auth contract changes after frontend wiring begins</li>
+<li>Redis outages affecting auth rate limits if failure policy is unclear</li>
+<li>local setup friction if Docker is not the default path</li>
+</ul>
+<h3 id="phase-2-core-features">Phase 2: Core Features</h3>
+<p>Goal: build the core user value loop: dashboard, watchlists, charts, alerts, notifications, portfolio, and realtime updates.</p>
+<h4 id="8-market-data-module-backend">8. Market data module backend</h4>
+<p><strong>Backend</strong><br />
+- implement <code>MarketDataSource</code> interface<br />
+- implement production adapters for Alpaca and Alpha Vantage<br />
+- implement fake adapters for local dev and CI<br />
+- add quote, bars, snapshot, search, movers, and fundamentals endpoints<br />
+- add caching rules and request coalescing<br />
+- store or materialize bar data into <code>stock_tick</code> and rollups</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/modules/market/routes.py</code><br />
+- <code>backend/app/modules/market/service.py</code><br />
+- <code>backend/app/modules/market/models.py</code><br />
+- <code>backend/app/modules/market/schemas.py</code><br />
+- <code>backend/app/adapters/market_data.py</code><br />
+- <code>backend/app/adapters/fake_market_data.py</code><br />
+- <code>backend/app/modules/market/tests/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Phase 1 shared infrastructure and auth</p>
+<p><strong>Testing strategy</strong><br />
+- unit tests for cache hit/miss behavior<br />
+- integration tests for quote, bars, snapshot, and search<br />
+- contract fixtures for bar payload shape and <code>timeframe</code>/<code>range</code> rules</p>
+<p><strong>Risks or blockers</strong><br />
+- Alpha Vantage daily quota is low; fundamentals must be heavily cached<br />
+- old <code>timeframe=1D</code> assumptions can leak back in unless contract tests are strict</p>
+<h4 id="9-realtime-infrastructure">9. Realtime infrastructure</h4>
+<p><strong>Backend</strong><br />
+- implement Socket.IO namespace <code>/stream</code><br />
+- authenticate websocket handshakes using access JWT<br />
+- implement subscription management and backpressure protection<br />
+- connect Redis pub-sub for horizontal fan-out</p>
+<p><strong>Frontend</strong><br />
+- implement socket client<br />
+- implement visible-symbol subscription manager<br />
+- add connection-state banner and reconnect behavior</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/shared/websocket.py</code><br />
+- <code>backend/app/extensions.py</code><br />
+- <code>backend/streamer.py</code><br />
+- <code>frontend/lib/core/realtime/socket_client.dart</code><br />
+- <code>frontend/lib/core/realtime/socket_events.dart</code><br />
+- <code>frontend/lib/core/realtime/quote_subscription_manager.dart</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 8 market data backend</p>
+<p><strong>Testing strategy</strong><br />
+- backend integration test: websocket connection rejects expired JWT<br />
+- frontend unit test: reconnect backoff and re-subscribe logic<br />
+- integration test: reconnect triggers REST refresh before live badge clears</p>
+<p><strong>Risks or blockers</strong><br />
+- Socket.IO scaling requires sticky behavior awareness in production<br />
+- too many client subscriptions can waste upstream quota</p>
+<h4 id="10-watchlist-module-backend">10. Watchlist module backend</h4>
+<p><strong>Backend</strong><br />
+- implement watchlist CRUD<br />
+- implement add/remove symbol logic<br />
+- enforce duplicate prevention<br />
+- add detail endpoint that joins live/stale quotes</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/modules/watchlist/routes.py</code><br />
+- <code>backend/app/modules/watchlist/service.py</code><br />
+- <code>backend/app/modules/watchlist/models.py</code><br />
+- <code>backend/app/modules/watchlist/schemas.py</code><br />
+- <code>backend/app/modules/watchlist/tests/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 8</p>
+<p><strong>Testing strategy</strong><br />
+- unit tests for duplicate symbol protection<br />
+- integration tests for CRUD and symbol add/remove<br />
+- contract fixture for list and detail payloads</p>
+<p><strong>Risks or blockers</strong><br />
+- watchlist detail can become slow if quote enrichment is not batched</p>
+<h4 id="11-watchlist-module-frontend">11. Watchlist module frontend</h4>
+<p><strong>Frontend</strong><br />
+- implement watchlist list screen<br />
+- implement create, rename, delete, add symbol, remove symbol<br />
+- show live/stale prices and empty states<br />
+- deep-link watchlist detail route</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>frontend/lib/features/watchlist/data/watchlist_repository.dart</code><br />
+- <code>frontend/lib/features/watchlist/presentation/watchlists_screen.dart</code><br />
+- <code>frontend/lib/features/watchlist/presentation/watchlist_detail_screen.dart</code><br />
+- <code>frontend/lib/features/watchlist/presentation/watchlist_form_dialog.dart</code><br />
+- <code>frontend/test/features/watchlist/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 10 backend and Task 9 realtime</p>
+<p><strong>Testing strategy</strong><br />
+- widget test: empty watchlist state<br />
+- widget test: duplicate symbol inline error<br />
+- provider test: add/remove symbol invalidates detail provider only</p>
+<p><strong>Risks or blockers</strong><br />
+- route-level state can get messy if dialogs own API mutation logic directly</p>
+<h4 id="12-dashboard-and-symbol-detail-frontend">12. Dashboard and symbol detail frontend</h4>
+<p><strong>Frontend</strong><br />
+- implement dashboard aggregate screen<br />
+- add top movers, watchlist summary, portfolio summary, and notification bell<br />
+- implement symbol detail screen with quote, chart, and fundamentals summary</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>frontend/lib/features/dashboard/data/dashboard_repository.dart</code><br />
+- <code>frontend/lib/features/dashboard/presentation/dashboard_screen.dart</code><br />
+- <code>frontend/lib/features/market/presentation/symbol_detail_screen.dart</code><br />
+- <code>frontend/lib/features/dashboard/presentation/widgets/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Tasks 8, 9, and 11</p>
+<p><strong>Testing strategy</strong><br />
+- widget smoke tests for dashboard loading/data/error states<br />
+- widget test for symbol detail invalid symbol state</p>
+<p><strong>Risks or blockers</strong><br />
+- dashboard payload must stay coarse-grained or the frontend will overfetch</p>
+<h4 id="13-charts-frontend">13. Charts frontend</h4>
+<p><strong>Frontend</strong><br />
+- add candlestick chart widget<br />
+- map <code>timeframe</code> and <code>range</code> correctly<br />
+- add hover/tap tooltip, timeframe selector, and stale badge<br />
+- add zero-data and partial-data handling</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>frontend/lib/features/market/presentation/widgets/stock_chart.dart</code><br />
+- <code>frontend/lib/features/market/presentation/widgets/timeframe_selector.dart</code><br />
+- <code>frontend/lib/features/market/data/market_repository.dart</code><br />
+- <code>frontend/test/features/market/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 8 bars endpoint and Task 12 symbol detail shell</p>
+<p><strong>Testing strategy</strong><br />
+- widget test for chart rendering with fixture bars<br />
+- mapping test for <code>range -&gt; timeframe request</code> behavior<br />
+- widget test for empty history state</p>
+<p><strong>Risks or blockers</strong><br />
+- chart libraries can re-render too often if providers emit full lists on every tick</p>
+<h4 id="14-alerts-module-backend">14. Alerts module backend</h4>
+<p><strong>Backend</strong><br />
+- implement alert CRUD<br />
+- implement evaluation logic for <code>ABOVE</code>, <code>BELOW</code>, and <code>PERCENT_CHANGE</code><br />
+- add cooldown and idempotent trigger handling<br />
+- write <code>alert_trigger_events</code>, <code>notifications</code>, and <code>outbox_events</code><br />
+- add notification feed endpoints</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/modules/alerts/routes.py</code><br />
+- <code>backend/app/modules/alerts/service.py</code><br />
+- <code>backend/app/modules/alerts/models.py</code><br />
+- <code>backend/app/modules/alerts/schemas.py</code><br />
+- <code>backend/app/modules/notifications/routes.py</code><br />
+- <code>backend/app/modules/notifications/service.py</code><br />
+- <code>backend/app/modules/notifications/models.py</code><br />
+- <code>backend/app/modules/alerts/tests/*</code><br />
+- <code>backend/app/modules/notifications/tests/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Tasks 8 and 9</p>
+<p><strong>Testing strategy</strong><br />
+- unit tests:<br />
+  - threshold crossing<br />
+  - cooldown behavior<br />
+  - duplicate trigger prevention<br />
+- integration tests:<br />
+  - create/update/delete alert<br />
+  - notification feed pagination<br />
+- contract fixtures:<br />
+  - alert list<br />
+  - notification list<br />
+  - alert triggered event</p>
+<p><strong>Risks or blockers</strong><br />
+- duplicate notifications if evaluator and worker idempotency are not explicit</p>
+<h4 id="15-alerts-and-notifications-frontend">15. Alerts and notifications frontend</h4>
+<p><strong>Frontend</strong><br />
+- implement alerts list and create/edit form<br />
+- implement notifications dropdown/panel<br />
+- add real-time notification insertion and read/unread transitions<br />
+- show clear empty/offline/error states</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>frontend/lib/features/alerts/data/alerts_repository.dart</code><br />
+- <code>frontend/lib/features/alerts/presentation/alerts_screen.dart</code><br />
+- <code>frontend/lib/features/alerts/presentation/alert_form_dialog.dart</code><br />
+- <code>frontend/lib/features/notifications/data/notifications_repository.dart</code><br />
+- <code>frontend/lib/features/notifications/presentation/notifications_panel.dart</code><br />
+- <code>frontend/test/features/alerts/*</code><br />
+- <code>frontend/test/features/notifications/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 14 backend and Task 9 realtime</p>
+<p><strong>Testing strategy</strong><br />
+- widget test for create-alert validation<br />
+- provider test for websocket notification insert<br />
+- widget test for "You're all caught up" empty state</p>
+<p><strong>Risks or blockers</strong><br />
+- notifications panel can become stateful and flaky if it mixes fetch and socket merge logic in the widget layer</p>
+<h4 id="16-portfolio-module-backend">16. Portfolio module backend</h4>
+<p><strong>Backend</strong><br />
+- implement manual portfolio event ledger and positions summary<br />
+- compute total value, total profit, total return, and day change<br />
+- expose transactions and history endpoints</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/modules/portfolio/routes.py</code><br />
+- <code>backend/app/modules/portfolio/service.py</code><br />
+- <code>backend/app/modules/portfolio/models.py</code><br />
+- <code>backend/app/modules/portfolio/schemas.py</code><br />
+- <code>backend/app/modules/portfolio/tests/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 8 market quotes and Phase 1 auth</p>
+<p><strong>Testing strategy</strong><br />
+- unit tests for cost-basis math<br />
+- unit tests for realized and unrealized P/L<br />
+- integration tests for ledger entry create/list<br />
+- contract fixture for portfolio summary</p>
+<p><strong>Risks or blockers</strong><br />
+- unclear cost-basis semantics can break user trust quickly; keep the math simple and explicit</p>
+<h4 id="17-portfolio-module-frontend">17. Portfolio module frontend</h4>
+<p><strong>Frontend</strong><br />
+- implement holdings summary and transaction list<br />
+- implement add/edit/delete manual BUY/SELL entries<br />
+- show empty portfolio CTA and stale-price labels</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>frontend/lib/features/portfolio/data/portfolio_repository.dart</code><br />
+- <code>frontend/lib/features/portfolio/presentation/portfolio_screen.dart</code><br />
+- <code>frontend/lib/features/portfolio/presentation/portfolio_event_form_dialog.dart</code><br />
+- <code>frontend/test/features/portfolio/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 16 backend and Task 9 realtime</p>
+<p><strong>Testing strategy</strong><br />
+- widget test for empty holdings state<br />
+- form validation test for quantity and price<br />
+- provider test for summary refresh after event mutation</p>
+<p><strong>Risks or blockers</strong><br />
+- if event editing rules are vague, users can create confusing history states</p>
+<h4 id="phase-2-summary-dependencies">Phase 2 summary dependencies</h4>
+<p>8 -&gt; 9<br />
+8 -&gt; 10 -&gt; 11<br />
+8 + 9 + 11 -&gt; 12<br />
+8 + 12 -&gt; 13<br />
+8 + 9 -&gt; 14 -&gt; 15<br />
+8 -&gt; 16 -&gt; 17</p>
+<h4 id="phase-2-main-risks">Phase 2 main risks</h4>
+<ul>
+<li>external market-provider quotas</li>
+<li>websocket churn and stale-state handling</li>
+<li>cross-module contract drift between market, alerts, and dashboard</li>
+</ul>
+<h3 id="phase-3-enhancements">Phase 3: Enhancements</h3>
+<p>Goal: add the screener, tighten feature flags and migration safety, and harden reliability, performance, accessibility, and observability for production.</p>
+<h4 id="18-screener-backend">18. Screener backend</h4>
+<p><strong>Backend</strong><br />
+- implement strategy storage in <code>screener_strategies</code><br />
+- define supported filters and sorting<br />
+- add deterministic screening over a cached market/fundamental dataset<br />
+- preserve filter field names and enum values in fixtures</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/modules/screener/routes.py</code><br />
+- <code>backend/app/modules/screener/service.py</code><br />
+- <code>backend/app/modules/screener/models.py</code><br />
+- <code>backend/app/modules/screener/schemas.py</code><br />
+- <code>backend/app/modules/screener/tests/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 8 market data and Phase 1 shared infrastructure</p>
+<p><strong>Testing strategy</strong><br />
+- unit tests for filter validation<br />
+- deterministic scan test over fixture dataset<br />
+- contract fixture for screener results and saved strategies</p>
+<p><strong>Risks or blockers</strong><br />
+- screener scope can expand too far; keep MVP filters intentionally narrow</p>
+<h4 id="19-screener-frontend">19. Screener frontend</h4>
+<p><strong>Frontend</strong><br />
+- implement screener filter form and results table<br />
+- add saved strategy create/delete flow<br />
+- show zero-result state and flag-disabled state</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>frontend/lib/features/screener/data/screener_repository.dart</code><br />
+- <code>frontend/lib/features/screener/presentation/screener_screen.dart</code><br />
+- <code>frontend/lib/features/screener/presentation/widgets/*</code><br />
+- <code>frontend/test/features/screener/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Task 18 backend and <code>enable_screener</code></p>
+<p><strong>Testing strategy</strong><br />
+- widget test for empty results state<br />
+- widget test for feature-disabled screen<br />
+- provider test for save/delete strategy</p>
+<p><strong>Risks or blockers</strong><br />
+- dynamic forms can become too complex if every future indicator is added now</p>
+<h4 id="20-feature-flag-admin-and-compatibility-controls">20. Feature-flag admin and compatibility controls</h4>
+<p><strong>Backend</strong><br />
+- add admin-only flag read/update endpoints<br />
+- add caching or request memoization that still respects fast flag flips<br />
+- add compatibility aliases for legacy routes if migration requires them</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/modules/admin/routes.py</code><br />
+- <code>backend/app/modules/admin/service.py</code><br />
+- <code>backend/app/shared/feature_flags.py</code><br />
+- <code>backend/tests/integration/test_feature_flags.py</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Phase 1 feature flag schema</p>
+<p><strong>Testing strategy</strong><br />
+- integration test: disabled screener returns <code>403 FEATURE_DISABLED</code><br />
+- integration test: enabling a flag changes runtime behavior without deploy<br />
+- compatibility tests for legacy alias behavior if those aliases are included</p>
+<p><strong>Risks or blockers</strong><br />
+- overly aggressive caching can violate the "flag flip without deploy" promise</p>
+<h4 id="21-contract-versioning-and-migration-safety">21. Contract versioning and migration safety</h4>
+<p><strong>Backend</strong><br />
+- freeze JSON fixtures per module<br />
+- document deprecation policy<br />
+- add migration checklist for additive changes, forward-fix rollbacks, and <code>/api/v2</code><br />
+- add migration support for any new alert or market fields</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/tests/fixtures/contracts/*</code><br />
+- <code>backend/docs/api_compatibility.md</code><br />
+- <code>backend/scripts/contract_check.py</code><br />
+- <code>CHANGELOG.md</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on all public endpoints from Phases 1 and 2</p>
+<p><strong>Testing strategy</strong><br />
+- CI contract test comparing actual responses to fixture structure<br />
+- migration test for additive alert-model changes</p>
+<p><strong>Risks or blockers</strong><br />
+- undocumented additive fields can still break the frontend if nullability changes unexpectedly</p>
+<h4 id="22-performance-and-reliability-hardening">22. Performance and reliability hardening</h4>
+<p><strong>Backend</strong><br />
+- add or confirm all indexes<br />
+- measure slow endpoints<br />
+- add request batching and quote fan-out optimization<br />
+- implement outbox retry policies and dead-letter visibility<br />
+- add queue-depth, lag, and stale-cache monitoring</p>
+<p><strong>Frontend</strong><br />
+- reduce unnecessary rebuilds<br />
+- debounce search<br />
+- virtualize or paginate larger lists where needed</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/shared/cache.py</code><br />
+- <code>backend/app/shared/logging.py</code><br />
+- <code>backend/tests/performance/*</code><br />
+- <code>frontend/lib/core/realtime/quote_subscription_manager.dart</code><br />
+- <code>frontend/test/performance/*</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on Phases 1 and 2 feature completeness</p>
+<p><strong>Testing strategy</strong><br />
+- backend load test for dashboard and watchlist<br />
+- quote-subscription stress test<br />
+- reconnect chaos test</p>
+<p><strong>Risks or blockers</strong><br />
+- over-optimizing before measuring can add complexity without value</p>
+<h4 id="23-security-accessibility-and-observability-hardening">23. Security, accessibility, and observability hardening</h4>
+<p><strong>Backend</strong><br />
+- tighten CORS, security headers, and secrets handling<br />
+- audit auth logs and abuse signals<br />
+- add Sentry integration</p>
+<p><strong>Frontend</strong><br />
+- accessibility pass for focus order, semantics, contrast, keyboard navigation, and toasts<br />
+- add production-grade degraded-state copy</p>
+<p><strong>File/module-level breakdown</strong><br />
+- <code>backend/app/shared/security.py</code><br />
+- <code>backend/app/shared/logging.py</code><br />
+- <code>frontend/lib/core/widgets/*</code><br />
+- <code>.github/workflows/release.yml</code></p>
+<p><strong>Dependencies between tasks</strong><br />
+- depends on all user-facing features being present</p>
+<p><strong>Testing strategy</strong><br />
+- smoke security tests for auth endpoints<br />
+- accessibility widget audits for major screens<br />
+- staging smoke checklist for login, dashboard, alerts, and reconnect</p>
+<p><strong>Risks or blockers</strong><br />
+- if observability is postponed too long, production incidents will be harder to diagnose</p>
+<h4 id="phase-3-summary-dependencies">Phase 3 summary dependencies</h4>
+<p>18 -&gt; 19<br />
+3 -&gt; 20<br />
+1..20 -&gt; 21 -&gt; 22 -&gt; 23</p>
+<h4 id="phase-3-main-risks">Phase 3 main risks</h4>
+<ul>
+<li>screener scope creep</li>
+<li>compatibility mistakes during contract evolution</li>
+<li>late-stage performance work exposing earlier design shortcuts</li>
+</ul>
+<h3 id="phase-4-mobile-platform-ios-android-mobile_5_17_26">Phase 4: Mobile Platform (iOS + Android) <code><span class="tag-mobile">Mobile</span></code></h3>
+<p>Goal: ship store-ready native clients with push, deep links, safe-area UI, and automated release builds. Can run <strong>in parallel</strong> with Phase 2 after Task 5 (shell) and Task 6 (auth) exist.</p>
+<h4 id="24-mobile-app-shell-safe-areas-and-bottom-navigation">24. Mobile app shell, safe areas, and bottom navigation</h4>
+<p><strong>Frontend</strong><br />
+- implement <code>mobile_shell.dart</code> with <code>BottomNavigationBar</code> / <code>NavigationBar</code><br />
+- implement <code>safe_screen.dart</code> wrapping feature scaffolds in <code>SafeArea</code><br />
+- adapt dashboard, watchlists, alerts, portfolio for single-column phone layout<br />
+- minimum 48dp touch targets on primary actions<br />
+- replace web-only <code>app_shell.dart</code> usage on <code>Platform.isAndroid || Platform.isIOS</code></p>
+<p><strong>Dependencies:</strong> Task 5 routing shell</p>
+<p><strong>Testing:</strong> widget tests for tab selection; golden tests on iPhone 14 Pro simulator frame (notch)</p>
+<p><strong>Effort:</strong> 1–2 weeks</p>
+<h4 id="25-push-notifications-fcm-apns-full-stack">25. Push notifications (FCM + APNs) — full stack</h4>
+<p><strong>Frontend</strong><br />
+- integrate <code>firebase_messaging</code> + <code>flutter_local_notifications</code><br />
+- request <code>POST_NOTIFICATIONS</code> on Android 13+<br />
+- register token after login; <code>DELETE</code> on logout<br />
+- handle foreground, background, terminated + deep link navigation</p>
+<p><strong>Backend</strong><br />
+- migration for <code>device_push_tokens</code><br />
+- <code>POST /api/v1/devices/register</code>, <code>DELETE /api/v1/devices/:deviceId</code><br />
+- worker: FCM HTTP v1 sender; prune invalid tokens on <code>UNREGISTERED</code><br />
+- extend <code>notificationChannel</code> with <code>PUSH</code>; outbox handler dispatches push</p>
+<p><strong>Dependencies:</strong> Task 4 auth, Task 14 alerts/notifications</p>
+<p><strong>Testing:</strong> Firebase console test message; integration test for tap → <code>GoRouter</code> navigation</p>
+<p><strong>Effort:</strong> ~1 week engineering + 1–2 days Apple/Firebase console setup</p>
+<h4 id="26-deep-linking-universal-links-app-links">26. Deep linking (Universal Links + App Links)</h4>
+<p><strong>Frontend / platform</strong><br />
+- configure <code>AndroidManifest.xml</code> intent filters + hosted <code>assetlinks.json</code><br />
+- configure iOS Associated Domains + hosted <code>apple-app-site-association</code><br />
+- wire <code>go_router</code> initial location from <code>app_links</code> / <code>getInitialMessage</code> deep link</p>
+<p><strong>Dependencies:</strong> Task 5 routing</p>
+<p><strong>Effort:</strong> 2–4 days (includes DNS + HTTPS hosting for well-known files)</p>
+<h4 id="27-app-store-and-play-store-submission">27. App Store and Play Store submission</h4>
+<p><strong>Ops / frontend</strong><br />
+- store listings, screenshots, privacy policy, data safety forms<br />
+- TestFlight + Play internal testing → production rollout<br />
+- version discipline: <code>pubspec.yaml</code> <code>version: x.y.z+build</code> increment every upload</p>
+<p><strong>Dependencies:</strong> Tasks 24–26, Phase 2 feature-complete on device</p>
+<p><strong>Effort:</strong> 1–2 weeks calendar time (review queues dominate)</p>
+<h4 id="phase-4-summary-dependencies">Phase 4 summary dependencies</h4>
+<p>5 -&gt; 24<br />
+4 + 14 -&gt; 25<br />
+5 -&gt; 26<br />
+24 + 25 + 26 + Phase2 -&gt; 27</p>
+<h4 id="phase-4-main-risks">Phase 4 main risks</h4>
+<ul>
+<li>APNs misconfiguration (silent iOS push failures)</li>
+<li>Play targetSdk policy changes — keep <code>targetSdk = 36</code> in CI</li>
+<li>store rejection for missing privacy policy or financial disclaimers</li>
+<li>background isolate bugs in FCM handler (no singletons in top-level handler)</li>
+</ul>
+<h3 id="rollout-and-commit-strategy">Rollout and commit strategy</h3>
+<ul>
+<li>commit backend and frontend foundation separately</li>
+<li>commit each module backend first, then frontend</li>
+<li>do not merge a frontend feature until the backend fixture contract is frozen</li>
+<li>keep migration files in dedicated commits</li>
+<li>run contract tests before every feature merge</li>
+</ul>
+<h3 id="global-blocker-checklist">Global blocker checklist</h3>
+<ul>
+<li>live provider keys missing: use mock adapters and Mailpit/console email</li>
+<li>Redis unavailable locally: frontend work may continue against read-only mocked API, but backend auth tests must still run against Redis</li>
+<li>market provider quota exhaustion: use recorded fixtures for CI and development</li>
+<li>websocket instability in staging: keep REST fallback fully functional and treat live updates as enhancement, not correctness layer</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> no Apple Developer / Play Console account: blocks TestFlight and production push on real devices</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> missing macOS runner or signing certs: blocks <code>flutter build ipa</code> in CI</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> Firebase project not linked: blocks FCM on both platforms</li>
+</ul>
+<p><strong><span class="tag-mobile">Mobile</span> Suggested delivery timeline (additive)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Android SDK 36 toolchain</td>
+<td>Local + CI <code>compileSdk</code>/<code>targetSdk</code> 36</td>
+<td>~1 day</td>
+</tr>
+<tr>
+<td>Responsive UI + safe areas + bottom nav</td>
+<td>Task 24</td>
+<td>1–2 weeks</td>
+</tr>
+<tr>
+<td>Push notifications</td>
+<td>FCM + APNs + backend tokens (Task 25)</td>
+<td>~1 week</td>
+</tr>
+<tr>
+<td>Deep linking</td>
+<td>Manifest + entitlements + well-known files (Task 26)</td>
+<td>2–4 days</td>
+</tr>
+<tr>
+<td>CI/CD mobile builds</td>
+<td>APK/AAB + IPA pipelines</td>
+<td>3–5 days</td>
+</tr>
+<tr>
+<td>App Store submission</td>
+<td>Accounts, assets, review (Task 27)</td>
+<td>1–2 weeks</td>
+</tr>
+<tr>
+<td>PWA (optional, not native substitute)</td>
+<td>Service worker + manifest</td>
+<td>2–3 days if needed later</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-readme-developer-guide">3. README / Developer Guide</h2>
+<h3 id="31-project-overview">3.1 Project Overview</h3>
+<p>Alpha Cues is a production-ready MVP blueprint for a <strong>stock market alert and notification app</strong> (Web + <strong>native iOS/Android</strong> per <code><span class="tag-mobile">Mobile</span></code>). The product focuses on fast watchlist management, live price visibility, charts, strategy screening, manual portfolio tracking, and real-time alerts without introducing brokerage execution or KYC complexity in the first release.</p>
+<p>The target architecture is a <strong>modular monolith</strong>:<br />
+- one Flutter client (Web optional; <strong>iOS + Android primary</strong> for mobile edition)<br />
+- one Flask backend<br />
+- one primary PostgreSQL database<br />
+- one Redis instance for caching, queues, and realtime fan-out</p>
+<p>This repository now contains the planning baseline for building that MVP:<br />
+- <code>ARCHITECTURE.md</code><br />
+- <code>IMPLEMENTATION_PLAN.md</code><br />
+- <code>README.md</code></p>
+<h3 id="32-tech-stack">3.2 Tech Stack</h3>
+<h4 id="frontend">Frontend</h4>
+<ul>
+<li>Flutter (Web optional + <strong>iOS + Android</strong> <code><span class="tag-mobile">Mobile</span></code>)</li>
+<li>Riverpod</li>
+<li><code>go_router</code></li>
+<li><code>dio</code></li>
+<li>Socket.IO client</li>
+<li><code>google_fonts</code> with <code>Inter</code></li>
+<li>charting library such as <code>fl_chart</code></li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> <code>firebase_core</code>, <code>firebase_messaging</code>, <code>flutter_secure_storage</code>, <code>flutter_local_notifications</code>, <code>connectivity_plus</code></li>
+</ul>
+<h4 id="backend">Backend</h4>
+<ul>
+<li>Flask</li>
+<li>SQLAlchemy</li>
+<li>Alembic</li>
+<li>Celery</li>
+<li>Flask-SocketIO</li>
+<li>Flask-Limiter</li>
+<li>Marshmallow or Pydantic for validation/serialization</li>
+</ul>
+<h4 id="data-and-infrastructure">Data and infrastructure</h4>
+<ul>
+<li>PostgreSQL 16</li>
+<li>Redis 7</li>
+<li>Railway for backend, database, and worker deployment</li>
+<li>Vercel for Flutter Web deployment <em>(optional)</em></li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> App Store Connect + Google Play Console for mobile distribution</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> Firebase project for FCM (and optional Crashlytics)</li>
+</ul>
+<h4 id="external-services">External services</h4>
+<ul>
+<li>Alpaca for real-time and market quote/history data</li>
+<li>Alpha Vantage for fundamentals and fallback metadata</li>
+<li>SendGrid for OTP email delivery</li>
+</ul>
+<h3 id="33-setup-instructions">3.3 Setup Instructions</h3>
+<p>The recommended local workflow is <strong>Docker-first</strong> for infrastructure and <strong>mock-first</strong> for external providers.</p>
+<h4 id="1-prerequisites">1. Prerequisites</h4>
+<ul>
+<li>Docker Desktop</li>
+<li>Python 3.12+</li>
+<li>Flutter stable with <strong>iOS and Android</strong> toolchains enabled <code><span class="tag-mobile">Mobile</span></code></li>
+<li><strong>Xcode 15+</strong> (macOS) for iOS builds <code><span class="tag-mobile">Mobile</span></code></li>
+<li><strong>Android Studio</strong> with SDK Platform <strong>36</strong> and build-tools <code><span class="tag-mobile">Mobile</span></code></li>
+<li>Node.js is optional unless frontend tooling later requires it</li>
+<li><strong>Apple Developer</strong> + <strong>Google Play Console</strong> accounts for store release <code><span class="tag-mobile">Mobile</span></code></li>
+</ul>
+<h4 id="2-start-local-infrastructure">2. Start local infrastructure</h4>
+<p>The repository includes a root <code>docker-compose.yml</code> with:<br />
+- PostgreSQL on <code>localhost:5432</code><br />
+- Redis on <code>localhost:6379</code><br />
+- optional Mailpit profile on <code>localhost:8025</code> for email capture</p>
+<p>Run:</p>
+<pre><code class="language-bash">docker compose up -d
+</code></pre>
+<p>If you also want the email preview UI:</p>
+<pre><code class="language-bash">docker compose --profile mail up -d
+</code></pre>
+<h4 id="3-backend-setup">3. Backend setup</h4>
+<p>Expected target layout:</p>
+<pre><code class="language-text">backend/
+  app/
+  migrations/
+  requirements.txt
+  .env.example
+</code></pre>
+<p>Install dependencies and run the API:</p>
+<pre><code class="language-bash">cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+flask --app app run --debug
+</code></pre>
+<p>Run worker, scheduler, and streamer in separate terminals:</p>
+<pre><code class="language-bash">cd backend
+source .venv/bin/activate
+python worker.py
+</code></pre>
+<pre><code class="language-bash">cd backend
+source .venv/bin/activate
+python scheduler.py
+</code></pre>
+<pre><code class="language-bash">cd backend
+source .venv/bin/activate
+python streamer.py
+</code></pre>
+<h4 id="4-frontend-setup">4. Frontend setup</h4>
+<p>Expected target layout:</p>
+<pre><code class="language-text">frontend/
+  lib/
+  test/
+  web/
+</code></pre>
+<p>Install packages and run the web app:</p>
+<pre><code class="language-bash">cd frontend
+flutter pub get
+flutter run -d chrome
+</code></pre>
+<p><strong><span class="tag-mobile">Mobile</span> Run on Android / iOS (development)</strong></p>
+<pre><code class="language-bash">cd frontend
+flutter pub get
+flutter devices                    # list emulators and physical devices
+flutter run -d &lt;device_id&gt;         # hot reload on emulator or USB device
+flutter run --release -d &lt;device_id&gt;   # performance smoke before store build
+</code></pre>
+<p><strong><span class="tag-mobile">Mobile</span> Production mobile builds</strong></p>
+<pre><code class="language-bash">cd frontend
+flutter build appbundle --release   # upload to Play Console
+flutter build apk --release         # QA sideload only
+flutter build ipa --release         # macOS + signing; then TestFlight
+</code></pre>
+<p>Place <code>google-services.json</code> (Android) and <code>GoogleService-Info.plist</code> (iOS) from Firebase console; never commit production secrets to public repos — use CI secrets or local-only files in <code>.gitignore</code>.</p>
+<h3 id="34-environment-variables-env-example">3.4 Environment Variables (.env example)</h3>
+<p>The MVP should support both <strong>real provider mode</strong> and <strong>local mock mode</strong>.</p>
+<h4 id="backend-envexample">Backend <code>.env.example</code></h4>
+<pre><code class="language-bash">APP_ENV=development
+SECRET_KEY=replace-me
+JWT_ISSUER=alphacues
+JWT_AUDIENCE=alphacues-web
+# <span class="tag-mobile">Mobile</span> also accept alphacues-mobile if separating clients
+ACCESS_TOKEN_TTL_SECONDS=900
+REFRESH_TOKEN_TTL_SECONDS=604800
+
+DATABASE_URL=postgresql+psycopg://alphacues:alphacues@localhost:5432/alphacues
+REDIS_URL=redis://localhost:6379/0
+
+API_BASE_URL=http://localhost:5000
+FRONTEND_BASE_URL=http://localhost:3000
+
+MOCK_EXTERNAL_SERVICES=true
+EMAIL_BACKEND=console
+# EMAIL_BACKEND=smtp
+# SMTP_HOST=localhost
+# SMTP_PORT=1025
+
+SENDGRID_API_KEY=
+SENDGRID_FROM_EMAIL=alerts@alphacues.local
+
+ALPACA_API_KEY=
+ALPACA_SECRET_KEY=
+ALPACA_DATA_FEED=iex
+ALPACA_STREAM_URL=wss://stream.data.alpaca.markets/v2/iex
+
+ALPHA_VANTAGE_API_KEY=
+
+RATE_LIMIT_AUTH_PER_MINUTE=5
+RATE_LIMIT_MARKET_SEARCH_PER_MINUTE=30
+
+SENTRY_DSN=
+LOG_LEVEL=INFO
+
+# <span class="tag-mobile">Mobile</span> FCM (backend worker) — path to service account JSON or base64 in CI
+FCM_PROJECT_ID=
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/firebase-service-account.json
+</code></pre>
+<h4 id="frontend-env-config-example">Frontend <code>.env</code> / config example</h4>
+<pre><code class="language-bash">API_BASE_URL=http://localhost:5000/api/v1
+SOCKET_BASE_URL=http://localhost:5000
+USE_MOCK_API=false
+APP_NAME=Alpha Cues
+PRIMARY_COLOR=#7061F3
+# <span class="tag-mobile">Mobile</span> deep link host for universal links
+DEEP_LINK_HOST=app.alphacues.com
+</code></pre>
+<h3 id="35-how-to-run-locally">3.5 How to Run Locally</h3>
+<h4 id="fastest-local-path-without-live-api-keys">Fastest local path without live API keys</h4>
+<ol>
+<li>Start Docker services with <code>docker compose up -d</code></li>
+<li>Set backend <code>MOCK_EXTERNAL_SERVICES=true</code></li>
+<li>Set <code>EMAIL_BACKEND=console</code> or use Mailpit SMTP</li>
+<li>Run backend API, worker, scheduler, and streamer locally</li>
+<li>Run Flutter Web in Chrome</li>
+<li>Use the local auth flow with console OTP or Mailpit-captured email</li>
+</ol>
+<h4 id="local-runtime-expectations">Local runtime expectations</h4>
+<ul>
+<li>REST API base: <code>http://localhost:5000/api/v1</code></li>
+<li>Socket.IO namespace: <code>/stream</code></li>
+<li>Flutter app base: usually <code>http://localhost:3000</code> or the default Flutter web port</li>
+<li>PostgreSQL: <code>localhost:5432</code></li>
+<li>Redis: <code>localhost:6379</code></li>
+<li>Mailpit UI: <code>http://localhost:8025</code></li>
+</ul>
+<h4 id="recommended-test-commands">Recommended test commands</h4>
+<p>Backend:</p>
+<pre><code class="language-bash">cd backend
+source .venv/bin/activate
+pytest
+</code></pre>
+<p>Frontend:</p>
+<pre><code class="language-bash">cd frontend
+flutter test
+</code></pre>
+<h3 id="36-basic-usage-flow">3.6 Basic Usage Flow</h3>
+<ol>
+<li>User opens <code>/login</code> and enters an email address.</li>
+<li>Backend sends a 6-digit OTP through SendGrid, console output, or Mailpit depending on environment.</li>
+<li>User enters the code on <code>/verify-otp</code>.</li>
+<li>Frontend stores the access and refresh tokens and redirects to <code>/dashboard</code>.</li>
+<li>User creates a watchlist and adds symbols.</li>
+<li>Dashboard and watchlist pages load current quote snapshots through REST.</li>
+<li>Socket.IO connects to <code>/stream</code> and starts sending live quote and notification updates.</li>
+<li>User creates <code>ABOVE</code>, <code>BELOW</code>, or <code>PERCENT_CHANGE</code> alerts.</li>
+<li>Backend evaluates alerts from live market updates and writes notifications.</li>
+<li>User receives in-app notifications immediately and email notifications when enabled.</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> On mobile, user grants notification permission; app registers FCM token with backend.</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> When an alert triggers, user receives push (background/killed), in-app socket update (foreground), and email if enabled.</li>
+<li><strong><code><span class="tag-mobile">Mobile</span></code></strong> Tapping a push opens the correct screen via deep link (e.g. symbol or alerts).</li>
+</ol>
+<h3 id="37-mock-and-stub-strategy">3.7 Mock and Stub Strategy</h3>
+<p>Local development should not depend on live Alpaca, Alpha Vantage, or SendGrid keys.</p>
+<h4 id="backend-adapter-strategy">Backend adapter strategy</h4>
+<ul>
+<li><code>EmailSender</code></li>
+<li>production: SendGrid</li>
+<li>local: console sender or Mailpit SMTP</li>
+<li><code>MarketDataSource</code></li>
+<li>production: Alpaca + Alpha Vantage</li>
+<li>local/CI: fixture-backed fake provider</li>
+</ul>
+<h4 id="frontend-strategy">Frontend strategy</h4>
+<ul>
+<li>preferred mode: connect the real local Flask API with mocked external services behind it</li>
+<li>optional mode: set <code>USE_MOCK_API=true</code> for pure UI work before backend endpoints exist</li>
+</ul>
+<h3 id="38-contracts-and-compatibility-rules">3.8 Contracts and Compatibility Rules</h3>
+<ul>
+<li>canonical base path: <code>/api/v1</code></li>
+<li>auth header: <code>Authorization: Bearer &lt;JWT&gt;</code></li>
+<li>shared response envelope:</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;data&quot;: {},
+  &quot;error&quot;: null,
+  &quot;meta&quot;: {
+    &quot;requestId&quot;: &quot;uuid&quot;,
+    &quot;apiVersion&quot;: &quot;1&quot;
+  }
+}
+</code></pre>
+<ul>
+<li>stable query parameter names to preserve:</li>
+<li><code>symbol</code></li>
+<li><code>symbols</code></li>
+<li><code>q</code></li>
+<li><code>timeframe</code></li>
+<li>stable enum values to preserve:</li>
+<li><code>BUY</code></li>
+<li><code>SELL</code></li>
+<li><code>ABOVE</code></li>
+<li><code>BELOW</code></li>
+<li><code>PERCENT_CHANGE</code></li>
+<li>stable database table names to preserve where possible:</li>
+<li><code>users</code></li>
+<li><code>otp_tokens</code></li>
+<li><code>portfolio_event</code></li>
+<li><code>positions</code></li>
+<li><code>portfolio_snapshot</code></li>
+<li><code>stock_tick</code></li>
+<li><code>watchlists</code></li>
+<li><code>watchlist_items</code></li>
+<li><code>alerts</code></li>
+<li><code>notifications</code></li>
+<li><code>feature_flags</code></li>
+</ul>
+<h3 id="39-edge-cases-and-degraded-behavior">3.9 Edge Cases and Degraded Behavior</h3>
+<h4 id="otp">OTP</h4>
+<ul>
+<li>expires after 5 minutes</li>
+<li>5 wrong attempts lock the challenge context for 15 minutes</li>
+<li>resend is rate-limited</li>
+<li>wrong OTP responses stay generic enough to reduce account enumeration</li>
+</ul>
+<h4 id="session">Session</h4>
+<ul>
+<li>access token expiry should trigger a single refresh attempt</li>
+<li>refresh failure logs the user out and redirects to <code>/login</code></li>
+</ul>
+<h4 id="websocket">WebSocket</h4>
+<ul>
+<li>disconnect mid-session shows a reconnect banner</li>
+<li>reconnect triggers re-subscribe plus REST refresh</li>
+<li>auth failure on reconnect should stop infinite retry loops</li>
+</ul>
+<h4 id="redis">Redis</h4>
+<ul>
+<li>if cache is unavailable, read paths degrade to direct database or provider fetches where safe</li>
+<li>auth rate-limit paths should fail closed</li>
+<li>websocket fan-out may degrade, but REST remains the correctness layer</li>
+</ul>
+<h4 id="empty-state-ux">Empty-state UX</h4>
+<ul>
+<li>no watchlists: show create-watchlist CTA</li>
+<li>no holdings: show add-holdings CTA</li>
+<li>no alerts: show create-alert CTA</li>
+<li>no screener matches: show "No matches" state, not a blank table</li>
+</ul>
+<h3 id="310-recommended-reading-order">3.10 Recommended Reading Order</h3>
+<ol>
+<li><code>ARCHITECTURE.md</code></li>
+<li><code>IMPLEMENTATION_PLAN.md</code></li>
+<li><code>README.md</code></li>
+</ol>
+<h3 id="311-current-repository-status">3.11 Current Repository Status</h3>
+<p>This repository currently documents the MVP blueprint and implementation plan. The next engineering step is to scaffold <code>backend/</code> and <code>frontend/</code> following <code>IMPLEMENTATION_PLAN.md</code>.</p>
+<hr />
+<h2 id="4-appendix-docker-composeyml">4. Appendix: docker-compose.yml</h2>
+<pre><code class="language-yaml">services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: alphacues-postgres
+    environment:
+      POSTGRES_USER: alphacues
+      POSTGRES_PASSWORD: alphacues
+      POSTGRES_DB: alphacues
+    ports:
+      - &quot;5432:5432&quot;
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [&quot;CMD-SHELL&quot;, &quot;pg_isready -U alphacues -d alphacues&quot;]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: alphacues-redis
+    ports:
+      - &quot;6379:6379&quot;
+    command: [&quot;redis-server&quot;, &quot;--appendonly&quot;, &quot;yes&quot;]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: [&quot;CMD&quot;, &quot;redis-cli&quot;, &quot;ping&quot;]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: alphacues-mailpit
+    profiles:
+      - mail
+    ports:
+      - &quot;1025:1025&quot;
+      - &quot;8025:8025&quot;
+    healthcheck:
+      test: [&quot;CMD-SHELL&quot;, &quot;wget --spider -q http://127.0.0.1:8025 || exit 1&quot;]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pgdata:
+  redisdata:
+</code></pre>
+<hr />
+<h2 id="5-mobile-conversion-appendix-mobile_5_17_26">5. Mobile Conversion Appendix <code><span class="tag-mobile">Mobile</span></code></h2>
+<p>This section answers: how complete was the original web-only plan for mobile, what you listed, what else production mobile needs, and recommended priorities. The original blueprint body (Sections 1–4) is preserved above; this appendix is the mobile delta index.</p>
+<h3 id="51-how-right-were-you-110">5.1 How right were you? (1–10)</h3>
+<p><strong>Score: 8.5 / 10</strong></p>
+<p>You identified the highest-impact gaps between a Flutter <strong>Web</strong> MVP plan and a <strong>store-shipped mobile</strong> product. The original final plan already said "mobile-first" in design language, but it assumed <strong>Vercel + browser storage + in-app/email only</strong> — so your list correctly targets real delivery blockers.</p>
+<p><strong>What you got right</strong><br />
+- App Store / Play Store pipeline (absent in original)<br />
+- Push beyond in-app + email (FCM + APNs)<br />
+- Deep linking (web URLs ≠ native universal links)<br />
+- Android SDK 36 / Play target API policy<br />
+- Safe areas, bottom nav, touch targets<br />
+- <code>flutter build apk</code> / <code>flutter build ipa</code> (and App Bundle for Play)</p>
+<p><strong>Small corrections</strong><br />
+- <strong>Play production</strong> should prefer <strong><code>flutter build appbundle</code></strong> over APK for store upload.<br />
+- <strong>API 36</strong> is the <strong>2026</strong> Play target for new apps; <strong>2025</strong> policy emphasized <strong>API 35</strong> (Android 15). Plan both: ship MVP on 35+ if timeline is 2025, move to <strong>36</strong> before 2026 store deadlines.<br />
+- <strong>PWA</strong> is optional and largely orthogonal to native store apps — do not count it as required for "mobile conversion" unless you explicitly want installable web.</p>
+<h3 id="52-what-was-missing-from-the-original-final-plan-checklist">5.2 What was missing from the original final plan (checklist)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>In mobile plan?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>App Store / Play deployment pipeline</td>
+<td>Yes — §1.1, Phase 4 Task 27, §5.3</td>
+</tr>
+<tr>
+<td>2</td>
+<td>FCM + APNs push</td>
+<td>Yes — API, DB, Phase 4 Task 25</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Deep linking (manifest + entitlements + well-known)</td>
+<td>Yes — §1.2, Task 26</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Android SDK 36 / toolchain</td>
+<td>Yes — §1.2</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Safe areas + native navigation</td>
+<td>Yes — §1.2, Task 24</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Mobile CI (<code>apk</code>/<code>aab</code>/<code>ipa</code>)</td>
+<td>Yes — Task 7 mobile CI</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Secure token storage (not browser)</td>
+<td>Yes — <code>flutter_secure_storage</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>App lifecycle / background socket behavior</td>
+<td>Partial — see §5.4</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Store legal: privacy policy, disclaimers, data safety</td>
+<td>Yes — Task 27</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Physical device + release-mode testing</td>
+<td>Yes — §1.2 testing</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Firebase project + platform config files</td>
+<td>Yes — §3.3</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Android 13+ notification permission</td>
+<td>Yes — §1.2</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Push tap → cold start routing</td>
+<td>Yes — deep link + <code>getInitialMessage</code></td>
+</tr>
+<tr>
+<td>14</td>
+<td>Backend device token table + FCM sender</td>
+<td>Yes — <code>device_push_tokens</code></td>
+</tr>
+<tr>
+<td>15</td>
+<td>Obfuscation + split debug symbols for release</td>
+<td>Yes — build commands</td>
+</tr>
+<tr>
+<td>16</td>
+<td>App icon + splash native assets</td>
+<td>Yes — packages listed</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Flavors (dev/staging/prod API URLs)</td>
+<td>See §5.4</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Offline / airplane mode UX</td>
+<td>See §5.4</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Certificate pinning (finance app hardening)</td>
+<td>See §5.4 (post-MVP)</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Accessibility on mobile (VoiceOver/TalkBack)</td>
+<td>Extends Phase 3 Task 23</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-recommended-specific-changes-your-table-plan-mapping">5.3 Recommended specific changes (your table + plan mapping)</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What</th>
+<th>Time</th>
+<th>Plan reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PWA support</td>
+<td>Service worker + manifest (optional)</td>
+<td>2–3 days</td>
+<td>Out of scope for native; §1.2 PWA note</td>
+</tr>
+<tr>
+<td>Responsive UI fixes</td>
+<td>Safe areas, bottom nav, touch targets</td>
+<td>1–2 weeks</td>
+<td>Task 24</td>
+</tr>
+<tr>
+<td>Push notifications</td>
+<td>FCM + APNs + backend tokens</td>
+<td>~1 week</td>
+<td>Task 25</td>
+</tr>
+<tr>
+<td>App Store submission</td>
+<td>Accounts, screenshots, review</td>
+<td>1–2 weeks</td>
+<td>Task 27</td>
+</tr>
+<tr>
+<td>Android SDK 36 fix</td>
+<td>Toolchain + <code>targetSdk</code></td>
+<td>~1 day</td>
+<td>§1.2 Android SDK</td>
+</tr>
+<tr>
+<td>CI/CD mobile builds</td>
+<td>AAB + IPA pipelines</td>
+<td>3–5 days</td>
+<td>Task 7 mobile CI</td>
+</tr>
+</tbody>
+</table>
+<h3 id="54-additional-mobile-items-research-backed-not-in-your-list">5.4 Additional mobile items (research-backed, not in your list)</h3>
+<p><strong><span class="tag-mobile">Mobile</span> Should add for a finance-adjacent alert app</strong></p>
+<ol>
+<li><strong>App lifecycle and Socket.IO</strong> — On background, OS may suspend the socket; on resume, run the same reconnect + REST refresh path as web. Do not assume perpetual background websocket on mobile.</li>
+<li><strong>Build flavors</strong> — <code>dev</code> / <code>staging</code> / <code>prod</code> with different <code>API_BASE_URL</code> (Flutter <code>--dart-define</code> or <code>flutter_flavorizr</code>); separate Firebase projects per env recommended.</li>
+<li><strong>App Tracking Transparency (iOS)</strong> — Only if you add cross-app tracking ads; analytics SDKs may need ATT prompt.</li>
+<li><strong>Privacy nutrition labels</strong> — App Store Privacy Details + Google Data safety form must match actual data collected (email, device token, usage).</li>
+<li><strong>Non-advisory disclaimer</strong> — Store description and in-app copy: alerts are informational, not investment advice (reduces review risk).</li>
+<li><strong>Rate limiting on device register</strong> — Prevent token spam on <code>/devices/register</code>.</li>
+<li><strong>FCM token hygiene</strong> — Worker deletes tokens on <code>UNREGISTERED</code> / <code>INVALID_ARGUMENT</code>; update <code>last_seen_at</code> on app open.</li>
+<li><strong>Local notification channel IDs (Android)</strong> — High-importance channel for price alerts.</li>
+<li><strong>iOS Notification Service Extension</strong> — Optional for rich notifications (image/logo); skip for MVP.</li>
+<li><strong>Tablet layouts</strong> — Defer unless iPad/Android tablet is in scope; use phone layout first.</li>
+<li><strong>In-app update prompts</strong> — Optional <code>upgrader</code> package when <code>minSupportedVersion</code> API is added later.</li>
+<li><strong>Screenshot / golden tests</strong> — <code>golden_toolkit</code> for critical screens before store screenshots.</li>
+<li><strong>Network security</strong> — <code>android:usesCleartextTraffic="false"</code>; iOS ATS; no HTTP in production.</li>
+<li><strong>Secrets</strong> — Never embed Alpaca/SendGrid keys in the app; only JWT + public API base URL.</li>
+<li><strong>Crash and performance</strong> — <code>sentry_flutter</code> or Firebase Crashlytics + Firebase Performance for release builds.</li>
+</ol>
+<h3 id="55-code-examples-quick-reference-mobile_5_17_26">5.5 Code examples quick reference <code><span class="tag-mobile">Mobile</span></code></h3>
+<p><strong>Bottom navigation shell (sketch):</strong></p>
+<pre><code class="language-dart">// mobile_shell.dart — <span class="tag-mobile">Mobile</span>
+Scaffold(
+  body: SafeArea(child: child),
+  bottomNavigationBar: NavigationBar(
+  selectedIndex: currentIndex,
+  onDestinationSelected: (i) =&gt; goBranch(i),
+  destinations: const [
+    NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
+    NavigationDestination(icon: Icon(Icons.star), label: 'Watchlists'),
+    NavigationDestination(icon: Icon(Icons.notifications), label: 'Alerts'),
+    NavigationDestination(icon: Icon(Icons.pie_chart), label: 'Portfolio'),
+  ],
+),
+);
+</code></pre>
+<p><strong>Register FCM token after login (sketch):</strong></p>
+<pre><code class="language-dart">// <span class="tag-mobile">Mobile</span>
+final token = await FirebaseMessaging.instance.getToken();
+await api.post('/devices/register', data: {
+  'fcmToken': token,
+  'platform': Platform.isIOS ? 'ios' : 'android',
+  'deviceId': await deviceIdProvider.future,
+  'appVersion': packageInfo.version,
+});
+</code></pre>
+<p><strong>Backend outbox push branch (sketch):</strong></p>
+<pre><code class="language-python"># worker — <span class="tag-mobile">Mobile</span>
+if channel includes PUSH:
+    tokens = DevicePushTokenService.active_tokens_for(user_id)
+    fcm.send_multicast(tokens, title=..., data={&quot;deepLink&quot;: f&quot;/symbols/{symbol}&quot;})
+</code></pre>
+<h3 id="56-document-change-log">5.6 Document change log</h3>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Mobile_5_17_26</code></td>
+<td>Added or updated for web → native iOS/Android conversion on 2026-05-17</td>
+</tr>
+</tbody>
+</table>
+<p>Search the repository copy of this file: <code>grep -n 'Mobile_5_17_26' plan.final_mobile.md</code></p>
+<p><strong>Original file preserved:</strong> <code>alphacues_mvp_design_86b7618e_final.plan.md</code> (not modified).</p>
+  </main>
+  <footer>Generated from plan.final_mobile.md</footer>
+  <script>mermaid.initialize({ startOnLoad: true, theme: "neutral" });</script>
+</body>
+</html>

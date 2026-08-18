@@ -1,0 +1,138 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-8.4.2, pluggy-1.6.0 -- C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend
+configfile: pyproject.toml
+plugins: anyio-4.14.2, cov-6.3.0, flask-1.3.0
+collecting ... collected 3 items
+
+tests/integration/test_push_notifications.py::test_register_device_token ERROR [ 33%]
+tests/integration/test_push_notifications.py::test_unregister_device_token ERROR [ 66%]
+tests/integration/test_push_notifications.py::test_process_outbox_event_with_push ERROR [100%]
+
+=================================== ERRORS ====================================
+________________ ERROR at setup of test_register_device_token _________________
+file C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend\tests\integration\test_push_notifications.py, line 6
+  def test_register_device_token(client, auth_headers):
+E       fixture 'auth_headers' not found
+>       available fixtures: _configure_application, _monkeypatch_response_class, _push_request_context, accept_any, accept_json, accept_jsonp, accept_mimetype, anyio_backend, anyio_backend_name, anyio_backend_options, app, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, client, client_class, config, cov, doctest_namespace, fake_email_sender, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, live_server, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, redis_available, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend\tests\integration\test_push_notifications.py:6
+----------------------------- Captured log setup ------------------------------
+INFO     app.shared.security:security.py:90 Secrets audit completed. Active warnings count: 1
+_______________ ERROR at setup of test_unregister_device_token ________________
+file C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend\tests\integration\test_push_notifications.py, line 29
+  def test_unregister_device_token(client, auth_headers):
+E       fixture 'auth_headers' not found
+>       available fixtures: _configure_application, _monkeypatch_response_class, _push_request_context, accept_any, accept_json, accept_jsonp, accept_mimetype, anyio_backend, anyio_backend_name, anyio_backend_options, app, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, client, client_class, config, cov, doctest_namespace, fake_email_sender, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, live_server, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, redis_available, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend\tests\integration\test_push_notifications.py:29
+----------------------------- Captured log setup ------------------------------
+INFO     app.shared.security:security.py:45 Configured CORS allowed origins: *
+INFO     app.shared.security:security.py:90 Secrets audit completed. Active warnings count: 1
+____________ ERROR at setup of test_process_outbox_event_with_push ____________
+file C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend\tests\integration\test_push_notifications.py, line 49
+  def test_process_outbox_event_with_push(app, client, auth_headers, monkeypatch):
+E       fixture 'auth_headers' not found
+>       available fixtures: _configure_application, _monkeypatch_response_class, _push_request_context, accept_any, accept_json, accept_jsonp, accept_mimetype, anyio_backend, anyio_backend_name, anyio_backend_options, app, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, client, client_class, config, cov, doctest_namespace, fake_email_sender, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, live_server, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, redis_available, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend\tests\integration\test_push_notifications.py:49
+----------------------------- Captured log setup ------------------------------
+INFO     app.shared.security:security.py:45 Configured CORS allowed origins: *
+INFO     app.shared.security:security.py:90 Secrets audit completed. Active warnings count: 1
+============================== warnings summary ===============================
+.venv\Lib\site-packages\sentry_sdk\utils.py:1381
+  C:\Users\Admin\Desktop\ALPHA\alphacues-mvpapi-cursor-phase-1-backend-skeleton\backend\.venv\Lib\site-packages\sentry_sdk\utils.py:1381: EventletDeprecationWarning: 
+  Eventlet is deprecated. It is currently being maintained in bugfix mode, and
+  we strongly recommend against using it for new projects.
+  
+  If you are already using Eventlet, we recommend migrating to a different
+  framework.  For more detail see
+  https://eventlet.readthedocs.io/en/latest/asyncio/migration.html
+  
+    from eventlet.patcher import is_monkey_patched  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.11.9-final-0 _______________
+
+Name                                          Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------------
+app\__init__.py                                 109     32    71%   41, 54-55, 59-61, 103, 113, 117-145, 149-163
+app\adapters\__init__.py                          3      0   100%
+app\adapters\email_sender.py                     49     32    35%   16, 21-23, 26-34, 39-40, 43-78, 85-94
+app\adapters\fake_email_sender.py                14      6    57%   13, 16-19, 22
+app\adapters\fake_market_data.py                 80     61    24%   275-278, 287-333, 336-351, 354-366, 369-401, 404-407, 427-434
+app\adapters\market_data.py                     248    182    27%   72, 76, 80, 84-88, 92-94, 99, 102-148, 159-160, 168-196, 205-233, 236-272, 275-292, 295-325, 328, 339-391, 396-397, 400-419, 432, 435, 438, 441, 444, 453-454, 457, 460, 463, 466, 469, 472, 481, 493-499
+app\adapters\protocols.py                        56      0   100%
+app\config\base.py                               42      0   100%
+app\config\development.py                         4      0   100%
+app\config\production.py                          4      0   100%
+app\config\testing.py                            10      0   100%
+app\extensions.py                                17      1    94%   32
+app\modules\__init__.py                           0      0   100%
+app\modules\admin\__init__.py                     0      0   100%
+app\modules\admin\routes.py                      28     12    57%   21-22, 34-35, 53-69
+app\modules\admin\service.py                     29     12    59%   35, 44-50, 62-73, 78
+app\modules\alerts\__init__.py                    2      0   100%
+app\modules\alerts\models.py                     26      0   100%
+app\modules\alerts\routes.py                     53     23    57%   22-31, 38, 44-49, 55-62, 68-78, 84-86, 92-93
+app\modules\alerts\schemas.py                    45      6    87%   29-31, 54-56, 60-61
+app\modules\alerts\service.py                   188    138    27%   28, 32-34, 38-40, 44, 48, 54-62, 66, 85, 104-140, 144-170, 174-176, 185-216, 225-263, 269-273, 281-299, 303-306, 314-323, 334-405, 414-419
+app\modules\market\__init__.py                    0      0   100%
+app\modules\market\models.py                     31      9    71%   15, 33-57, 60-83
+app\modules\market\routes.py                    115     52    55%   46-47, 51-59, 63-66, 75-84, 97-104, 111-117, 126-144, 158-160, 169-171, 180-187, 196-197
+app\modules\market\schemas.py                    67      9    87%   74-91
+app\modules\market\service.py                   143    106    26%   36-44, 48, 58-71, 75, 85, 94, 102, 126-128, 131-164, 167, 169-186, 189-211, 214-225, 228-239, 242-275, 278-280
+app\modules\notifications\__init__.py             2      0   100%
+app\modules\notifications\devices_routes.py      41     41     0%   1-70
+app\modules\notifications\models.py              25      0   100%
+app\modules\notifications\routes.py              25      8    68%   16, 22-29, 35-36, 42-43
+app\modules\notifications\schemas.py             10     10     0%   1-13
+app\modules\notifications\service.py            166    128    23%   19-21, 25-27, 33, 49-57, 66-105, 109-114, 118-127, 131-232, 237-244, 259-283, 296-320, 324-339, 343-354, 358-365, 369-379
+app\modules\portfolio\__init__.py                 2      0   100%
+app\modules\portfolio\models.py                  35      0   100%
+app\modules\portfolio\routes.py                  64     29    55%   23-32, 39, 43-46, 52-53, 59-63, 69-76, 82-93, 99-109, 115-116
+app\modules\portfolio\schemas.py                 27      5    81%   12, 38-40, 63-65
+app\modules\portfolio\service.py                250    188    25%   33, 37-39, 43-45, 49, 53, 57-59, 63-74, 78-79, 85, 96, 105-113, 117-122, 126, 130-139, 143-145, 149-158, 162-182, 186-210, 223-273, 286-310, 314-322, 326-369, 386-416, 420, 439-470
+app\modules\screener\__init__.py                  1      0   100%
+app\modules\screener\models.py                   19      0   100%
+app\modules\screener\routes.py                   77     31    60%   28-34, 41, 49-58, 65-71, 78-87, 97-98, 105-107, 114-115, 122-130
+app\modules\screener\schemas.py                  67     21    69%   33-45, 81-85, 105-109, 113-114
+app\modules\screener\service.py                 133    104    22%   17-25, 38-85, 93-138, 149-159, 163, 174-197, 201-211, 217-230, 234-236, 240
+app\modules\user\__init__.py                      2      0   100%
+app\modules\user\models.py                       56      0   100%
+app\modules\user\routes.py                       91     52    43%   34, 38-47, 64-68, 74-82, 88-90, 96-115, 120-122, 128-130, 136-157
+app\modules\user\schemas.py                      20      3    85%   17-19
+app\modules\user\service.py                     213    169    21%   37, 41-42, 46-49, 53-55, 59, 63, 67, 81, 94, 103, 107-112, 115-153, 166-195, 198-231, 239-265, 268-272, 275-276, 286-293, 296-302, 305-313, 316-331, 334-359, 366-391, 397-400
+app\modules\watchlist\__init__.py                 2      0   100%
+app\modules\watchlist\models.py                  21      0   100%
+app\modules\watchlist\routes.py                  61     25    59%   26-35, 42, 48-49, 55-57, 66-67, 73-79, 85-86, 92-94, 103-104
+app\modules\watchlist\schemas.py                 12      2    83%   19-21
+app\modules\watchlist\service.py                125     78    38%   20-22, 26, 30-31, 35, 44, 55, 59-67, 71, 80, 90-114, 118-122, 126, 130-134, 138-141, 145-157, 161-173, 177-210, 219-224, 228
+app\shared\__init__.py                            0      0   100%
+app\shared\auth.py                               50     28    44%   19-25, 29-46, 50, 61-72, 82-87, 138
+app\shared\cache.py                             107     75    30%   15-17, 46-50, 54-56, 59-71, 74-86, 89-96, 99-106, 109-116, 119, 122-128, 131, 135-141
+app\shared\db.py                                  9      0   100%
+app\shared\error_handler.py                      27     11    59%   13, 22, 31, 39-52, 60-61
+app\shared\exceptions.py                         59      8    86%   20-27
+app\shared\feature_flags.py                      77     40    48%   65, 76-83, 111-123, 126-127, 139-155, 160-176, 189-190
+app\shared\limiter.py                            59     31    47%   31-37, 43-52, 56, 60-63, 67-70, 74-76, 81-85, 92, 96, 100-101
+app\shared\logging.py                            64     31    52%   23-30, 47-54, 65-69, 73-92, 100, 108, 117, 126, 134
+app\shared\pagination.py                         35     22    37%   15-17, 21-31, 41-43, 53-59, 68
+app\shared\response.py                           38     26    32%   10-16, 23-29, 41-48, 60-71, 84-103
+app\shared\security.py                           46     18    61%   31-38, 55-69, 85, 88
+app\shared\validators.py                         54     38    30%   15, 19-30, 34, 38-47, 51-60, 69-88, 92-94, 104-116, 120-122
+app\shared\websocket.py                         155    111    28%   27, 31, 35, 39, 43, 51-72, 75, 78-107, 110-122, 125-128, 131-132, 145-146, 149-152, 159-193, 203-211, 216-228, 235-240
+app\tasks\__init__.py                             0      0   100%
+app\tasks\outbox.py                               6      6     0%   3-12
+---------------------------------------------------------------------------
+TOTAL                                          3696   2020    45%
+=========================== short test summary info ===========================
+ERROR tests/integration/test_push_notifications.py::test_register_device_token
+ERROR tests/integration/test_push_notifications.py::test_unregister_device_token
+ERROR tests/integration/test_push_notifications.py::test_process_outbox_event_with_push
+======================== 1 warning, 3 errors in 5.54s =========================

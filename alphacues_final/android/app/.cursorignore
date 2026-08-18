@@ -1,0 +1,17 @@
+.env
+secrets/
+node_modules/
+build/
+dist/ 
+
+
+.env.*
+.env.local
+.env.production
+.env.staging
+**/*.pem
+**/*.key
+backend/app/config/production.py
+backend/.env*
+.dart_tool/
+__pycache__/

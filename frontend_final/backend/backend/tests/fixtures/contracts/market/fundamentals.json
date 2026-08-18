@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "data": {
+    "symbol": "AAPL",
+    "marketCap": 2950000000000.0,
+    "peRatio": 31.5,
+    "eps": 6.02,
+    "dividendYield": 0.0055,
+    "week52High": 199.62,
+    "week52Low": 164.08
+  },
+  "error": null,
+  "meta": {
+    "requestId": "11111111-2222-3333-4444-555555555555",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

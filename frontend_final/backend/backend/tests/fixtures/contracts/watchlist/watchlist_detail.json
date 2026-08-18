@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "data": {
+    "watchlistId": "1",
+    "name": "Tech Picks",
+    "createdAt": "2026-05-13T17:15:30Z",
+    "items": [
+      {
+        "symbol": "AAPL",
+        "addedAt": "2026-05-13T17:20:00Z",
+        "lastPrice": 188.9,
+        "changeAmount": 1.24,
+        "changePercent": 0.6612,
+        "asOf": "2026-05-13T14:30:01Z"
+      }
+    ]
+  },
+  "error": null,
+  "meta": {
+    "requestId": "e5f22e08-a2a4-4d82-b8cd-1f7c3e7d1c5f",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

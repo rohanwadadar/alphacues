@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "data": {
+    "flags": [
+      {
+        "flagKey": "enable_screener",
+        "isEnabled": true,
+        "description": "Enable MVP Screener module",
+        "updatedAt": "2026-07-28T12:00:00Z"
+      },
+      {
+        "flagKey": "enable_simulator",
+        "isEnabled": false,
+        "description": "Enable order simulation",
+        "updatedAt": "2026-07-28T12:00:00Z"
+      }
+    ]
+  },
+  "error": null,
+  "meta": {
+    "requestId": "11111111-2222-3333-4444-555555555555",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

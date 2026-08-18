@@ -1,0 +1,42 @@
+# Archives
+*.zip
+*.tar.gz
+*.7z
+
+# Flutter / Dart
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# Python
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+celerybeat-schedule*
+*.log
+
+# Java / Gradle / Android
+.gradle/
+.cxx/
+.externalNativeBuild/
+captures/
+*.apk
+*.aab
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+
+# Misc temporary/cache
+instance/
+node_modules/

@@ -1,0 +1,42 @@
+{
+  "success": true,
+  "data": {
+    "total": 2,
+    "limit": 50,
+    "items": [
+      {
+        "symbol": "MSFT",
+        "name": "Microsoft Corporation",
+        "marketCap": 3100000000000.0,
+        "peRatio": 35.2,
+        "eps": 11.8,
+        "dividendYield": 0.72,
+        "fiftyTwoWeekHigh": 430.82,
+        "fiftyTwoWeekLow": 362.9,
+        "price": 415.5,
+        "changePercent": -0.5029,
+        "changeAmount": -2.1,
+        "exchange": "NASDAQ"
+      },
+      {
+        "symbol": "AAPL",
+        "name": "Apple Inc.",
+        "marketCap": 2900000000000.0,
+        "peRatio": 29.5,
+        "eps": 6.41,
+        "dividendYield": 0.52,
+        "fiftyTwoWeekHigh": 199.62,
+        "fiftyTwoWeekLow": 164.08,
+        "price": 188.9,
+        "changePercent": 0.6612,
+        "changeAmount": 1.24,
+        "exchange": "NASDAQ"
+      }
+    ]
+  },
+  "error": null,
+  "meta": {
+    "requestId": "f8a9b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b5c",
+    "apiVersion": "1"
+  }
+}

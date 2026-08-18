@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "data": {
+    "otpChallengeId": "550e8400-e29b-41d4-a716-446655440000",
+    "emailMasked": "u***@example.com",
+    "expiresInSeconds": 300
+  },
+  "error": null,
+  "meta": {
+    "requestId": "11111111-2222-3333-4444-555555555555",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

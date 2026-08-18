@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "data": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "price": 188.9,
+      "change": 1.1,
+      "changePercent": 0.59
+    }
+  ],
+  "error": null,
+  "meta": {
+    "requestId": "11111111-2222-3333-4444-555555555555",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}

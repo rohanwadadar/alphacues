@@ -1,0 +1,548 @@
+CREATE TABLE orders (
+    order_id SERIAL PRIMARY KEY,
+    customer_id INT REFERENCES customers(customer_id) ON DELETE CASCADE,
+    order_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ticker TEXT NOT NULL,
+    order_type TEXT CHECK (order_type IN ('BUY', 'SELL')),
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    total_cost DECIMAL(15,2) GENERATED ALWAYS AS (quantity * price) STORED
+)CREATE TABLE market_prices (
+    price_timestamp TIMESTAMP PRIMARY KEY,
+    ticker TEXT NOT NULL,
+    open_price DECIMAL(10,2) NOT NULL,
+    high_price DECIMAL(10,2) NOT NULL,
+    low_price DECIMAL(10,2) NOT NULL,
+    close_price DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE customer_balances (
+    balance_id SERIAL PRIMARY KEY,
+    customer_id INT REFERENCES customers(customer_id) ON DELETE CASCADE,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_balance DECIMAL(15,2) NOT NULL,
+    cash_available DECIMAL(15,2) NOT NULL,
+    portfolio_balance DECIMAL(15,2) NOT NULL
+);CREATE TABLE customers (
+    customer_id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
+    address TEXT,
+    registered_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+           this are schem a based on this add 20 data for customer id 1222          
+
+
+
+
+
+
+
+
+
+
+
+
+class _PortfolioPerformanceData {
+  final String timeframe;
+  final double portfolioValue;
+  final List<FlSpot> spots;
+
+  _PortfolioPerformanceData({
+    required this.timeframe,
+    required this.portfolioValue,
+    required this.spots,
+  });
+
+  // Calculate 24h change by comparing current value with previous day's value
+  double get change24h {
+    if (spots.isEmpty) return 0;
+    // For timeframes longer than 1D, we'll use the last two points
+    // For 1D timeframe, we'll use the first and last points
+    if (timeframe == "1D") {
+      return spots.last.y - spots.first.y;
+    } else {
+      // For longer timeframes, we'll use the last two points
+      if (spots.length >= 2) {
+        return spots.last.y - spots[spots.length - 2].y;
+      }
+      return 0;
+    }
+  }
+
+  // Calculate total profit by comparing current value with initial investment
+  double get totalProfit {
+    if (spots.isEmpty) return 0;
+    return spots.last.y - spots.first.y;
+  }
+
+  // Calculate return percentage
+  double get returnPercentage {
+    if (spots.isEmpty || spots.first.y == 0) return 0;
+    return (totalProfit / spots.first.y) * 100;
+  }
+}
+
+class CombinedPortfolioPerformance extends StatefulWidget {
+  final bool showBalance;
+
+  const CombinedPortfolioPerformance({
+    Key? key,
+    required this.showBalance,
+  }) : super(key: key);
+
+  @override
+  CombinedPortfolioPerformanceState createState() => CombinedPortfolioPerformanceState();
+}
+
+class CombinedPortfolioPerformanceState extends State<CombinedPortfolioPerformance> {
+  String selectedTimeframe = "1D";
+  double selectedValue = 0;
+  String selectedDate = "";
+  bool showGridLine = false;
+  double gridLineX = 0;
+  double? touchX;
+  double? touchY;
+
+  final Map<String, _PortfolioPerformanceData> timeFrameData = {
+    "1D": _PortfolioPerformanceData(
+      timeframe: "1D",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 15665.44),    // 9:30 AM
+        FlSpot(0.5, 15700.00),  // 10:15 AM
+        FlSpot(1, 15750.00),    // 11:00 AM
+        FlSpot(1.5, 15800.00),  // 11:45 AM
+        FlSpot(2, 15850.00),    // 12:30 PM
+        FlSpot(2.5, 15750.00),  // 1:15 PM
+        FlSpot(3, 15800.00),    // 2:00 PM
+        FlSpot(3.5, 15850.00),  // 2:45 PM
+        FlSpot(4, 15900.00),    // 3:30 PM
+        FlSpot(4.5, 15890.00),  // 4:00 PM
+      ],
+    ),
+    "5D": _PortfolioPerformanceData(
+      timeframe: "5D",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 15600.00),    // Day 1 Start
+        FlSpot(0.4, 15650.00),  // Day 1 End
+        FlSpot(0.8, 15700.00),  // Day 2 Start
+        FlSpot(1.2, 15725.00),  // Day 2 End
+        FlSpot(1.6, 15775.00),  // Day 3 Start
+        FlSpot(2.0, 15800.00),  // Day 3 End
+        FlSpot(2.4, 15825.00),  // Day 4 Start
+        FlSpot(2.8, 15850.00),  // Day 4 End
+        FlSpot(3.2, 15875.00),  // Day 5 Start
+        FlSpot(3.6, 15890.00),  // Day 5 Mid
+        FlSpot(4.0, 15900.00),  // Day 5 End
+      ],
+    ),
+    "1M": _PortfolioPerformanceData(
+      timeframe: "1M",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 15200.00),    // Week 1 Start
+        FlSpot(0.5, 15300.00),  // Week 1 End
+        FlSpot(1.0, 15400.00),  // Week 2 Start
+        FlSpot(1.5, 15500.00),  // Week 2 End
+        FlSpot(2.0, 15600.00),  // Week 3 Start
+        FlSpot(2.5, 15700.00),  // Week 3 End
+        FlSpot(3.0, 15800.00),  // Week 4 Start
+        FlSpot(3.5, 15850.00),  // Week 4 End
+        FlSpot(4.0, 15900.00),  // Month End
+      ],
+    ),
+    "3M": _PortfolioPerformanceData(
+      timeframe: "3M",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 14800.00),    // Month 1 Start
+        FlSpot(0.5, 14900.00),  // Month 1 Mid
+        FlSpot(1.0, 15000.00),  // Month 1 End
+        FlSpot(1.5, 15200.00),  // Month 2 Start
+        FlSpot(2.0, 15400.00),  // Month 2 Mid
+        FlSpot(2.5, 15500.00),  // Month 2 End
+        FlSpot(3.0, 15700.00),  // Month 3 Start
+        FlSpot(3.5, 15800.00),  // Month 3 Mid
+        FlSpot(4.0, 15900.00),  // Month 3 End
+      ],
+    ),
+    "6M": _PortfolioPerformanceData(
+      timeframe: "6M",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 14500.00),    // Month 1
+        FlSpot(0.7, 14700.00),  // Month 2
+        FlSpot(1.4, 14900.00),  // Month 3
+        FlSpot(2.1, 15200.00),  // Month 4
+        FlSpot(2.8, 15500.00),  // Month 5
+        FlSpot(3.5, 15700.00),  // Month 5.5
+        FlSpot(4.0, 15900.00),  // Month 6
+      ],
+    ),
+    "YTD": _PortfolioPerformanceData(
+      timeframe: "YTD",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 14000.00),    // January
+        FlSpot(0.5, 14200.00),  // February
+        FlSpot(1.0, 14500.00),  // March
+        FlSpot(1.5, 14700.00),  // April
+        FlSpot(2.0, 14900.00),  // May
+        FlSpot(2.5, 15200.00),  // June
+        FlSpot(3.0, 15400.00),  // July
+        FlSpot(3.5, 15600.00),  // August
+        FlSpot(4.0, 15900.00),  // September
+      ],
+    ),
+    "1Y": _PortfolioPerformanceData(
+      timeframe: "1Y",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 13500.00),    // Q1 Start
+        FlSpot(0.5, 13800.00),  // Q1 Mid
+        FlSpot(1.0, 14100.00),  // Q1 End
+        FlSpot(1.5, 14400.00),  // Q2 Start
+        FlSpot(2.0, 14700.00),  // Q2 Mid
+        FlSpot(2.5, 15000.00),  // Q2 End
+        FlSpot(3.0, 15300.00),  // Q3 Start
+        FlSpot(3.5, 15600.00),  // Q3 Mid
+        FlSpot(4.0, 15900.00),  // Q3 End
+      ],
+    ),
+    "3Y": _PortfolioPerformanceData(
+      timeframe: "3Y",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 12000.00),    // Year 1 Start
+        FlSpot(0.5, 12500.00),  // Year 1 Mid
+        FlSpot(1.0, 13000.00),  // Year 1 End
+        FlSpot(1.5, 13500.00),  // Year 2 Start
+        FlSpot(2.0, 14000.00),  // Year 2 Mid
+        FlSpot(2.5, 14500.00),  // Year 2 End
+        FlSpot(3.0, 15000.00),  // Year 3 Start
+        FlSpot(3.5, 15500.00),  // Year 3 Mid
+        FlSpot(4.0, 15900.00),  // Year 3 End
+      ],
+    ),
+    "5Y": _PortfolioPerformanceData(
+      timeframe: "5Y",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 10000.00),    // Year 1
+        FlSpot(0.8, 11000.00),  // Year 2
+        FlSpot(1.6, 12000.00),  // Year 3
+        FlSpot(2.4, 13000.00),  // Year 4
+        FlSpot(3.2, 14500.00),  // Year 4.5
+        FlSpot(4.0, 15900.00),  // Year 5
+      ],
+    ),
+    "MAX": _PortfolioPerformanceData(
+      timeframe: "MAX",
+      portfolioValue: 15900.00,
+      spots: [
+        FlSpot(0, 8000.00),     // 2019
+        FlSpot(0.5, 9000.00),   // 2020
+        FlSpot(1.0, 10000.00),  // 2021
+        FlSpot(1.5, 11000.00),  // 2022
+        FlSpot(2.0, 12000.00),  // 2023 Q1
+        FlSpot(2.5, 13000.00),  // 2023 Q2
+        FlSpot(3.0, 14000.00),  // 2023 Q3
+        FlSpot(3.5, 15000.00),  // 2023 Q4
+        FlSpot(4.0, 15900.00),  // 2024
+      ],
+    ),
+  };
+
+  String getFormattedTime(String timeframe, double x) {
+    switch (timeframe) {
+      case "1D":
+        final times = [
+          "9:30 AM", "10:15 AM", "11:00 AM", "11:45 AM", "12:30 PM",
+          "1:15 PM", "2:00 PM", "2:45 PM", "3:30 PM", "4:00 PM"
+        ];
+        int index = (x * 2).round();
+        return index < times.length ? times[index] : times.last;
+      case "5D":
+        return "Day ${(x / 0.8).ceil()}";
+      case "1M":
+        return "Week ${(x + 1).round()}";
+      case "3M":
+        return "Month ${(x / 1.33).ceil()}";
+      case "6M":
+        return "Month ${(x / 0.67).ceil()}";
+      case "YTD":
+        final months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+        int index = (x * 2).round();
+        return index < months.length ? months[index] : months.last;
+      case "1Y":
+        final quarters = ["Q1", "Q2", "Q3", "Q4"];
+        return quarters[(x).round() % 4];
+      case "3Y":
+        return "Year ${2021 + (x).round()}";
+      case "5Y":
+        return "Year ${2019 + (x).round()}";
+      case "MAX":
+        return "${2019 + (x).round()}";
+      default:
+        return x.round().toString();
+    }
+  }
+
+  _PortfolioPerformanceData get currentData => timeFrameData[selectedTimeframe]!;
+
+  void _changeTimeFrame(String timeFrame) {
+    setState(() {
+      selectedTimeframe = timeFrame;
+      selectedValue = currentData.portfolioValue;
+      selectedDate = "";
+    });
+  }
+
+  Widget _buildPortfolioStat(String label, String value, bool isPositive) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: isPositive ? Colors.greenAccent : Colors.redAccent,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    selectedValue = currentData.portfolioValue;
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Performance',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 16),
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Portfolio Value',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              SizedBox(height: 8),
+              Text(
+                widget.showBalance
+                    ? '\$${selectedValue.toStringAsFixed(2)}'
+                    : '••••••••',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildPortfolioStat(
+                      '24h Change',
+                      '+\$${currentData.change24h.toStringAsFixed(2)}',
+                      true
+                  ),
+                  _buildPortfolioStat(
+                      'Total Profit',
+                      '+\$${currentData.totalProfit.toStringAsFixed(2)}',
+                      true
+                  ),
+                  _buildPortfolioStat(
+                      'Return',
+                      '+${currentData.returnPercentage}%',
+                      true
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 24),
+
+        Stack(
+          children: [
+            Container(
+              padding: EdgeInsets.all(16),
+              height: 250,
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: showGridLine,
+                    verticalInterval: 1,
+                    getDrawingVerticalLine: (value) {
+                      if (value == gridLineX) {
+                        return FlLine(
+                          color: Colors.white.withOpacity(0.2),
+                          strokeWidth: 1,
+                          dashArray: [5, 5],
+                        );
+                      }
+                      return FlLine(color: Colors.transparent);
+                    },
+                    drawHorizontalLine: false,
+                  ),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: currentData.spots,
+                      isCurved: true,
+                      color: Colors.green,
+                      barWidth: 2,
+                      isStrokeCapRound: true,
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.green.withOpacity(0.2),
+                            Colors.green.withOpacity(0.0),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                      dotData: FlDotData(show: false),
+                    ),
+                  ],
+                  lineTouchData: LineTouchData(
+                    enabled: true,
+                    touchTooltipData: LineTouchTooltipData(
+                      fitInsideHorizontally: true,
+                      fitInsideVertically: true,
+                      showOnTopOfTheChartBoxArea: true,
+                      getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                        return [];
+                      },
+                    ),
+                    getTouchedSpotIndicator: (barData, spotIndexes) {
+                      return spotIndexes.map((index) {
+                        return TouchedSpotIndicatorData(
+                          FlLine(
+                            color: Colors.white.withOpacity(0.2),
+                            strokeWidth: 1,
+                            dashArray: [5, 5],
+                          ),
+                          FlDotData(show: false),
+                        );
+                      }).toList();
+                    },
+                    touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
+                      if ((event is FlPanDownEvent ||
+                          event is FlPanUpdateEvent ||
+                          event is FlTapDownEvent) &&
+                          response?.lineBarSpots != null &&
+                          response!.lineBarSpots!.isNotEmpty &&
+                          event.localPosition != null) {
+                        final spot = response.lineBarSpots![0];
+                        setState(() {
+                          selectedValue = spot.y;
+                          selectedDate = getFormattedTime(selectedTimeframe, spot.x);
+                          showGridLine = true;
+                          gridLineX = spot.x;
+                          touchX = event.localPosition?.dx;
+                          touchY = event.localPosition?.dy;
+                        });
+                      } else if (event is FlPanEndEvent || event is FlTapUpEvent) {
+                        setState(() {
+                          showGridLine = false;
+                          selectedValue = currentData.portfolioValue;
+                          selectedDate = "";
+                          touchX = null;
+                          touchY = null;
+                        });
+                      }
+                    },
+                    handleBuiltInTouches: true,
+                  ),
+                ),
+              ),
+            ),
+            if (touchX != null && touchY != null && selectedDate.isNotEmpty)
+              Positioned(
+                left: touchX! - 40,
+                top: touchY! - 40,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    selectedDate,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: timeFrameData.keys.map((timeFrame) {
+            return GestureDetector(
+              onTap: () => _changeTimeFrame(timeFrame),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                decoration: BoxDecoration(
+                  color: selectedTimeframe == timeFrame ? Colors.green : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  timeFrame,
+                  style: TextStyle(
+                    color: selectedTimeframe == timeFrame ? Colors.black : Colors.white70,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+

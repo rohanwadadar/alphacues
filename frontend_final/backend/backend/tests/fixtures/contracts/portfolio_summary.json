@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "portfolioId": "12",
+    "totalValue": 12500.500000,
+    "availableBalance": 0.000000,
+    "totalProfit": 500.500000,
+    "totalReturn": 4.170000,
+    "dayChange": -125.220000,
+    "asOf": "2026-05-13T14:30:00Z"
+  },
+  "error": null,
+  "meta": {
+    "requestId": "00000000-0000-0000-0000-000000000001",
+    "apiVersion": "1"
+  }
+}

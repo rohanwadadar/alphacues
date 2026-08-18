@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ritisha Bhaumik - Food & Nutrition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .food-gradient {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+        }
+        
+        .momo-gradient {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+        
+        .dynamic-bg {
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 154, 158, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(254, 207, 239, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(102, 126, 234, 0.2) 0%, transparent 50%),
+                linear-gradient(135deg, #ffecd2 0%, #fcb69f 25%, #ff9a9e 50%, #fecfef 75%, #c2e9fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 10s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .photo-placeholder {
+  width: 100%;
+  max-width: 320px;  /* or whatever fixed width */
+  height: 220px;     /* image height + padding */
+  margin: 0 auto;
+  border: 2px dashed #ccc;
+  border-radius: 1rem;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background-color: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0;
+}
+
+        
+        .photo-placeholder:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(255, 154, 158, 0.3);
+        }
+        
+        .clickable-love {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .clickable-love:hover {
+            transform: scale(1.1);
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.7);
+        }
+        
+        .whatsapp-hint {
+            position: relative;
+        }
+        
+        .whatsapp-hint::after {
+            content: '💕 Click to send love!';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 105, 180, 0.9);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .whatsapp-hint:hover::after {
+            opacity: 1;
+        }
+        
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .bounce-in {
+            animation: bounceIn 0.8s ease-out;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .pulse-heart {
+            animation: pulseHeart 2s infinite;
+        }
+        
+        @keyframes pulseHeart {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .sparkle {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sparkle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: sparkle 2s infinite;
+        }
+        
+        @keyframes sparkle {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .text-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .love-particles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .particle {
+            position: absolute;
+            font-size: 20px;
+            animation: float-particle 6s infinite ease-in-out;
+        }
+        
+        @keyframes float-particle {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen dynamic-bg relative overflow-x-hidden">
+    <!-- Love Particles Background -->
+    <div class="love-particles" id="particles"></div>
+    
+    <!-- Header -->
+    <header class="relative z-10 bg-white/80 backdrop-blur-md shadow-lg">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="text-2xl font-bold text-gradient">💕 Ritisha Bhaumik</div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#home" class="text-gray-700 hover:text-purple-600 transition-colors">Home</a>
+                    <a href="#about" class="text-gray-700 hover:text-purple-600 transition-colors">About</a>
+                    <a href="#nutrition" class="text-gray-700 hover:text-purple-600 transition-colors">Nutrition</a>
+                    <a href="#momos" class="text-gray-700 hover:text-purple-600 transition-colors">Momos</a>
+                    <a href="#contact" class="text-gray-700 hover:text-purple-600 transition-colors">Contact</a>
+                </div>
+                <div class="md:hidden">
+                    <button class="text-gray-700 hover:text-purple-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="relative z-10 py-20 px-6">
+        <div class="container mx-auto text-center">
+            <div class="bounce-in">
+                <h1 class="text-5xl md:text-7xl font-bold mb-6">
+                    <span class="text-gradient">Ritisha Bhaumik</span>
+                    <span class="text-pink-500 pulse-heart inline-block clickable-love whatsapp-hint">💖</span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-600 mb-8 max-w-2xl mx-auto">
+                    The sweetest girl who loves food, nutrition, and the most amazing momos! 🥟✨
+                </p>
+                <div class="flex justify-center space-x-4 mb-12">
+                    <button onclick="sendLoveMessage()" class="sparkle bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-full font-semibold hover:from-pink-600 hover:to-purple-700 transition-all transform hover:scale-105">
+                        Explore Her World 🌟
+                    </button>
+                    <button onclick="sendLoveMessage()" class="bg-white text-purple-600 px-8 py-4 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                        Send Love 💕
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Floating Elements -->
+            <div class="relative">
+                <div class="floating clickable-love whatsapp-hint absolute top-0 left-1/4 text-4xl">🍎</div>
+                <div class="floating clickable-love whatsapp-hint absolute top-10 right-1/4 text-4xl" style="animation-delay: 1s;">🥗</div>
+                <div class="floating clickable-love whatsapp-hint absolute bottom-0 left-1/3 text-4xl" style="animation-delay: 2s;">🥟</div>
+                <div class="floating clickable-love whatsapp-hint absolute bottom-10 right-1/3 text-4xl" style="animation-delay: 1.5s;">💖</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-20 px-6 bg-white/50">
+        <div class="container mx-auto">
+            <div class="text-center mb-16 fade-in">
+                <h2 class="text-4xl font-bold text-gradient mb-4">About Our Sweet Ritisha</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                    Meet the most adorable girl who brightens every day with her smile and love for delicious food! 🌟
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="fade-in">
+                    <div class="bg-gradient-to-br from-pink-200 to-purple-200 p-8 rounded-3xl card-hover">
+                        <h3 class="text-2xl font-bold text-purple-800 mb-4">✨ Her Personality</h3>
+                        <ul class="space-y-3 text-gray-700">
+                            <li class="flex items-center"><span class="text-pink-500 mr-2">💕</span> Incredibly sweet and caring</li>
+                            <li class="flex items-center"><span class="text-pink-500 mr-2">🌟</span> Passionate about healthy living</li>
+                            <li class="flex items-center"><span class="text-pink-500 mr-2">🍽️</span> Food enthusiast extraordinaire</li>
+                            <li class="flex items-center"><span class="text-pink-500 mr-2">😊</span> Always spreading joy and positivity</li>
+                            <li class="flex items-center"><span class="text-pink-500 mr-2">🥟</span> Momo lover supreme!</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="fade-in">
+                    <div class="bg-gradient-to-br from-yellow-200 to-orange-200 p-8 rounded-3xl card-hover">
+                        <h3 class="text-2xl font-bold text-orange-800 mb-4">🎯 Her Interests</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white/60 p-4 rounded-2xl text-center">
+                                <div class="text-3xl mb-2">🥗</div>
+                                <div class="font-semibold">Nutrition</div>
+                            </div>
+                            <div class="bg-white/60 p-4 rounded-2xl text-center">
+                                <div class="text-3xl mb-2">🍳</div>
+                                <div class="font-semibold">Cooking</div>
+                            </div>
+                            <div class="bg-white/60 p-4 rounded-2xl text-center">
+                                <div class="text-3xl mb-2">🥟</div>
+                                <div class="font-semibold">Momos</div>
+                            </div>
+                            <div class="bg-white/60 p-4 rounded-2xl text-center">
+                                <div class="text-3xl mb-2">💖</div>
+                                <div class="font-semibold">Love</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Nutrition Section -->
+    <section id="nutrition" class="py-20 px-6 food-gradient">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-white mb-4">🥗 Nutrition & Wellness</h2>
+                <p class="text-xl text-white/90 max-w-2xl mx-auto">
+                    Ritisha's passion for healthy eating and balanced nutrition shines through everything she does!
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white/90 p-6 rounded-3xl card-hover">
+                    <div class="text-4xl mb-4 text-center">🍎</div>
+                    <h3 class="text-xl font-bold text-center mb-3 text-purple-800">Balanced Diet</h3>
+                    <p class="text-gray-600 text-center">
+                        Believes in the power of colorful, nutrient-rich foods that nourish both body and soul.
+                    </p>
+                </div>
+                
+                <div class="bg-white/90 p-6 rounded-3xl card-hover">
+                    <div class="text-4xl mb-4 text-center">💪</div>
+                    <h3 class="text-xl font-bold text-center mb-3 text-purple-800">Healthy Living</h3>
+                    <p class="text-gray-600 text-center">
+                        Promotes a lifestyle that combines proper nutrition with joy and happiness.
+                    </p>
+                </div>
+                
+                <div class="bg-white/90 p-6 rounded-3xl card-hover">
+                    <div class="text-4xl mb-4 text-center">🌱</div>
+                    <h3 class="text-xl font-bold text-center mb-3 text-purple-800">Natural Foods</h3>
+                    <p class="text-gray-600 text-center">
+                        Loves fresh, organic ingredients that bring out the best flavors in every meal.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+<!-- Gym & Fitness Section -->
+<section id="gym" class="py-20 px-6 bg-gradient-to-br from-purple-100 to-pink-100">
+    <div class="container mx-auto">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gradient mb-4">💪 Ritisha's Gym & Fitness Journey</h2>
+            <p class="text-xl text-gray-700 max-w-2xl mx-auto">
+                From lifting weights to glowing up with sweat and dedication — Ritisha's gym game is strong! 🏋️‍♀️🔥
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+            <div class="bg-white/80 p-8 rounded-3xl shadow-xl text-center">
+                <div class="text-5xl mb-4">🏋️‍♀️</div>
+                <h3 class="text-2xl font-bold text-purple-800 mb-3">Why She Loves the Gym</h3>
+                <p class="text-gray-700 mb-4">Gym is not just a place to workout — it's her happy place, her discipline, and a daily dose of confidence.</p>
+                <ul class="text-left text-gray-600 list-disc list-inside space-y-2">
+                    <li>Boosts her energy and mood 🌟</li>
+                    <li>Helps maintain a balanced lifestyle ⚖️</li>
+                    <li>She never skips leg day! 🔽</li>
+                    <li>Slays cardio and strength both 🔥</li>
+                </ul>
+            </div>
+
+            <div class="text-center">
+                <div class="overflow-hidden rounded-3xl shadow-xl mx-auto my-4">
+                    <video src="AQOgEj_XsyRFUm5_t_EU5TDhAqQW8LMUQaNfqv226WIXVL8MIzSgCfpxrgVziwYNhD38EaBQ544DATPe3t61-jDymUES8nAEJYJZY_I.mp4"
+                           class="w-full object-cover h-96"
+                           autoplay
+                           muted
+                           loop
+                           playsinline
+                           id="gymVideo">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <button onclick="toggleSound()" class="mt-3 bg-pink-500 text-white px-4 py-2 rounded-full hover:bg-pink-600 transition-colors">
+                    Toggle Sound 🔊
+                </button>
+            </div>
+        </div>
+
+        <!-- Optional: Gym Day Counter -->
+        <div class="mt-16 text-center">
+            <h4 class="text-xl font-bold text-pink-600">Days Trained This Month: <span id="gymDays">0</span></h4>
+            <button onclick="addGymDay()" class="mt-3 bg-purple-500 text-white px-6 py-2 rounded-full hover:bg-purple-600 transition-colors">
+                Add Gym Day 💪
+            </button>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+
+
+    <!-- Momos Section -->
+    <section id="momos" class="py-20 px-6 momo-gradient">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-brown-800 mb-4">🥟 Ritisha's Momo Love</h2>
+                <p class="text-xl text-brown-700 max-w-2xl mx-auto">
+                    Her absolute favorite food that brings pure joy to her face every single time! 
+                </p>
+            </div>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white/80 p-8 rounded-3xl shadow-xl">
+                    <div class="grid md:grid-cols-2 gap-8 items-center">
+                        <div>
+                            <h3 class="text-3xl font-bold text-orange-800 mb-4">Why Momos Are Special 💕</h3>
+                            <div class="space-y-4 text-gray-700">
+                                <p class="flex items-start">
+                                    <span class="text-orange-500 mr-2 text-xl">🥟</span>
+                                    <span>Perfect little pockets of joy that make every meal an adventure</span>
+                                </p>
+                                <p class="flex items-start">
+                                    <span class="text-orange-500 mr-2 text-xl">🌶️</span>
+                                    <span>Loves them with spicy chutney that adds the perfect kick</span>
+                                </p>
+                                <p class="flex items-start">
+                                    <span class="text-orange-500 mr-2 text-xl">👨‍🍳</span>
+                                    <span>Enjoys both homemade and street-style momos equally</span>
+                                </p>
+                                <p class="flex items-start">
+                                    <span class="text-orange-500 mr-2 text-xl">💖</span>
+                                    <span>They bring back happy memories and create new ones</span>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="bg-gradient-to-br from-orange-200 to-yellow-200 p-8 rounded-3xl">
+                                <div class="text-6xl mb-4">🥟</div>
+                                <h4 class="text-2xl font-bold text-orange-800 mb-2">Momo Counter</h4>
+                                <div class="text-4xl font-bold text-orange-600" id="momoCounter">0</div>
+                                <p class="text-orange-700 mt-2">Momos eaten this month! 😄</p>
+                                <button onclick="addMomo()" class="mt-4 bg-orange-500 text-white px-6 py-2 rounded-full hover:bg-orange-600 transition-colors">
+                                    Add Momo! 🥟
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="py-20 px-6 bg-gradient-to-br from-pink-50 to-purple-50">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gradient mb-4">💖 Sweet Moments Gallery</h2>
+                <p class="text-xl text-gray-700 max-w-2xl mx-auto">
+                    Upload and cherish beautiful memories together! Click on any image to upload your own photos 📸✨
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Photo Upload Box 1 -->
+                <div class="gallery-item">
+                    <div class="photo-placeholder" id="photoBox1">
+                        <div class="text-center">
+                            <div class="text-4xl mb-2">📷</div>
+                            <p class="text-sm">Click to Upload<br>Sweet Memory 1</p>
+                        </div>
+                        <input type="file" accept="image/*" onchange="uploadImage(this, 'photoBox1')" class="photo-input">
+                    </div>
+                </div>
+
+                <!-- Photo Upload Box 2 -->
+                <div class="gallery-item">
+                    <div class="photo-placeholder" id="photoBox2">
+                        <div class="text-center">
+                            <div class="text-4xl mb-2">📷</div>
+                            <p class="text-sm">Click to Upload<br>Sweet Memory 2</p>
+                        </div>
+                        <input type="file" accept="image/*" onchange="uploadImage(this, 'photoBox2')" class="photo-input">
+                    </div>
+                </div>
+
+                <!-- Photo Upload Box 3 -->
+                <div class="gallery-item">
+                    <div class="photo-placeholder" id="photoBox3">
+                        <div class="text-center">
+                            <div class="text-4xl mb-2">📷</div>
+                            <p class="text-sm">Click to Upload<br>Sweet Memory 3</p>
+                        </div>
+                        <input type="file" accept="image/*" onchange="uploadImage(this, 'photoBox3')" class="photo-input">
+                    </div>
+                </div>
+
+                <!-- Photo Upload Box 4 -->
+                <div class="gallery-item">
+                    <div class="photo-placeholder" id="photoBox4">
+                        <div class="text-center">
+                            <div class="text-4xl mb-2">📷</div>
+                            <p class="text-sm">Click to Upload<br>Sweet Memory 4</p>
+                        </div>
+                        <input type="file" accept="image/*" onchange="uploadImage(this, 'photoBox4')" class="photo-input">
+                    </div>
+                </div>
+
+                <!-- Photo Upload Box 5 -->
+                <div class="gallery-item">
+                    <div class="photo-placeholder" id="photoBox5">
+                        <div class="text-center">
+                            <div class="text-4xl mb-2">📷</div>
+                            <p class="text-sm">Click to Upload<br>Sweet Memory 5</p>
+                        </div>
+                        <input type="file" accept="image/*" onchange="uploadImage(this, 'photoBox5')" class="photo-input">
+                    </div>
+                </div>
+
+                <!-- Photo Upload Box 6 -->
+                <div class="gallery-item">
+                    <div class="photo-placeholder" id="photoBox6">
+                        <div class="text-center">
+                            <div class="text-4xl mb-2">📷</div>
+                            <p class="text-sm">Click to Upload<br>Sweet Memory 6</p>
+                        </div>
+                        <input type="file" accept="image/*" onchange="uploadImage(this, 'photoBox6')" class="photo-input">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gallery Controls -->
+            <div class="text-center mt-16">
+                <div class="bg-white/80 p-8 rounded-3xl shadow-xl max-w-md mx-auto">
+                    <h3 class="text-2xl font-bold text-pink-800 mb-4">Gallery Controls 🎨</h3>
+                    <div class="space-y-3">
+                        <button onclick="clearAllPhotos()" class="w-full bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 transition-colors">
+                            Clear All Photos 🗑️
+                        </button>
+                        <button onclick="downloadGallery()" class="w-full bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition-colors">
+                            Download Gallery 📁
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-4">
+                        Images are saved locally in your browser. They will persist until you clear them or clear your browser data.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- JS for Image Upload -->
+<script>
+// Restore saved photos on page load
+window.addEventListener('DOMContentLoaded', () => {
+    const boxes = document.querySelectorAll('.photo-placeholder');
+    boxes.forEach(box => {
+        const id = box.id;
+        const savedImage = localStorage.getItem(id);
+        if (savedImage) {
+            setPhoto(box, savedImage);
+        }
+    });
+});
+
+function setPhoto(box, base64Image) {
+    box.innerHTML = `
+        <img src="${base64Image}" alt="Uploaded Photo" />
+        <input type="file" accept="image/*" onchange="uploadImage(this, '${box.id}')" class="photo-input" style="display:none;">
+    `;
+}
+
+
+// Upload handler for each photo box
+function uploadImage(input, boxId) {
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const base64Image = e.target.result;
+        localStorage.setItem(boxId, base64Image);
+
+        const box = document.getElementById(boxId);
+        setPhoto(box, base64Image);
+    };
+
+    if (file) {
+        reader.readAsDataURL(file);
+    }
+}
+
+// Optional: function to clear all photos from localStorage and UI
+function clearAllPhotos() {
+    const boxes = document.querySelectorAll('.photo-placeholder');
+    boxes.forEach(box => {
+        localStorage.removeItem(box.id);
+        box.innerHTML = `
+            <div class="text-center">
+                <div class="text-4xl mb-2">📷</div>
+                <p class="text-sm">Click to Upload<br>${box.id}</p>
+            </div>
+            <input type="file" accept="image/*" onchange="uploadImage(this, '${box.id}')" class="photo-input">
+        `;
+    });
+}
+
+</script>
+
+    <section class="py-20 px-6 bg-gradient-to-br from-pink-100 to-purple-100">
+        <div class="container mx-auto text-center">
+            <h2 class="text-4xl font-bold text-gradient mb-8">💕 Sweet Messages for Ritisha</h2>
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-white/80 p-8 rounded-3xl shadow-xl">
+                    <div class="text-6xl mb-4">💖</div>
+                    <p class="text-lg text-gray-700 mb-6" id="loveMessage">
+                        "You're as sweet as the momos you love and as beautiful as the healthy glow you radiate! 💕"
+                    </p>
+                    <button onclick="newLoveMessage()" class="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-3 rounded-full font-semibold hover:from-pink-600 hover:to-purple-700 transition-all transform hover:scale-105">
+                        New Sweet Message 💕
+                    </button>
+                    <button onclick="sendLoveMessage()" class="mt-4 bg-pink-400 text-white px-6 py-2 rounded-full font-semibold hover:bg-pink-500 transition-all transform hover:scale-105">
+                        Send This Message to WhatsApp 💕
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 px-6 bg-white/50">
+        <div class="container mx-auto text-center">
+            <h2 class="text-4xl font-bold text-gradient mb-8">💌 Connect with Ritisha</h2>
+            <div class="max-w-md mx-auto">
+                <div class="bg-gradient-to-br from-pink-200 to-purple-200 p-8 rounded-3xl">
+                    <div class="text-5xl mb-4">📱</div>
+                    <p class="text-purple-800 mb-6">
+                        Want to share your love for food and momos? Send her a sweet message!
+                    </p>
+                    <div class="space-y-4">
+                        <button onclick="sendLoveMessage()" class="w-full bg-pink-500 text-white py-3 rounded-full font-semibold hover:bg-pink-600 transition-colors">
+                            Send Love Message 💕
+                        </button>
+                        <button onclick="sendLoveMessage()" class="w-full bg-purple-500 text-white py-3 rounded-full font-semibold hover:bg-purple-600 transition-colors">
+                            Share Momo Recipe 🥟
+                        </button>
+                        <button onclick="sendLoveMessage()" class="w-full bg-gradient-to-r from-pink-400 to-purple-400 text-white py-3 rounded-full font-semibold hover:from-pink-500 hover:to-purple-500 transition-colors">
+                            Send "I Love You" 💖
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-8 px-6">
+        <div class="container mx-auto text-center">
+            <p class="text-lg mb-2">Made with 💕 for the sweetest girl, Ritisha Bhaumik</p>
+            <p class="text-purple-200">May your days be filled with love, laughter, and lots of momos! 🥟✨</p>
+                  <p class="text-purple-200">@rohan.wadadar✨</p>
+        </div>
+    </footer>
+<script>
+    // 🌟 --- Particle Animation ---
+function createParticles() {
+    const particles = document.getElementById('particles');
+    const emojis = ['💕', '💖', '🥟', '🌟', '✨', '💫', '🍎', '🥗'];
+
+    setInterval(() => {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = `${Math.random() * 2}s`;
+        particle.style.animationDuration = `${(Math.random() * 3 + 4)}s`;
+
+        particles.appendChild(particle);
+        setTimeout(() => particle.remove(), 6000);
+    }, 2000);
+}
+
+// 🥟 --- Momo Counter ---
+let momoCount = 0;
+function addMomo() {
+    momoCount++;
+    const counter = document.getElementById('momoCounter');
+    counter.textContent = momoCount;
+    counter.style.transform = 'scale(1.2)';
+    counter.style.color = '#f59e0b';
+
+    setTimeout(() => {
+        counter.style.transform = 'scale(1)';
+        counter.style.color = '#ea580c';
+    }, 200);
+}
+
+// 💌 --- Love Messages ---
+const loveMessages = [
+    "You're as sweet as the momos you love and as beautiful as the healthy glow you radiate! 💕",
+    "Your smile is brighter than any star, and your love for good food makes you even more special! 🌟",
+    "Like the perfect momo, you bring joy to everyone around you! 🥟💖",
+    "You're the perfect blend of sweetness and strength, just like your favorite healthy meals! 💪✨",
+    "Your passion for nutrition and love for momos shows your beautiful balance in life! 🥗💕",
+    "Every day with you is like discovering a new favorite dish - exciting and wonderful! 🍽️💖",
+    "You make healthy eating look so good, and your momo enthusiasm is absolutely adorable! 🥟😊",
+    "Your caring nature and love for good food make you the most special person! 💕🌟"
+];
+
+function newLoveMessage() {
+    const messageEl = document.getElementById('loveMessage');
+    const randomMessage = loveMessages[Math.floor(Math.random() * loveMessages.length)];
+
+    messageEl.style.opacity = '0';
+    setTimeout(() => {
+        messageEl.textContent = randomMessage;
+        messageEl.style.opacity = '1';
+    }, 300);
+}
+
+// 📞 --- WhatsApp Love Message ---
+function sendLoveMessage() {
+    const phoneNumber = '916009426972';
+    const message = 'Love from Rohan Puchu ❤️';
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+
+
+// ❤️ --- Add Event Listeners to Cute Elements ---
+function addWhatsAppListeners() {
+   
+   
+   
+   
+   
+    const clickableElements = document.querySelectorAll('.pulse-heart, .floating');
+    clickableElements.forEach(el => el.addEventListener('click', sendLoveMessage));
+
+    document.querySelectorAll('button').forEach(button => {
+        const text = button.textContent.toLowerCase();
+        if (text.includes('💕') || text.includes('💖') || text.includes('love') || text.includes('send')) {
+            button.addEventListener('click', sendLoveMessage);
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (
+            target.classList.contains('particle') ||
+            target.textContent.includes('💕') ||
+            target.textContent.includes('💖')
+        ) {
+            sendLoveMessage();
+        }
+    });
+}
+
+// 🏋️ --- Gym Day Counter ---
+let gymDayCount = 0;
+function addGymDay() {
+    gymDayCount++;
+    document.getElementById('gymDays').textContent = gymDayCount;
+}
+
+// 🔊 --- Toggle Video Sound ---
+function toggleSound() {
+    const video = document.getElementById('gymVideo');
+    if (video) video.muted = !video.muted;
+}
+
+// 🔄 --- Smooth Scroll ---
+function enableSmoothScroll() {
+    const anchors = document.querySelectorAll('a[href^="#"]');
+    anchors.forEach(anchor => {
+        anchor.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = document.querySelector(anchor.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+}
+
+// ✨ --- Scroll-triggered Fade-in Animation ---
+function enableFadeInOnScroll() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('fade-in');
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -100px 0px'
+    });
+
+    document.querySelectorAll('section').forEach(section => observer.observe(section));
+}
+
+// 🚀 --- Initialize All Features on Load ---
+window.addEventListener('DOMContentLoaded', () => {
+    createParticles();
+    addWhatsAppListeners();
+    enableSmoothScroll();
+    enableFadeInOnScroll();
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.newaccess",
+    "refreshToken": "eyJhbGciOiJIUzI1NiJ9.newrefresh",
+    "expiresInSeconds": 900
+  },
+  "error": null,
+  "meta": {
+    "requestId": "req_abc125",
+    "apiVersion": "1"
+  }
+}

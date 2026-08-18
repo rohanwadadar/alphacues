@@ -1,0 +1,37 @@
+# backend/.cursorignore
+
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Secrets — never let Cursor read or suggest changes to .env
+.env
+
+# Alembic auto-generated migration files — do not edit
+migrations/versions/
+
+# Contract fixture JSON files — committed separately, not to be auto-edited
+tests/fixtures/contracts/
+
+# Test output / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+secrets/
+node_modules/
+

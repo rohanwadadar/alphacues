@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "strategyId": 1,
+        "userId": 1,
+        "name": "Mega Cap Tech",
+        "description": "Filter for mega cap technology stocks",
+        "filters": {
+          "marketCapMin": 1000000000000.0,
+          "peRatioMax": 40.0
+        },
+        "sortBy": "marketCap",
+        "sortOrder": "desc",
+        "createdAt": "2026-05-13T18:00:00+00:00",
+        "updatedAt": "2026-05-13T18:00:00+00:00"
+      }
+    ]
+  },
+  "error": null,
+  "meta": {
+    "requestId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    "apiVersion": "1",
+    "nextCursor": null
+  }
+}
