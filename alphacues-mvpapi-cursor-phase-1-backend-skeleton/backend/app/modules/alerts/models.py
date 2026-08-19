@@ -25,10 +25,10 @@ class Alert(db.Model):
     __tablename__ = "alerts"
 
     alert_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
     )
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.user_id"), nullable=False
+        BigInteger().with_variant(Integer, "sqlite"), ForeignKey("users.user_id"), nullable=False
     )
     symbol: Mapped[str] = mapped_column(Text, nullable=False)
     condition: Mapped[str] = mapped_column(Text, nullable=False)
@@ -46,7 +46,7 @@ class Alert(db.Model):
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     __table_args__ = (
@@ -63,9 +63,9 @@ class Alert(db.Model):
 class AlertTriggerEvent(db.Model):
     __tablename__ = "alert_trigger_events"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     alert_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("alerts.alert_id"), nullable=False
+        BigInteger().with_variant(Integer, "sqlite"), ForeignKey("alerts.alert_id"), nullable=False
     )
     triggered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False

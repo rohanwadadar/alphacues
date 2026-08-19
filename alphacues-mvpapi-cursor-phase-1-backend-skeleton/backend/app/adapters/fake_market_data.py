@@ -34,9 +34,9 @@ _QUOTES: dict[str, QuotePayload] = {
     ),
     "GOOGL": QuotePayload(
         symbol="GOOGL",
-        lastPrice=Decimal("175.320000"),
+        lastPrice=Decimal("343.370000"),
         changeAmount=Decimal("3.450000"),
-        changePercent=Decimal("2.005800"),
+        changePercent=Decimal("1.015000"),
         asOf="2026-05-13T14:30:01Z",
     ),
     "TSLA": QuotePayload(
@@ -207,7 +207,7 @@ _BARS: dict[str, list[BarItem]] = {
             openPrice=Decimal("172.100000"),
             highPrice=Decimal("176.000000"),
             lowPrice=Decimal("171.800000"),
-            closePrice=Decimal("175.320000"),
+            closePrice=Decimal("343.370000"),
             volume=1_050_000,
         ),
         BarItem(

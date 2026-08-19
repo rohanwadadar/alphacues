@@ -166,44 +166,53 @@ class AlpacaMarketDataAdapter(MarketDataSource):
             }
         )
 
-    def get_quote(self, symbol: str) -> QuotePayload:
-        try:
-            upper = symbol.upper()
-            quote_url = f"{ALPACA_DATA_BASE_URL}/v2/stocks/{upper}/quotes/latest"
-            quote_data = self._client.get_json(quote_url, params={"feed": self._feed})
-            quote = quote_data.get("quote") or {}
-            ask = quote.get("ap")
-            bid = quote.get("bp")
-            if ask is not None and bid is not None:
-                last_price = (float(ask) + float(bid)) / 2
-            else:
-                last_price = ask or bid or 0
+    _quote_cache: dict[str, tuple[float, QuotePayload]] = {}
 
+    def get_quote(self, symbol: str) -> QuotePayload:
+        upper = symbol.upper()
+        import time
+        now = time.time()
+        if upper in self._quote_cache:
+            cache_time, payload = self._quote_cache[upper]
+            if now - cache_time < 15.0:
+                return payload
+
+        try:
             snapshot_url = f"{ALPACA_DATA_BASE_URL}/v2/stocks/snapshots"
             snapshot_data = self._client.get_json(
                 snapshot_url,
                 params={"symbols": upper, "feed": self._feed},
             )
             snapshot = (snapshot_data.get("snapshots") or {}).get(upper) or {}
-            prev_close = (
-                (snapshot.get("prevDailyBar") or {}).get("c")
-                or (snapshot.get("dailyBar") or {}).get("o")
-                or last_price
+            latest_trade = snapshot.get("latestTrade") or {}
+            latest_quote = snapshot.get("latestQuote") or {}
+            daily_bar = snapshot.get("dailyBar") or {}
+            prev_bar = snapshot.get("prevDailyBar") or {}
+
+            last_price = (
+                latest_trade.get("p")
+                or ((latest_quote.get("ap", 0) + latest_quote.get("bp", 0)) / 2)
+                or daily_bar.get("c")
+                or 0
             )
+
+            prev_close = prev_bar.get("c") or daily_bar.get("o") or last_price
             change_amount = float(last_price) - float(prev_close)
             change_percent = (
                 (change_amount / float(prev_close)) * 100 if float(prev_close) else 0.0
             )
-            as_of = quote.get("t") or _iso_z(_utcnow())
+            as_of = latest_trade.get("t") or latest_quote.get("t") or _iso_z(_utcnow())
 
             if last_price > 0:
-                return QuotePayload(
+                res = QuotePayload(
                     symbol=upper,
                     lastPrice=_to_decimal(last_price),
                     changeAmount=_to_decimal(change_amount),
                     changePercent=_to_decimal(change_percent),
                     asOf=as_of.replace("+00:00", "Z") if as_of.endswith("+00:00") else as_of,
                 )
+                self._quote_cache[upper] = (now, res)
+                return res
         except Exception as err:
             logger.warning(f"Alpaca get_quote warning: {err}")
 
@@ -225,22 +234,42 @@ class AlpacaMarketDataAdapter(MarketDataSource):
                     "start": _iso_z(start),
                     "end": _iso_z(end),
                     "feed": self._feed,
+                    "adjustment": "all",
                     "limit": 10000,
                 },
             )
             raw_bars = (data.get("bars") or {}).get(upper) or []
             if raw_bars:
-                bars = [
-                    BarItem(
-                        timeStamp=(bar.get("t") or "").replace("+00:00", "Z"),
-                        openPrice=_to_decimal(bar.get("o", 0)),
-                        highPrice=_to_decimal(bar.get("h", 0)),
-                        lowPrice=_to_decimal(bar.get("l", 0)),
-                        closePrice=_to_decimal(bar.get("c", 0)),
-                        volume=int(bar.get("v", 0)),
+                bars = []
+                # Pre-calculate split adjustment factor if unadjusted jump exists
+                latest_close = float(raw_bars[-1].get("c", 0)) if raw_bars else 0
+                for bar in raw_bars:
+                    c = float(bar.get("c", 0))
+                    o = float(bar.get("o", 0))
+                    h = float(bar.get("h", 0))
+                    l = float(bar.get("l", 0))
+                    
+                    # If historical price is unadjusted (e.g. 1500 vs 100), adjust by ratio
+                    if latest_close > 0 and c > 0:
+                        ratio = c / latest_close
+                        if ratio > 3.0:
+                            # Typical split factors: 20x, 10x, 4x, 2x
+                            split_factor = 20.0 if ratio > 12.0 else (10.0 if ratio > 6.0 else (4.0 if ratio > 3.0 else 2.0))
+                            c = c / split_factor
+                            o = o / split_factor
+                            h = h / split_factor
+                            l = l / split_factor
+
+                    bars.append(
+                        BarItem(
+                            timeStamp=(bar.get("t") or "").replace("+00:00", "Z"),
+                            openPrice=_to_decimal(round(o, 2)),
+                            highPrice=_to_decimal(round(h, 2)),
+                            lowPrice=_to_decimal(round(l, 2)),
+                            closePrice=_to_decimal(round(c, 2)),
+                            volume=int(bar.get("v", 0)),
+                        )
                     )
-                    for bar in raw_bars
-                ]
                 return BarsPayload(symbol=upper, bars=bars)
         except Exception as err:
             logger.warning(f"Alpaca get_bars warning: {err}")
@@ -386,7 +415,7 @@ class AlpacaMarketDataAdapter(MarketDataSource):
             ("NVDA", "NVIDIA Corporation", Decimal("128.50"), Decimal("5.07")),
             ("META", "Meta Platforms, Inc.", Decimal("475.20"), Decimal("2.68")),
             ("AMD", "Advanced Micro Devices", Decimal("162.30"), Decimal("2.59")),
-            ("GOOGL", "Alphabet Inc. Class A", Decimal("175.32"), Decimal("2.01")),
+            ("GOOGL", "Alphabet Inc. Class A", Decimal("343.37"), Decimal("1.01")),
             ("AMZN", "Amazon.com, Inc.", Decimal("185.40"), Decimal("1.53")),
             ("AAPL", "Apple Inc.", Decimal("188.90"), Decimal("0.66")),
             ("MSFT", "Microsoft Corporation", Decimal("415.50"), Decimal("-0.50")),

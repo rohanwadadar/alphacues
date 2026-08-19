@@ -15,26 +15,24 @@ depends_on = None
 
 
 def upgrade():
-    op.create_check_constraint(
-        "ck_portfolio_event_price_positive",
-        "portfolio_event",
-        "price > 0",
-    )
-    op.create_check_constraint(
-        "ck_portfolio_event_volume_positive",
-        "portfolio_event",
-        "volume > 0",
-    )
+    with op.batch_alter_table("portfolio_event", schema=None) as batch_op:
+        batch_op.create_check_constraint(
+            "ck_portfolio_event_price_positive",
+            "price > 0",
+        )
+        batch_op.create_check_constraint(
+            "ck_portfolio_event_volume_positive",
+            "volume > 0",
+        )
 
 
 def downgrade():
-    op.drop_constraint(
-        "ck_portfolio_event_volume_positive",
-        "portfolio_event",
-        type_="check",
-    )
-    op.drop_constraint(
-        "ck_portfolio_event_price_positive",
-        "portfolio_event",
-        type_="check",
-    )
+    with op.batch_alter_table("portfolio_event", schema=None) as batch_op:
+        batch_op.drop_constraint(
+            "ck_portfolio_event_volume_positive",
+            type_="check",
+        )
+        batch_op.drop_constraint(
+            "ck_portfolio_event_price_positive",
+            type_="check",
+        )

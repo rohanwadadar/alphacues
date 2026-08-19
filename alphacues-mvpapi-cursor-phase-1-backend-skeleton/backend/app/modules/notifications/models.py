@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     JSON,
     Text,
     func,
@@ -22,13 +23,13 @@ class Notification(db.Model):
     __tablename__ = "notifications"
 
     notification_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
     )
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.user_id"), nullable=False
+        BigInteger().with_variant(Integer, "sqlite"), ForeignKey("users.user_id"), nullable=False
     )
     alert_id: Mapped[int | None] = mapped_column(
-        BigInteger, ForeignKey("alerts.alert_id"), nullable=True
+        BigInteger().with_variant(Integer, "sqlite"), ForeignKey("alerts.alert_id"), nullable=True
     )
     title: Mapped[str] = mapped_column(Text, nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
@@ -36,7 +37,7 @@ class Notification(db.Model):
         Boolean, nullable=False, default=False, server_default="false"
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     __table_args__ = (
@@ -53,7 +54,7 @@ class Notification(db.Model):
 class OutboxEvent(db.Model):
     __tablename__ = "outbox_events"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     event_type: Mapped[str] = mapped_column(Text, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
 
@@ -61,10 +62,10 @@ class OutboxEvent(db.Model):
         Text, nullable=False, default="pending", server_default="pending"
     )
     next_attempt_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     __table_args__ = (

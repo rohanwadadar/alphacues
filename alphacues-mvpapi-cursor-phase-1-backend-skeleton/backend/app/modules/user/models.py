@@ -34,10 +34,10 @@ class User(db.Model):
         Boolean, nullable=False, default=True, server_default="true"
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     otp_tokens: Mapped[list[OtpToken]] = relationship(back_populates="user")
@@ -74,7 +74,7 @@ class OtpToken(db.Model):
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     user: Mapped[User] = relationship(back_populates="otp_tokens")
@@ -102,7 +102,7 @@ class UserSession(db.Model):
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     user: Mapped[User] = relationship(back_populates="sessions")
@@ -126,10 +126,10 @@ class DevicePushToken(db.Model):
         Boolean, nullable=False, default=True, server_default="true"
     )
     last_seen_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     user: Mapped[User] = relationship(back_populates="device_push_tokens")

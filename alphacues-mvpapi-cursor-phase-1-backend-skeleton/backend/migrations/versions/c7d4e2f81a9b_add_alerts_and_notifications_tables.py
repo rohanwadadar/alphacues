@@ -17,9 +17,10 @@ depends_on = None
 
 
 def upgrade():
+    bigint_id = sa.Integer() if op.get_bind().dialect.name == "sqlite" else sa.BigInteger()
     op.create_table(
         "alerts",
-        sa.Column("alert_id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("alert_id", bigint_id, autoincrement=True, nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("symbol", sa.Text(), nullable=False),
         sa.Column("condition", sa.Text(), nullable=False),
@@ -65,27 +66,28 @@ def upgrade():
 
     op.create_table(
         "alert_trigger_events",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", bigint_id, autoincrement=True, nullable=False),
         sa.Column("alert_id", sa.BigInteger(), nullable=False),
         sa.Column("triggered_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("trigger_price", sa.Numeric(precision=18, scale=6), nullable=False),
         sa.ForeignKeyConstraint(["alert_id"], ["alerts.alert_id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.execute(
-        """
-        CREATE UNIQUE INDEX uq_alert_trigger_events_alert_minute
-        ON alert_trigger_events (
-            alert_id,
-            date_trunc('minute', triggered_at AT TIME ZONE 'UTC')
+    if op.get_bind().dialect.name == "postgresql":
+        op.execute(
+            """
+            CREATE UNIQUE INDEX uq_alert_trigger_events_alert_minute
+            ON alert_trigger_events (
+                alert_id,
+                date_trunc('minute', triggered_at AT TIME ZONE 'UTC')
+            )
+            """
         )
-        """
-    )
 
     op.create_table(
         "notifications",
         sa.Column(
-            "notification_id", sa.BigInteger(), autoincrement=True, nullable=False
+            "notification_id", bigint_id, autoincrement=True, nullable=False
         ),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("alert_id", sa.BigInteger(), nullable=True),
@@ -116,11 +118,12 @@ def upgrade():
             postgresql_where=sa.text("is_read = false"),
         )
 
+    json_type = sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql")
     op.create_table(
         "outbox_events",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", bigint_id, autoincrement=True, nullable=False),
         sa.Column("event_type", sa.Text(), nullable=False),
-        sa.Column("payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("payload", json_type, nullable=False),
         sa.Column(
             "status",
             sa.Text(),

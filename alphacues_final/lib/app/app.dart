@@ -12,6 +12,8 @@ import '../core/push/notification_tap_handler.dart';
 
 import '../features/splash/presentation/splash_screen.dart';
 
+import '../features/settings/data/settings_provider.dart';
+
 class AlphaCuesApp extends ConsumerStatefulWidget {
   const AlphaCuesApp({super.key});
 
@@ -42,26 +44,24 @@ class _AlphaCuesAppState extends ConsumerState<AlphaCuesApp> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authSessionProvider);
     final router = ref.watch(goRouterProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return AuthBootstrap(
       child: SocketLifecycleBridge(
-        child: authState.isLoading
-            ? MaterialApp(
-                title: 'Alpha Cues',
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.light,
-                darkTheme: AppTheme.dark,
-                themeMode: ThemeMode.light,
-                home: const SplashScreen(),
-              )
-            : MaterialApp.router(
-                title: 'Alpha Cues',
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.light,
-                darkTheme: AppTheme.dark,
-                themeMode: ThemeMode.light,
-                routerConfig: router,
-              ),
+        child: MaterialApp.router(
+          title: 'Alpha Cues',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeMode,
+          routerConfig: router,
+          builder: (context, child) {
+            if (authState.isLoading) {
+              return const SplashScreen();
+            }
+            return child ?? const SizedBox.shrink();
+          },
+        ),
       ),
     );
   }

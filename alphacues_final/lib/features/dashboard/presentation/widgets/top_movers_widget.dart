@@ -34,7 +34,7 @@ class _TopMoversWidgetState extends State<TopMoversWidget> {
     MarketMover(symbol: 'NVDA', lastPrice: 128.50, changePercent: 5.07),
     MarketMover(symbol: 'META', lastPrice: 475.20, changePercent: 2.68),
     MarketMover(symbol: 'AMD', lastPrice: 162.30, changePercent: 2.59),
-    MarketMover(symbol: 'GOOGL', lastPrice: 175.32, changePercent: 2.01),
+    MarketMover(symbol: 'GOOGL', lastPrice: 343.37, changePercent: 1.01),
     MarketMover(symbol: 'AMZN', lastPrice: 185.40, changePercent: 1.53),
     MarketMover(symbol: 'AAPL', lastPrice: 188.90, changePercent: 0.66),
     MarketMover(symbol: 'MSFT', lastPrice: 415.50, changePercent: -0.50),

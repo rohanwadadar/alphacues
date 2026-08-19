@@ -106,6 +106,10 @@ def create_app(config_name: str | None = None) -> Flask:
     def auth_rate_limit_fail_closed() -> None:
         enforce_auth_fail_closed()
 
+    from app.shared.feature_flags import seed_feature_flags
+    with app.app_context():
+        seed_feature_flags()
+
     register_health_routes(app)
 
     return app

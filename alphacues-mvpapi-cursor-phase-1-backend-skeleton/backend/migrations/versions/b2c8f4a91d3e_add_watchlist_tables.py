@@ -16,9 +16,10 @@ depends_on = None
 
 
 def upgrade():
+    bigint_id = sa.Integer() if op.get_bind().dialect.name == "sqlite" else sa.BigInteger()
     op.create_table(
         "watchlists",
-        sa.Column("watchlist_id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("watchlist_id", bigint_id, autoincrement=True, nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("name", sa.Text(), nullable=False),
         sa.Column(
@@ -35,9 +36,11 @@ def upgrade():
 
     op.create_table(
         "watchlist_items",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", bigint_id, autoincrement=True, nullable=False),
         sa.Column("watchlist_id", sa.BigInteger(), nullable=False),
         sa.Column("symbol", sa.Text(), nullable=False),
+        sa.Column("quantity", sa.Numeric(18, 4), nullable=True),
+        sa.Column("price_at_addition", sa.Numeric(18, 4), nullable=True),
         sa.Column(
             "added_at",
             sa.DateTime(timezone=True),
@@ -61,5 +64,3 @@ def downgrade():
     op.drop_table("watchlist_items")
     with op.batch_alter_table("watchlists", schema=None) as batch_op:
         batch_op.drop_index("idx_watchlist_user")
-
-    op.drop_table("watchlists")

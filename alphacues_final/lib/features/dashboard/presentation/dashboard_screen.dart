@@ -12,11 +12,15 @@ import '../../../core/platform/connectivity_service.dart';
 import '../../../core/realtime/quote_subscription_manager.dart';
 import '../../../core/realtime/socket_client.dart';
 import '../../../core/realtime/socket_events.dart';
+import '../../../core/widgets/alpha_cues_logo.dart';
 import '../../../core/widgets/safe_screen.dart';
-import '../../market/data/market_repository.dart';
+import '../../onboarding/presentation/onboarding_guide_modal.dart';
+import '../../settings/data/settings_provider.dart';
 import '../../market/data/symbol_search_provider.dart';
 import '../data/dashboard_providers.dart';
 import 'widgets/dashboard_formatters.dart';
+import 'widgets/market_treemap_widget.dart';
+import '../../social/presentation/social_copy_trading_widget.dart';
 import 'widgets/dashboard_skeleton.dart';
 import 'widgets/notification_bell.dart';
 import 'widgets/portfolio_summary_widget.dart';
@@ -55,6 +59,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(dashboardScreenActiveProvider.notifier).track();
+        final settings = ref.read(settingsProvider);
+        if (!settings.hasCompletedOnboarding) {
+          OnboardingGuideModal.show(context);
+        }
       }
     });
   }
@@ -204,61 +212,67 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
     );
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 252, 252, 252),
       appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              alignment: Alignment.center,
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: Colors.deepPurple,
-                shape: BoxShape.circle,
-              ),
-              child: const Text('AC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'AlphaCues Dashboard',
-                style: TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-        elevation: 1,
-        actions: const [NotificationBell()],
+        title: const AlphaCuesFullLogo(),
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        actions: const [
+          NotificationBell(),
+          SizedBox(width: AppSpacing.sm),
+        ],
       ),
       body: SafeScreen(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(color: Colors.black),
-                decoration: InputDecoration(
-                  hintText: 'Search stocks...',
-                  hintStyle: TextStyle(color: Colors.grey[600]),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.deepPurple),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    hintText: 'Search stocks, ETFs, symbols...',
+                    hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                    prefixIcon: Icon(Icons.search_rounded, color: colorScheme.primary, size: 22),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            onPressed: () => _searchController.clear(),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                    ),
                   ),
                 ),
               ),
@@ -408,6 +422,10 @@ class _DashboardContent extends StatelessWidget {
               errorMessage: moversError,
               onRetry: onRetryMovers,
             ),
+            const SizedBox(height: AppSpacing.lg),
+            const MarketTreemapWidget(),
+            const SizedBox(height: AppSpacing.lg),
+            const SocialCopyTradingWidget(),
             const SizedBox(height: AppSpacing.lg),
             const MarketNewsWidget(),
           ],

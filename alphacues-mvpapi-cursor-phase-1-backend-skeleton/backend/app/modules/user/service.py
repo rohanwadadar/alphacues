@@ -304,7 +304,29 @@ class AuthService:
         user = User(email=email)
         db.session.add(user)
         db.session.flush()
+        self._seed_user_defaults(user.user_id)
         return user
+
+    def _seed_user_defaults(self, user_id: int) -> None:
+        try:
+            from app.modules.watchlist.models import Watchlist, WatchlistItem
+            from app.modules.portfolio.models import Position
+
+            wl = Watchlist(user_id=user_id, name="My First Watchlist")
+            db.session.add(wl)
+            db.session.flush()
+
+            for sym in ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]:
+                item = WatchlistItem(watchlist_id=wl.watchlist_id, symbol=sym)
+                db.session.add(item)
+
+            pos1 = Position(user_id=user_id, symbol="AAPL", volume=10, total_price=1800.0)
+            pos2 = Position(user_id=user_id, symbol="MSFT", volume=5, total_price=2000.0)
+            db.session.add_all([pos1, pos2])
+            db.session.flush()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Failed to seed user defaults: %s", exc)
 
     def _get_challenge(self, email: str, challenge_id: uuid.UUID) -> OtpToken:
         challenge = db.session.scalar(

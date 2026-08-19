@@ -7,12 +7,12 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/platform/connectivity_service.dart';
+import '../../../core/widgets/alpha_cues_logo.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/safe_screen.dart';
 import '../../../core/widgets/stale_banner.dart';
 import '../../market/presentation/symbol_detail_screen.dart';
-import '../../screener/data/screener_models.dart';
 import '../../screener/data/screener_providers.dart';
 import '../../screener/presentation/custom_screener_builder.dart';
 import '../../screener/presentation/screener_filter_dialog.dart';
@@ -32,7 +32,10 @@ class WatchlistsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppLabels.watchlists),
+        title: const AlphaCuesFullLogo(),
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
             onPressed: mutationsEnabled
@@ -41,9 +44,10 @@ class WatchlistsScreen extends ConsumerWidget {
                     mode: WatchlistFormMode.create,
                   )
                 : null,
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add_rounded),
             tooltip: 'Create watchlist',
           ),
+          const SizedBox(width: AppSpacing.xs),
         ],
       ),
       floatingActionButton: mutationsEnabled

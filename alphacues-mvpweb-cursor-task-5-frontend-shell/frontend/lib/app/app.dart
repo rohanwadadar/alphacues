@@ -43,25 +43,22 @@ class _AlphaCuesAppState extends ConsumerState<AlphaCuesApp> {
 
     return AuthBootstrap(
       child: SocketLifecycleBridge(
-        child: authState.isLoading
-            ? MaterialApp(
-                title: 'Alpha Cues',
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.light,
-                darkTheme: AppTheme.dark,
-                themeMode: ThemeMode.light,
-                home: const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                ),
-              )
-            : MaterialApp.router(
-                title: 'Alpha Cues',
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.light,
-                darkTheme: AppTheme.dark,
-                themeMode: ThemeMode.light,
-                routerConfig: router,
-              ),
+        child: MaterialApp.router(
+          title: 'Alpha Cues',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: ThemeMode.light,
+          routerConfig: router,
+          builder: (context, child) {
+            if (authState.isLoading) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return child ?? const SizedBox.shrink();
+          },
+        ),
       ),
     );
   }

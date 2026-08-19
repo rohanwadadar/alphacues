@@ -18,6 +18,7 @@ import '../../../core/widgets/loading_skeleton.dart';
 import '../../../core/widgets/stale_banner.dart';
 import '../../../core/widgets/trade_animation_overlay.dart';
 import '../../market/data/market_repository.dart';
+import '../../market/data/symbol_detail_providers.dart';
 import '../../market/data/symbol_search_provider.dart';
 import '../../portfolio/data/portfolio_providers.dart';
 import '../data/watchlist_providers.dart';
@@ -352,7 +353,7 @@ class _WatchlistDetailScreenState
                       final quote = _effectiveQuote(item);
                       final stale = _isQuoteStale(quote, socketConnected);
 
-                      return _SymbolRow(
+                      return _ItemRow(
                         symbol: item.symbol,
                         quantity: item.quantity,
                         quote: quote,
@@ -420,13 +421,15 @@ class _DetailSkeleton extends StatelessWidget {
   }
 }
 
-class _SymbolRow extends StatelessWidget {
-  const _SymbolRow({
+typedef _SymbolRow = _ItemRow;
+
+class _ItemRow extends ConsumerWidget {
+  const _ItemRow({
     required this.symbol,
     this.quantity,
-    required this.quote,
+    this.quote,
     required this.isStale,
-    required this.onRemove,
+    this.onRemove,
   });
 
   final String symbol;
@@ -436,13 +439,16 @@ class _SymbolRow extends StatelessWidget {
   final VoidCallback? onRemove;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final changeColor = quote == null
-        ? theme.colorScheme.onSurfaceVariant
-        : quote!.changeAmount >= 0
-        ? AppColors.positive
-        : AppColors.negative;
+    final detailAsync = ref.watch(symbolDetailProvider(symbol));
+    
+    // Use live quote if available from symbolDetailProvider
+    final livePrice = detailAsync.valueOrNull?.quote.lastPrice ?? quote?.lastPrice ?? 0.0;
+    final changeAmt = detailAsync.valueOrNull?.quote.changeAmount ?? quote?.changeAmount ?? 0.0;
+    final changePct = detailAsync.valueOrNull?.quote.changePercent ?? quote?.changePercent ?? 0.0;
+
+    final changeColor = changeAmt >= 0 ? AppColors.positive : AppColors.negative;
 
     return Dismissible(
       key: ValueKey(symbol),
@@ -477,7 +483,7 @@ class _SymbolRow extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(symbol, style: theme.textTheme.titleMedium),
+                          Text(symbol, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                           if (quantity != null) ...[
                             const SizedBox(width: AppSpacing.sm),
                             Container(
@@ -497,33 +503,34 @@ class _SymbolRow extends StatelessWidget {
                           ],
                         ],
                       ),
-                      if (isStale)
+                      if (quantity != null && livePrice > 0)
                         Text(
-                          'Stale',
+                          'Val: \$${(quantity! * livePrice).toStringAsFixed(2)}',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.warning,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                     ],
                   ),
                 ),
-                if (quote != null) ...[
+                if (livePrice > 0) ...[
                   Text(
-                    quote!.lastPrice.toStringAsFixed(2),
-                    style: theme.textTheme.titleMedium,
+                    livePrice.toStringAsFixed(2),
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${quote!.changeAmount >= 0 ? '+' : ''}${quote!.changeAmount.toStringAsFixed(2)}',
+                        '${changeAmt >= 0 ? '+' : ''}${changeAmt.toStringAsFixed(2)}',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: changeColor,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
-                        '${quote!.changePercent >= 0 ? '+' : ''}${quote!.changePercent.toStringAsFixed(2)}%',
+                        '${changePct >= 0 ? '+' : ''}${changePct.toStringAsFixed(2)}%',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: changeColor,
                         ),

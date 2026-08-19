@@ -11,22 +11,25 @@ from sqlalchemy.dialects import postgresql
 
 
 revision = "f0a1b2c3d4e5"
-down_revision = "e9f6a4b13c5d"
+down_revision = "1a4af1cf30bf"
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
+    bigint_id = sa.Integer() if op.get_bind().dialect.name == "sqlite" else sa.BigInteger()
+    json_type = sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql")
+    default_json = sa.text("'{}'::jsonb") if op.get_bind().dialect.name == "postgresql" else sa.text("'{}'")
     op.create_table(
         "screener_strategies",
-        sa.Column("strategy_id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("strategy_id", bigint_id, autoincrement=True, nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("name", sa.Text(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column(
             "filters",
-            postgresql.JSONB(astext_type=sa.Text()),
-            server_default=sa.text("'{}'::jsonb"),
+            json_type,
+            server_default=default_json,
             nullable=False,
         ),
         sa.Column(

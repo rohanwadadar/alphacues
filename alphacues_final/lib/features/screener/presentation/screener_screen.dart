@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/alpha_cues_logo.dart';
 import '../../../core/widgets/safe_screen.dart';
 import '../data/screener_providers.dart';
 import 'screener_filter_dialog.dart';
@@ -28,7 +29,10 @@ class ScreenerScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock Screener'),
+        title: const AlphaCuesFullLogo(),
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           // Filter button — badge dot when filters are active
           IconButton(

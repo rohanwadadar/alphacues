@@ -14,9 +14,11 @@ import '../../../core/widgets/loading_skeleton.dart';
 import '../../../core/widgets/safe_screen.dart';
 import '../../../core/widgets/stale_banner.dart';
 import '../data/bars_provider.dart';
+import '../../alerts/presentation/price_alert_modal.dart';
 import '../data/symbol_detail_providers.dart';
 import '../../dashboard/presentation/widgets/dashboard_formatters.dart';
 import 'widgets/stock_chart.dart';
+import 'widgets/stock_valuation_calculator.dart';
 import 'widgets/timeframe_selector.dart';
 
 class SymbolDetailScreen extends ConsumerStatefulWidget {
@@ -31,6 +33,7 @@ class SymbolDetailScreen extends ConsumerStatefulWidget {
 class _SymbolDetailScreenState extends ConsumerState<SymbolDetailScreen> {
   StreamSubscription<QuoteUpdatePayload>? _quoteSub;
   MarketQuote? _liveQuote;
+  Bar? _scrubbedBar;
 
   @override
   void initState() {
@@ -142,8 +145,26 @@ class _SymbolDetailScreenState extends ConsumerState<SymbolDetailScreen> {
       });
     }
 
+    final currentPrice = detailAsync.valueOrNull?.quote.lastPrice ?? 150.0;
+
     return Scaffold(
-      appBar: AppBar(title: Text(normalized)),
+      appBar: AppBar(
+        title: Text(normalized),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_alert_rounded),
+            tooltip: 'Set Price Alert',
+            onPressed: () {
+              PriceAlertModal.show(
+                context,
+                symbol: normalized,
+                currentPrice: currentPrice,
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeScreen(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -183,12 +204,24 @@ class _SymbolDetailScreenState extends ConsumerState<SymbolDetailScreen> {
                                 ?.copyWith(color: AppColors.warning),
                           ),
                         ),
-                      _QuoteSection(quote: quote),
+                      _QuoteSection(
+                        symbol: normalized,
+                        quote: quote,
+                        scrubbedBar: _scrubbedBar,
+                      ),
                       const SizedBox(height: AppSpacing.lg),
-                      _ChartSection(symbol: normalized),
+                      _ChartSection(
+                        symbol: normalized,
+                        onScrub: (bar) => setState(() => _scrubbedBar = bar),
+                      ),
                       const SizedBox(height: AppSpacing.lg),
                       _FundamentalsSection(
                         fundamentals: snapshot.fundamentals,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      StockValuationCalculator(
+                        symbol: normalized,
+                        currentPrice: quote.lastPrice,
                       ),
                     ],
                   );
@@ -202,57 +235,126 @@ class _SymbolDetailScreenState extends ConsumerState<SymbolDetailScreen> {
   }
 }
 
-class _QuoteSection extends StatelessWidget {
-  const _QuoteSection({required this.quote});
+const _kRangeLabels = {
+  '1D': 'Past Day',
+  '1W': 'Past 1 Week',
+  '1M': 'Past 1 Month',
+  '3M': 'Past 3 Months',
+  '6M': 'Past 6 Months',
+  '1Y': 'Past 1 Year',
+  '5Y': 'Past 5 Years',
+  'MAX': 'All Time',
+};
 
+class _QuoteSection extends ConsumerWidget {
+  const _QuoteSection({
+    required this.symbol,
+    required this.quote,
+    required this.scrubbedBar,
+  });
+
+  final String symbol;
   final MarketQuote quote;
+  final Bar? scrubbedBar;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final changeColor = quote.changeAmount >= 0
-        ? AppColors.positive
-        : AppColors.negative;
+    final range = ref.watch(chartRangeProvider);
+    final chartData = ref.watch(barsChartDataProvider((symbol: symbol, range: range)));
+
+    double displayPrice = quote.lastPrice;
+    double priceChange = quote.changeAmount;
+    double percentChange = quote.changePercent;
+    String subLabel = 'As of ${formatAsOfTimestamp(quote.asOf)}';
+
+    final bars = chartData.bars;
+
+    if (scrubbedBar != null) {
+      displayPrice = scrubbedBar!.closePrice;
+      if (bars.isNotEmpty) {
+        final startPrice = bars.first.closePrice;
+        priceChange = scrubbedBar!.closePrice - startPrice;
+        percentChange = startPrice > 0 ? (priceChange / startPrice) * 100 : 0.0;
+      }
+      subLabel = _formatScrubDate(scrubbedBar!.timeStamp);
+    } else if (range != '1D' && bars.length >= 2) {
+      final firstPrice = bars.first.closePrice;
+      priceChange = quote.lastPrice - firstPrice;
+      percentChange = firstPrice > 0 ? (priceChange / firstPrice) * 100 : 0.0;
+      final rangeText = _kRangeLabels[range] ?? range;
+      subLabel = rangeText;
+    } else {
+      subLabel = 'Past Day';
+    }
+
+    final changeColor = priceChange >= 0 ? AppColors.positive : AppColors.negative;
 
     return Card(
       color: AppColors.surfaceAlt,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              formatPrice(quote.lastPrice),
+              formatPrice(displayPrice),
               style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
-            Text(
-              '${formatSignedAmount(quote.changeAmount)} (${formatPercent(quote.changePercent)})',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: changeColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'As of ${formatAsOfTimestamp(quote.asOf)}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            Row(
+              children: [
+                Text(
+                  '${formatSignedAmount(priceChange)} (${formatPercent(percentChange)})',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: changeColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  '• $subLabel',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+
+  String _formatScrubDate(String timestamp) {
+    final dt = DateTime.tryParse(timestamp)?.toLocal();
+    if (dt == null) return timestamp;
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final month = _monthName(dt.month);
+    return '$month ${dt.day}, ${dt.year} $hour:$minute $ampm';
+  }
+
+  String _monthName(int m) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return (m >= 1 && m <= 12) ? months[m - 1] : '';
+  }
 }
 
 class _ChartSection extends ConsumerWidget {
-  const _ChartSection({required this.symbol});
+  const _ChartSection({
+    required this.symbol,
+    this.onScrub,
+  });
 
   final String symbol;
+  final ValueChanged<Bar?>? onScrub;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -302,6 +404,7 @@ class _ChartSection extends ConsumerWidget {
               bars: chartData.bars,
               selectedRange: range,
               isStale: chartData.isStale,
+              onScrub: onScrub,
             ),
         ],
       ),
@@ -317,83 +420,100 @@ class _FundamentalsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final entries = fundamentals.displayEntries;
+
+    final descriptionEntry = entries.where((e) => e.key.toLowerCase() == 'description').firstOrNull;
+    final metricEntries = entries.where((e) => e.key.toLowerCase() != 'description').toList();
 
     return Card(
       color: AppColors.surfaceAlt,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Fundamentals',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            if (entries.isEmpty)
-              Text(
-                'No fundamentals available.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+            Row(
+              children: [
+                Icon(Icons.query_stats_rounded, size: 20, color: colorScheme.primary),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  'Fundamentals & Key Metrics',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              )
-            else
-              for (final entry in entries)
-                if (entry.key == 'description') ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            if (metricEntries.isNotEmpty)
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 2.3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: metricEntries.length,
+                itemBuilder: (context, index) {
+                  final entry = metricEntries[index];
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Company Overview',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                          _labelForField(entry.key),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatFieldValue(entry.key, entry.value),
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          entry.value.toString(),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            height: 1.45,
-                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                  ),
-                ] else ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _labelForField(entry.key),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Flexible(
-                          child: Text(
-                            _formatFieldValue(entry.key, entry.value),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  );
+                },
+              ),
+            if (descriptionEntry != null) ...[
+              if (metricEntries.isNotEmpty) const SizedBox(height: AppSpacing.md),
+              Text(
+                'Company Overview',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                descriptionEntry.value.toString(),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.45,
+                ),
+              ),
+            ],
           ],
         ),
       ),

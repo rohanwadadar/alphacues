@@ -11,6 +11,7 @@ import '../../../core/platform/connectivity_service.dart';
 import '../../../core/realtime/quote_subscription_manager.dart';
 import '../../../core/realtime/socket_client.dart';
 import '../../../core/realtime/socket_events.dart';
+import '../../../core/widgets/alpha_cues_logo.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/loading_skeleton.dart';
@@ -192,7 +193,10 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: const Text(AppLabels.portfolio),
+        title: const AlphaCuesFullLogo(),
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       floatingActionButton: null,
       body: SafeScreen(

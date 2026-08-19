@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     JSON,
     Text,
     func,
@@ -22,10 +23,10 @@ class ScreenerStrategy(db.Model):
     __tablename__ = "screener_strategies"
 
     strategy_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
     )
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.user_id"), nullable=False
+        BigInteger().with_variant(Integer, "sqlite"), ForeignKey("users.user_id"), nullable=False
     )
     name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -17,9 +17,10 @@ depends_on = None
 
 
 def upgrade():
+    uuid_type = sa.String(36).with_variant(postgresql.UUID(as_uuid=True), "postgresql")
     op.create_table(
         "portfolio_event",
-        sa.Column("event_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("event_id", uuid_type, nullable=False),
         sa.Column("time_stamp", sa.DateTime(timezone=True), nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("symbol", sa.Text(), nullable=False),

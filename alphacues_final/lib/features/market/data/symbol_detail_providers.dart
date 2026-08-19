@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/user_scope.dart';
-import '../../../core/platform/connectivity_service.dart';
 import '../../watchlist/data/watchlist_repository.dart'
     show ServiceUnavailableException;
 import 'market_repository.dart';
@@ -43,44 +42,60 @@ void _registerSymbolDetailUserScope() {
   }
 }
 
+final Map<String, SymbolDetailSnapshot> _staticCacheMap = {};
+
 class SymbolDetailNotifier
     extends AutoDisposeFamilyAsyncNotifier<SymbolDetailSnapshot, String> {
-  SymbolDetailSnapshot? _cached;
 
   @override
   Future<SymbolDetailSnapshot> build(String symbol) async {
     _registerSymbolDetailUserScope();
-    final connectivity = ref.watch(connectivityServiceProvider);
-    if (!connectivity.isOnline && _cached != null) {
-      return _cached!;
+    final normalized = symbol.trim().toUpperCase();
+
+    // Fast memory return
+    final cached = _staticCacheMap[normalized];
+    if (cached != null) {
+      _refreshInBackground(normalized);
+      return cached;
     }
 
     try {
       final snapshot = await ref
           .read(marketRepositoryProvider)
-          .getSymbolDetail(symbol);
-      _cached = snapshot;
+          .getSymbolDetail(normalized);
+      _staticCacheMap[normalized] = snapshot;
       return snapshot;
     } on ServiceUnavailableException {
-      if (_cached != null) {
-        return _cached!;
+      if (cached != null) {
+        return cached;
       }
       rethrow;
     }
   }
 
+  void _refreshInBackground(String symbol) async {
+    try {
+      final snapshot = await ref
+          .read(marketRepositoryProvider)
+          .getSymbolDetail(symbol);
+      _staticCacheMap[symbol] = snapshot;
+      state = AsyncData(snapshot);
+    } catch (_) {}
+  }
+
   Future<void> refresh() async {
-    state = const AsyncLoading();
+    final normalized = arg.trim().toUpperCase();
     state = await AsyncValue.guard(
-      () => ref.read(marketRepositoryProvider).getSymbolDetail(arg),
+      () => ref.read(marketRepositoryProvider).getSymbolDetail(normalized),
     );
     if (state case AsyncData(:final value)) {
-      _cached = value;
+      _staticCacheMap[normalized] = value;
     }
   }
 
   void patchQuote(MarketQuote quote) {
-    final current = state.asData?.value ?? _cached;
+    final normalized = arg.trim().toUpperCase();
+    final current = state.asData?.value ?? _staticCacheMap[normalized];
     if (current == null) {
       return;
     }
@@ -89,7 +104,7 @@ class SymbolDetailNotifier
       fundamentals: current.fundamentals,
       fetchedAt: current.fetchedAt,
     );
-    _cached = next;
+    _staticCacheMap[normalized] = next;
     state = AsyncData(next);
   }
 }

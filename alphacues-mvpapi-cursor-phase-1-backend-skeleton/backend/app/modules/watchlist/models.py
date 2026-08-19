@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Text,
     UniqueConstraint,
     func,
@@ -20,14 +21,14 @@ class Watchlist(db.Model):
     __tablename__ = "watchlists"
 
     watchlist_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
     )
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.user_id"), nullable=False
+        BigInteger().with_variant(Integer, "sqlite"), ForeignKey("users.user_id"), nullable=False
     )
     name: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     items: Mapped[list[WatchlistItem]] = relationship(
@@ -42,15 +43,15 @@ class Watchlist(db.Model):
 class WatchlistItem(db.Model):
     __tablename__ = "watchlist_items"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     watchlist_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("watchlists.watchlist_id"), nullable=False
+        BigInteger().with_variant(Integer, "sqlite"), ForeignKey("watchlists.watchlist_id"), nullable=False
     )
     symbol: Mapped[str] = mapped_column(Text, nullable=False)
     quantity: Mapped[float] = mapped_column(db.Numeric(18, 4), nullable=True)
     price_at_addition: Mapped[float] = mapped_column(db.Numeric(18, 4), nullable=True)
     added_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
     watchlist: Mapped[Watchlist] = relationship(back_populates="items")

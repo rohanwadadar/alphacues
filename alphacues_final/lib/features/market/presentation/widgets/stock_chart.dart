@@ -1,47 +1,39 @@
+import 'dart:math';
 import 'package:candlesticks/candlesticks.dart';
 import 'package:flutter/foundation.dart' show listEquals;
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../dashboard/presentation/widgets/dashboard_formatters.dart';
 import '../../data/market_repository.dart';
 
-const _priceBarWidth = 60.0;
-
-/// Candlestick chart for symbol OHLCV bars.
 class StockChart extends StatefulWidget {
   const StockChart({
     super.key,
     required this.bars,
     required this.selectedRange,
     required this.isStale,
+    this.onScrub,
   });
 
   final List<Bar> bars;
   final String selectedRange;
   final bool isStale;
+  final ValueChanged<Bar?>? onScrub;
 
   @override
   State<StockChart> createState() => _StockChartState();
 }
 
 class _StockChartState extends State<StockChart> {
-  final CandlesticksController _controller = CandlesticksController();
-  Bar? _selectedBar;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  bool _useCandleMode = false;
+  int? _scrubIndex;
 
   @override
   void didUpdateWidget(covariant StockChart oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(widget.bars, oldWidget.bars)) {
-      _selectedBar = null;
+      _scrubIndex = null;
     }
   }
 
@@ -69,65 +61,10 @@ class _StockChartState extends State<StockChart> {
     return candles;
   }
 
-  Bar? _barAtTapPosition({
-    required Offset localPosition,
-    required double chartWidth,
-    required List<Bar> sortedBars,
-  }) {
-    if (sortedBars.isEmpty || chartWidth <= 0) {
-      return null;
-    }
-
-    final tapX = localPosition.dx;
-    if (tapX < 0 || tapX > chartWidth) {
-      return null;
-    }
-
-    final viewport = _controller.value;
-    final distanceFromRight = chartWidth - tapX;
-    final candleIndex =
-        (viewport.scrollIndex + distanceFromRight / viewport.candleWidth)
-            .round();
-
-    if (candleIndex < 0 || candleIndex >= sortedBars.length) {
-      return null;
-    }
-
-    return sortedBars[candleIndex];
-  }
-
-  void _onChartTapUp(TapUpDetails details, BoxConstraints constraints) {
-    final chartWidth = constraints.maxWidth - _priceBarWidth;
-    final sortedBars = [...widget.bars]
-      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-    final bar = _barAtTapPosition(
-      localPosition: details.localPosition,
-      chartWidth: chartWidth,
-      sortedBars: sortedBars,
-    );
-
-    if (bar == null) {
-      return;
-    }
-
-    setState(() => _selectedBar = bar);
-  }
-
-  String? _lastUpdatedLabel() {
-    if (widget.bars.isEmpty) {
-      return null;
-    }
-
-    final latest = widget.bars
-        .map((bar) => bar.timeStamp)
-        .reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
-    return formatUtcTimestamp(latest);
-  }
-
   @override
   Widget build(BuildContext context) {
-     
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     if (widget.bars.isEmpty) {
       return Card(
@@ -146,130 +83,209 @@ class _StockChartState extends State<StockChart> {
       );
     }
 
-    final candles = _toCandles(widget.bars);
-    final chartStyle = theme.brightness == Brightness.dark
-        ? CandleSticksStyle.dark()
-        : CandleSticksStyle.light();
+    final sortedBars = [...widget.bars]
+      ..sort((a, b) => a.timeStamp.compareTo(b.timeStamp));
+
+    final firstPrice = sortedBars.first.closePrice;
+    final lastPrice = sortedBars.last.closePrice;
+    final isPositive = (lastPrice - firstPrice) >= 0;
+    final chartColor = isPositive ? AppColors.positive : AppColors.negative;
 
     return Card(
       color: AppColors.surfaceAlt,
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (widget.isStale)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                0,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppSpacing.xs),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: AppSpacing.xs,
-                    ),
-                    child: Text(
-                      'Last updated ${_lastUpdatedLabel() ?? ''}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (_selectedBar != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                0,
-              ),
-              child: _CandleTooltip(bar: _selectedBar!),
-            ),
-          SizedBox(
-            height: 280,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerUp: (event) {
-                    if (event.kind == PointerDeviceKind.mouse) {
-                      return;
-                    }
-                    _onChartTapUp(
-                      TapUpDetails(
-                        kind: event.kind,
-                        globalPosition: event.position,
-                        localPosition: event.localPosition,
-                      ),
-                      constraints,
-                    );
-                  },
-                  child: Candlesticks(
-                    candles: candles,
-                    controller: _controller,
-                    style: chartStyle,
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CandleTooltip extends StatelessWidget {
-  const _CandleTooltip({required this.bar});
-
-  final Bar bar;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        child: Text(
-          '${formatUtcTimestamp(bar.timeStamp)}  '
-          'O ${formatPrice(bar.openPrice)}  '
-          'H ${formatPrice(bar.highPrice)}  '
-          'L ${formatPrice(bar.lowPrice)}  '
-          'C ${formatPrice(bar.closePrice)}  '
-          'V ${bar.volume}',
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── TOP CONTROL BAR (ONLY TOGGLE, NO DUPLICATE PRICE TEXT) ─────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  style: SegmentedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  segments: const [
+                    ButtonSegment(
+                      value: false,
+                      icon: Icon(Icons.show_chart_rounded, size: 16),
+                      label: Text('Line', style: TextStyle(fontSize: 11)),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      icon: Icon(Icons.candlestick_chart_outlined, size: 16),
+                      label: Text('Candles', style: TextStyle(fontSize: 11)),
+                    ),
+                  ],
+                  selected: {_useCandleMode},
+                  onSelectionChanged: (set) {
+                    setState(() => _useCandleMode = set.first);
+                  },
+                ),
+              ],
+            ),
+
+            // ── CHART CANVAS ──────────────────────────────────────────────
+            SizedBox(
+              height: 220,
+              child: _useCandleMode
+                  ? Candlesticks(
+                      candles: _toCandles(widget.bars),
+                      style: theme.brightness == Brightness.dark
+                          ? CandleSticksStyle.dark()
+                          : CandleSticksStyle.light(),
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        return GestureDetector(
+                          onPanUpdate: (details) {
+                            _updateScrub(details.localPosition.dx, constraints.maxWidth, sortedBars);
+                          },
+                          onPanDown: (details) {
+                            _updateScrub(details.localPosition.dx, constraints.maxWidth, sortedBars);
+                          },
+                          onPanEnd: (_) {
+                            setState(() => _scrubIndex = null);
+                            widget.onScrub?.call(null);
+                          },
+                          child: CustomPaint(
+                            size: Size(constraints.maxWidth, 220),
+                            painter: _MinimalistLinePainter(
+                              bars: sortedBars,
+                              lineColor: chartColor,
+                              scrubIndex: _scrubIndex,
+                              theme: theme,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  void _updateScrub(double touchX, double width, List<Bar> sortedBars) {
+    if (sortedBars.isEmpty || width <= 0) return;
+    final clampedX = touchX.clamp(0.0, width);
+    final ratio = clampedX / width;
+    final index = (ratio * (sortedBars.length - 1)).round().clamp(0, sortedBars.length - 1);
+
+    setState(() => _scrubIndex = index);
+    widget.onScrub?.call(sortedBars[index]);
+  }
 }
 
-String formatUtcTimestamp(String isoTimestamp) {
-  final parsed = DateTime.tryParse(isoTimestamp)?.toUtc();
-  if (parsed == null) {
-    return isoTimestamp;
+class _MinimalistLinePainter extends CustomPainter {
+  _MinimalistLinePainter({
+    required this.bars,
+    required this.lineColor,
+    required this.scrubIndex,
+    required this.theme,
+  });
+
+  final List<Bar> bars;
+  final Color lineColor;
+  final int? scrubIndex;
+  final ThemeData theme;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (bars.length < 2) return;
+
+    final prices = bars.map((b) => b.closePrice).toList();
+    final minPrice = prices.reduce(min);
+    final maxPrice = prices.reduce(max);
+    final priceRange = (maxPrice - minPrice) == 0 ? 1.0 : (maxPrice - minPrice);
+
+    final points = <Offset>[];
+    for (int i = 0; i < bars.length; i++) {
+      final x = (i / (bars.length - 1)) * size.width;
+      final normalizedY = (bars[i].closePrice - minPrice) / priceRange;
+      final y = size.height - (normalizedY * (size.height - 20)) - 10;
+      points.add(Offset(x, y));
+    }
+
+    // Draw Smooth Bezier Line
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final path = Path();
+    path.moveTo(points.first.dx, points.first.dy);
+    for (int i = 1; i < points.length; i++) {
+      final pPrev = points[i - 1];
+      final pCurr = points[i];
+      final controlX = (pPrev.dx + pCurr.dx) / 2;
+      path.cubicTo(controlX, pPrev.dy, controlX, pCurr.dy, pCurr.dx, pCurr.dy);
+    }
+
+    // Smooth Gradient Fill
+    final fillPath = Path.from(path)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          lineColor.withValues(alpha: 0.22),
+          lineColor.withValues(alpha: 0.0),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(path, linePaint);
+
+    // Draw Touch Scrubbing Crosshair Line & Indicator Circle
+    if (scrubIndex != null && scrubIndex! >= 0 && scrubIndex! < points.length) {
+      final scrubPt = points[scrubIndex!];
+
+      // Vertical Guideline
+      final guidePaint = Paint()
+        ..color = theme.colorScheme.onSurface.withValues(alpha: 0.35)
+        ..strokeWidth = 1.2
+        ..style = PaintingStyle.stroke;
+
+      canvas.drawLine(
+        Offset(scrubPt.dx, 0),
+        Offset(scrubPt.dx, size.height),
+        guidePaint,
+      );
+
+      // Outer Ring
+      final ringPaint = Paint()
+        ..color = lineColor
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(scrubPt, 6.5, ringPaint);
+
+      // Inner Core
+      final innerPaint = Paint()
+        ..color = theme.colorScheme.surface
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(scrubPt, 3.2, innerPaint);
+    }
   }
-  final hour = parsed.hour.toString().padLeft(2, '0');
-  final minute = parsed.minute.toString().padLeft(2, '0');
-  return '$hour:$minute UTC';
+
+  @override
+  bool shouldRepaint(covariant _MinimalistLinePainter oldDelegate) {
+    return oldDelegate.bars != bars ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.scrubIndex != scrubIndex;
+  }
 }

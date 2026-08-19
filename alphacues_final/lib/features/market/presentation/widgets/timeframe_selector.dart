@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 
 const kChartRanges = ['1D', '1W', '1M', '3M', '6M', '1Y', '5Y', 'MAX'];
@@ -50,26 +49,41 @@ class _RangeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return Material(
-      color: selected ? AppColors.primaryContainer : AppColors.surfaceAlt,
-      borderRadius: BorderRadius.circular(AppSpacing.sm),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-              child: Text(
-                label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: selected
-                      ? AppColors.onPrimaryContainer
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: selected
+            ? colorScheme.primary
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: colorScheme.primary.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
+              ]
+            : [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: selected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
+                fontWeight: selected ? FontWeight.bold : FontWeight.w600,
+                letterSpacing: 0.3,
               ),
             ),
           ),

@@ -75,12 +75,19 @@ class _PortfolioSummaryWidgetState extends ConsumerState<PortfolioSummaryWidget>
     final chartPoints = List.generate(20, (i) {
       final base = totalValue == 0 ? 2500.0 : totalValue;
       double mult = 1.0;
-      if (_selectedRange == '5D') mult = 1.0 + (i * 0.005);
-      else if (_selectedRange == '1M') mult = 1.0 + (i * 0.01);
-      else if (_selectedRange == '3M') mult = 1.0 + (i * 0.015);
-      else if (_selectedRange == 'YTD') mult = 1.0 + (i * 0.02);
-      else if (_selectedRange == '1Y') mult = 1.0 + (i * 0.025);
-      else if (_selectedRange == 'MAX') mult = 1.0 + (i * 0.03);
+      if (_selectedRange == '5D') {
+        mult = 1.0 + (i * 0.005);
+      } else if (_selectedRange == '1M') {
+        mult = 1.0 + (i * 0.01);
+      } else if (_selectedRange == '3M') {
+        mult = 1.0 + (i * 0.015);
+      } else if (_selectedRange == 'YTD') {
+        mult = 1.0 + (i * 0.02);
+      } else if (_selectedRange == '1Y') {
+        mult = 1.0 + (i * 0.025);
+      } else if (_selectedRange == 'MAX') {
+        mult = 1.0 + (i * 0.03);
+      }
       return {'value': base * (0.96 + 0.04 * (i / 20.0) * mult)};
     });
 
@@ -96,9 +103,10 @@ class _PortfolioSummaryWidgetState extends ConsumerState<PortfolioSummaryWidget>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total value',
+                'Total balance',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               IconButton(
@@ -114,31 +122,50 @@ class _PortfolioSummaryWidgetState extends ConsumerState<PortfolioSummaryWidget>
           Text(
             _showBalance ? formatPrice(totalValue) : '••••••••',
             style: theme.textTheme.headlineMedium?.copyWith(
-              fontSize: 28,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.onSurface,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(
-                dayChange >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 16,
-                color: dayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: (dayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      dayChange >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                      size: 14,
+                      color: dayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${formatSignedAmount(dayChange)} (${formatPercent(totalReturn)})',
+                      style: TextStyle(
+                        color: dayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               Text(
-                '${formatSignedAmount(dayChange)} (${formatPercent(totalReturn)}) Today',
-                style: TextStyle(
-                  color: dayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+                'Today',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
           WatchlistTrackingChart(
             points: chartPoints,
             selectedRange: _selectedRange,
@@ -148,6 +175,36 @@ class _PortfolioSummaryWidgetState extends ConsumerState<PortfolioSummaryWidget>
                 _selectedRange = range;
               });
             },
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // ── QUICK ACTION BUTTONS ───────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => context.go(AppRoutes.portfolio),
+                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  label: const Text('Trade'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.go(AppRoutes.portfolio),
+                  icon: const Icon(Icons.pie_chart_outline_rounded, size: 18),
+                  label: const Text('Analytics'),
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.md),
           const Divider(height: 1),

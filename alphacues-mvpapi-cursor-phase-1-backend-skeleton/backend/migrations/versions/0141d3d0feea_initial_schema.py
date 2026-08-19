@@ -7,6 +7,7 @@ Create Date: 2026-05-23 22:28:37.412893
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -25,8 +26,11 @@ def upgrade():
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('flag_key')
     )
+    bigint_id = sa.Integer() if op.get_bind().dialect.name == "sqlite" else sa.BigInteger()
+    uuid_type = sa.String(36).with_variant(postgresql.UUID(as_uuid=True), 'postgresql')
+
     op.create_table('users',
-    sa.Column('user_id', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.Column('user_id', bigint_id, autoincrement=True, nullable=False),
     sa.Column('email', sa.Text(), nullable=False),
     sa.Column('name', sa.Text(), nullable=True),
     sa.Column('avatar_url', sa.Text(), nullable=True),
@@ -40,7 +44,7 @@ def upgrade():
         batch_op.create_index('idx_users_email', ['email'], unique=False)
 
     op.create_table('device_push_tokens',
-    sa.Column('device_id', sa.UUID(), nullable=False),
+    sa.Column('device_id', uuid_type, nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('fcm_token', sa.Text(), nullable=False),
     sa.Column('platform', sa.Text(), nullable=False),
@@ -57,8 +61,8 @@ def upgrade():
         batch_op.create_index('idx_device_push_tokens_user_active', ['user_id', 'is_active'], unique=False)
 
     op.create_table('otp_tokens',
-    sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('challenge_id', sa.UUID(), nullable=False),
+    sa.Column('id', bigint_id, autoincrement=True, nullable=False),
+    sa.Column('challenge_id', uuid_type, nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('email', sa.Text(), nullable=False),
     sa.Column('otp_hash', sa.Text(), nullable=False),
@@ -76,7 +80,7 @@ def upgrade():
         batch_op.create_index('idx_otp_expires', ['expires_at'], unique=False)
 
     op.create_table('user_sessions',
-    sa.Column('session_id', sa.UUID(), nullable=False),
+    sa.Column('session_id', uuid_type, nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('refresh_token_hash', sa.Text(), nullable=False),
     sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),

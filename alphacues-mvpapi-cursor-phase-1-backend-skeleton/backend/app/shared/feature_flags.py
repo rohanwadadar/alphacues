@@ -23,6 +23,32 @@ REQUIRED_FEATURE_FLAGS = (
     "enable_screener",
 )
 
+DEFAULT_ENABLED_FLAGS = {
+    "enable_screener": True,
+    "enable_simulator": True,
+    "enable_live_trading": True,
+    "use_microservice_auth": False,
+    "use_microservice_portfolio": False,
+    "use_microservice_market": False,
+}
+
+
+def seed_feature_flags() -> None:
+    """Seed default feature flags into the database if missing."""
+    try:
+        updated = False
+        for flag_key, is_enabled in DEFAULT_ENABLED_FLAGS.items():
+            row = db.session.get(FeatureFlag, flag_key)
+            if row is None:
+                db.session.add(FeatureFlag(flag_key=flag_key, is_enabled=is_enabled, description=f"{flag_key} feature flag"))
+                updated = True
+        if updated:
+            db.session.commit()
+    except Exception as e:
+        logger.warning("Failed to seed feature flags: %s", e)
+        db.session.rollback()
+
+
 # ---------------------------------------------------------------------------
 # Caching constants
 # ---------------------------------------------------------------------------
@@ -115,7 +141,7 @@ class FeatureFlagService:
         # --- cache miss: read from Postgres ---
         row = db.session.get(FeatureFlag, flag_key)
         if row is None:
-            return default
+            return DEFAULT_ENABLED_FLAGS.get(flag_key, default)
         value = bool(row.is_enabled)
 
         # --- populate cache for subsequent reads ---
