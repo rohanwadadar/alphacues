@@ -17,7 +17,8 @@ class ScreenerResultCard extends StatelessWidget {
   final ScreenerResultItem item;
   final VoidCallback? onTap;
 
-  String _formatMarketCap(double cap) {
+  String _formatMarketCap(double? cap) {
+    if (cap == null) return 'N/A';
     if (cap >= 1e12) {
       return '\$${(cap / 1e12).toStringAsFixed(2)}T';
     } else if (cap >= 1e9) {
@@ -26,17 +27,6 @@ class ScreenerResultCard extends StatelessWidget {
       return '\$${(cap / 1e6).toStringAsFixed(1)}M';
     }
     return '\$${cap.toStringAsFixed(0)}';
-  }
-
-  String _formatVolume(double price, double marketCap) {
-    // Generate realistic volume representation based on market cap & price
-    final pseudoVol = (marketCap / (price * 1500)).clamp(500000, 85000000);
-    if (pseudoVol >= 1e6) {
-      return '${(pseudoVol / 1e6).toStringAsFixed(1)}M';
-    } else if (pseudoVol >= 1e3) {
-      return '${(pseudoVol / 1e3).toStringAsFixed(0)}K';
-    }
-    return pseudoVol.toStringAsFixed(0);
   }
 
   @override
@@ -94,7 +84,7 @@ class ScreenerResultCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              Container(
+                              if (item.exchange != null) Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
@@ -104,7 +94,7 @@ class ScreenerResultCard extends StatelessWidget {
                                       BorderRadius.circular(AppRadius.sm),
                                 ),
                                 child: Text(
-                                  item.exchange,
+                                  item.exchange!,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w700,
@@ -202,20 +192,12 @@ class ScreenerResultCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // ── Row 3: Market Cap | Volume | P/E Ratio ───────────────────────
+                // ── Market cap and valuation when supplied by the provider ──
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Cap: ${_formatMarketCap(item.marketCap)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      'Vol: ${_formatVolume(item.price, item.marketCap)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,

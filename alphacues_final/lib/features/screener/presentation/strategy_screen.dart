@@ -22,7 +22,7 @@ class _StrategyScreenState extends ConsumerState<StrategyScreen> {
 
   ScreenerFilter _currentFilter = const ScreenerFilter();
   String _selectedStrategyType = '';
-  String _sortBy = 'marketCap';
+  String _sortBy = 'changePercent';
   String _sortOrder = 'desc';
 
   // Technical & MA Filter state toggles

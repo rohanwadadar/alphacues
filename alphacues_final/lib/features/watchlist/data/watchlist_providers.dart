@@ -54,19 +54,8 @@ class WatchlistsNotifier extends AsyncNotifier<List<Watchlist>> {
     try {
       final repo = ref.read(watchlistRepositoryProvider);
       final result = await repo.listWatchlists();
-      var list = result.watchlists;
-      if (list.isEmpty && connectivity.isOnline) {
-        try {
-          final seeded = await repo.createWatchlist('Tech Picks');
-          for (final sym in ['AAPL', 'MSFT', 'GOOGL', 'TSLA']) {
-            await repo.addSymbol(seeded.watchlistId, sym);
-          }
-          final reList = await repo.listWatchlists();
-          list = reList.watchlists;
-        } catch (_) {}
-      }
-      _cached = list;
-      return list;
+      _cached = result.watchlists;
+      return result.watchlists;
     } on ServiceUnavailableException {
       if (_cached != null) {
         return _cached!;

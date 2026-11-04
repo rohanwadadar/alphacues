@@ -1016,7 +1016,7 @@ class _TransactionRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Text(
-                      isBuy ? 'ADDED' : 'REMOVED',
+                      isBuy ? 'ADD TO WATCHLIST' : 'REMOVE FROM WATCHLIST',
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: chipColor,
                         fontWeight: FontWeight.w600,

@@ -25,7 +25,7 @@ class _StockValuationCalculatorState extends State<StockValuationCalculator> {
   @override
   void initState() {
     super.initState();
-    _stockPrice = widget.currentPrice > 0 ? widget.currentPrice : 150.0;
+    _stockPrice = widget.currentPrice;
   }
 
   @override
@@ -54,6 +54,20 @@ class _StockValuationCalculatorState extends State<StockValuationCalculator> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    if (widget.currentPrice <= 0) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          'Valuation is unavailable until a market price is available.',
+          style: theme.textTheme.bodyMedium,
+        ),
+      );
+    }
 
     final initialCapital = _numberOfShares * _stockPrice;
     final r = _annualReturnPercent / 100.0;
@@ -117,16 +131,16 @@ class _StockValuationCalculatorState extends State<StockValuationCalculator> {
             child: Row(
               children: [
                 _buildPresetChip('10 Shares • 5 Yrs', () {
-                  _applyPreset(shares: 10, price: widget.currentPrice > 0 ? widget.currentPrice : 150.0, rate: 10.0, years: 5);
+                  _applyPreset(shares: 10, price: widget.currentPrice, rate: 10.0, years: 5);
                 }),
                 _buildPresetChip('25 Shares • 10 Yrs', () {
-                  _applyPreset(shares: 25, price: widget.currentPrice > 0 ? widget.currentPrice : 150.0, rate: 12.0, years: 10);
+                  _applyPreset(shares: 25, price: widget.currentPrice, rate: 12.0, years: 10);
                 }),
                 _buildPresetChip('50 Shares • 15 Yrs', () {
-                  _applyPreset(shares: 50, price: widget.currentPrice > 0 ? widget.currentPrice : 150.0, rate: 14.0, years: 15);
+                  _applyPreset(shares: 50, price: widget.currentPrice, rate: 14.0, years: 15);
                 }),
                 _buildPresetChip('100 Shares • 20 Yrs', () {
-                  _applyPreset(shares: 100, price: widget.currentPrice > 0 ? widget.currentPrice : 150.0, rate: 15.0, years: 20);
+                  _applyPreset(shares: 100, price: widget.currentPrice, rate: 15.0, years: 20);
                 }),
               ],
             ),

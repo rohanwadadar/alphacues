@@ -1134,13 +1134,13 @@ class __DashboardTransactionsSectionState
             ),
           ),
           title: Text(
-            'Transaction History',
+            'Watchlist History',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           subtitle: Text(
-            'Tap to view recent buy & sell trade executions',
+            'Tap to view recent watchlist additions & removals',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -1152,24 +1152,12 @@ class __DashboardTransactionsSectionState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Recent Trades',
+                  'Recent Watchlist Activity',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                FilledButton.icon(
-                  onPressed: () => PortfolioEventFormDialog.show(context),
-                  icon: const Icon(Icons.add_rounded, size: 16),
-                  label: const Text('Add Trade'),
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+
               ],
             ),
             const SizedBox(height: 10),
@@ -1222,7 +1210,7 @@ class __DashboardTransactionsSectionState
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Tap + Add Trade above to record your first trade.',
+                            'Add symbols to your watchlist to see your activity history.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant
                                   .withValues(alpha: 0.7),
@@ -1290,10 +1278,10 @@ class __DashboardTransactionsSectionState
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        event.action,
+                                        isBuy ? 'ADD TO WATCHLIST' : 'REMOVE FROM WATCHLIST',
                                         style: TextStyle(
                                           color: chipColor,
-                                          fontSize: 10,
+                                          fontSize: 9,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),

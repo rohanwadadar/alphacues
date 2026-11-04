@@ -124,31 +124,31 @@ class ScreenerResultItem {
 
   final String symbol;
   final String name;
-  final double marketCap;
+  final double? marketCap;
   final double? peRatio;
   final double? eps;
   final double? dividendYield;
-  final double fiftyTwoWeekHigh;
-  final double fiftyTwoWeekLow;
+  final double? fiftyTwoWeekHigh;
+  final double? fiftyTwoWeekLow;
   final double price;
   final double changePercent;
   final double changeAmount;
-  final String exchange;
+  final String? exchange;
 
   factory ScreenerResultItem.fromJson(Map<String, dynamic> json) {
     return ScreenerResultItem(
       symbol: json['symbol'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      marketCap: (json['marketCap'] as num?)?.toDouble() ?? 0.0,
+      marketCap: (json['marketCap'] as num?)?.toDouble(),
       peRatio: (json['peRatio'] as num?)?.toDouble(),
       eps: (json['eps'] as num?)?.toDouble(),
       dividendYield: (json['dividendYield'] as num?)?.toDouble(),
-      fiftyTwoWeekHigh: (json['fiftyTwoWeekHigh'] as num?)?.toDouble() ?? 0.0,
-      fiftyTwoWeekLow: (json['fiftyTwoWeekLow'] as num?)?.toDouble() ?? 0.0,
+      fiftyTwoWeekHigh: (json['fiftyTwoWeekHigh'] as num?)?.toDouble(),
+      fiftyTwoWeekLow: (json['fiftyTwoWeekLow'] as num?)?.toDouble(),
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       changePercent: (json['changePercent'] as num?)?.toDouble() ?? 0.0,
       changeAmount: (json['changeAmount'] as num?)?.toDouble() ?? 0.0,
-      exchange: json['exchange'] as String? ?? 'NASDAQ',
+      exchange: json['exchange'] as String?,
     );
   }
 }
@@ -215,7 +215,7 @@ class ScreenerStrategy {
       filters: ScreenerFilter.fromJson(
         json['filters'] as Map<String, dynamic>?,
       ),
-      sortBy: json['sortBy'] as String? ?? 'marketCap',
+      sortBy: json['sortBy'] as String? ?? 'changePercent',
       sortOrder: json['sortOrder'] as String? ?? 'desc',
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,

@@ -25,7 +25,7 @@ class ScreenerState {
     this.isFeatureDisabled = false,
     this.isOffline = false,
     this.filters = const ScreenerFilter(),
-    this.sortBy = 'marketCap',
+    this.sortBy = 'changePercent',
     this.sortOrder = 'desc',
     this.result,
     this.lastSavedPreset,
@@ -196,7 +196,7 @@ class SavedStrategiesNotifier extends AsyncNotifier<List<ScreenerStrategy>> {
   Future<bool> saveStrategy({
     required String name,
     required ScreenerFilter filters,
-    String sortBy = 'marketCap',
+    String sortBy = 'changePercent',
     String sortOrder = 'desc',
     String? description,
   }) async {

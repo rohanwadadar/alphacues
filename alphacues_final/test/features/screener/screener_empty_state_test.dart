@@ -28,7 +28,7 @@ class _EmptyResultRepository extends ScreenerRepository {
   @override
   Future<ScreenerScanResult> runScan({
     required ScreenerFilter filters,
-    String sortBy = 'marketCap',
+    String sortBy = 'changePercent',
     String sortOrder = 'desc',
     int limit = 50,
   }) async {

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/platform/connectivity_service.dart';
+import 'package:frontend/core/realtime/socket_events.dart';
 import 'package:frontend/features/dashboard/data/dashboard_repository.dart';
 import 'package:frontend/features/portfolio/data/portfolio_providers.dart';
 
@@ -38,6 +39,8 @@ class _MockPortfolioRepository extends PortfolioRepository {
           volume: 10,
           totalPrice: 1800,
           updatedAt: '2026-05-13T14:30:00Z',
+          lastPrice: 180,
+          changeAmount: 1,
         ),
       ],
     );
@@ -140,7 +143,8 @@ void main() {
     final updated = container.read(portfolioSummaryProvider).requireValue;
     expect(repository.summaryCalls, 1);
     expect(updated.positions.single.lastPrice, 190);
-    expect(updated.summary.totalValue, initial.summary.totalValue);
+    expect(updated.summary.totalValue, initial.summary.totalValue + 100);
+    expect(updated.summary.dayChange, initial.summary.dayChange + 10);
     expect(updated.summary.asOf, '2026-05-13T14:31:00Z');
   });
 }

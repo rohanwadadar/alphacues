@@ -22,7 +22,7 @@ class ScreenerRepository {
   // ---------------------------------------------------------------------------
   Future<ScreenerScanResult> runScan({
     required ScreenerFilter filters,
-    String sortBy = 'marketCap',
+    String sortBy = 'changePercent',
     String sortOrder = 'desc',
     int limit = 1000,
   }) async {
@@ -31,7 +31,7 @@ class ScreenerRepository {
         '/api/v1/screener/run',
         data: {
           'filters': filters.toJson(),
-          'sort_by': sortBy.isNotEmpty ? sortBy : 'marketCap',
+          'sort_by': sortBy.isNotEmpty ? sortBy : 'changePercent',
           'sort_order': sortOrder,
           'limit': limit,
         },
@@ -113,7 +113,7 @@ class ScreenerRepository {
   Future<ScreenerStrategy> createStrategy({
     required String name,
     required ScreenerFilter filters,
-    String sortBy = 'marketCap',
+    String sortBy = 'changePercent',
     String sortOrder = 'desc',
     String? description,
   }) async {

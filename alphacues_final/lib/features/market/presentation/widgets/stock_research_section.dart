@@ -75,9 +75,6 @@ class _StockResearchSectionState extends ConsumerState<StockResearchSection> {
     final isDark = theme.brightness == Brightness.dark;
     final f = widget.fundamentals.fields;
 
-    final barData = _computeFinancialData(f, _selectedMetric, _isQuarterly);
-    final earningsData = _computeEarningsData(f);
-
     // Financial Statements & Earnings Performance commented out per user request
     // to only keep the real-time RobinhoodFinancialsSection and RobinhoodEarningsSection
     return Column(
@@ -323,84 +320,56 @@ class _StockResearchSectionState extends ConsumerState<StockResearchSection> {
     FinancialMetric metric,
     bool isQuarterly,
   ) {
-    final cap = (f['marketCap'] as num?)?.toDouble() ?? 5e10;
-    final pe = (f['peRatio'] as num?)?.toDouble() ?? 24.0;
-    final baseAnnualRev = math.max(cap / (pe * 0.35), 2e9);
+    final statements = f['financialStatements'];
+    final rawPeriods = statements is Map
+        ? statements[isQuarterly ? 'quarterly' : 'annual']
+        : null;
+    if (rawPeriods is! List) return const [];
 
-    final periods = isQuarterly
-        ? ['Q1\'23', 'Q2\'23', 'Q3\'23', 'Q4\'23', 'Q1\'24']
-        : ['2020', '2021', '2022', '2023', '2024'];
-
-    final growthMultipliers = isQuarterly
-        ? [0.91, 0.94, 0.97, 1.03, 1.08]
-        : [0.72, 0.81, 0.89, 0.96, 1.05];
-
-    final divFactor = isQuarterly ? 4.0 : 1.0;
-    final rev = baseAnnualRev / divFactor;
-
-    return List.generate(periods.length, (i) {
-      final period = periods[i];
-      final m = growthMultipliers[i];
-      final pRevenue = rev * m;
-
-      switch (metric) {
-        case FinancialMetric.revenue:
-          return FinancialBarData(
-            period: period,
-            value: pRevenue,
-            displayLabel: _formatCurrency(pRevenue),
-          );
-        case FinancialMetric.grossProfit:
-          final gp = pRevenue * 0.44;
-          return FinancialBarData(
-            period: period,
-            value: gp,
-            displayLabel: _formatCurrency(gp),
-          );
-        case FinancialMetric.netIncome:
-          final ni = pRevenue * (pe > 40 ? 0.14 : (pe < 15 ? 0.26 : 0.20));
-          return FinancialBarData(
-            period: period,
-            value: ni,
-            displayLabel: _formatCurrency(ni),
-          );
-        case FinancialMetric.netMargin:
-          final marginPct = (pe > 40 ? 14.5 : (pe < 15 ? 26.0 : 20.5)) + (i * 0.4);
-          return FinancialBarData(
-            period: period,
-            value: marginPct,
-            displayLabel: '${marginPct.toStringAsFixed(1)}%',
-          );
-      }
-    });
+    final key = switch (metric) {
+      FinancialMetric.revenue => 'revenue',
+      FinancialMetric.grossProfit => 'grossProfit',
+      FinancialMetric.netIncome => 'netIncome',
+      FinancialMetric.netMargin => 'netMargin',
+    };
+    final result = <FinancialBarData>[];
+    for (final rawPeriod in rawPeriods) {
+      if (rawPeriod is! Map || rawPeriod[key] is! num) continue;
+      final value = (rawPeriod[key] as num).toDouble();
+      result.add(
+        FinancialBarData(
+          period: rawPeriod['periodLabel']?.toString() ?? '',
+          value: value,
+          displayLabel: metric == FinancialMetric.netMargin
+              ? '${value.toStringAsFixed(1)}%'
+              : _formatCurrency(value),
+          isNegative: value < 0,
+        ),
+      );
+    }
+    return result;
   }
 
   List<EarningsQuarterData> _computeEarningsData(Map f) {
-    final eps = (f['eps'] as num?)?.toDouble() ?? 3.40;
-    final qBase = eps > 0 ? (eps / 4.0) : 0.85;
+    final rawPeriods = f['earningsPrices'];
+    if (rawPeriods is! List) return const [];
 
-    return [
-      EarningsQuarterData(
-        quarter: 'Q2\'23',
-        estimated: qBase * 0.92,
-        actual: qBase * 0.96,
-      ),
-      EarningsQuarterData(
-        quarter: 'Q3\'23',
-        estimated: qBase * 0.95,
-        actual: qBase * 1.02,
-      ),
-      EarningsQuarterData(
-        quarter: 'Q4\'23',
-        estimated: qBase * 1.00,
-        actual: qBase * 0.98, // miss
-      ),
-      EarningsQuarterData(
-        quarter: 'Q1\'24',
-        estimated: qBase * 1.05,
-        actual: qBase * 1.12, // beat
-      ),
-    ];
+    final result = <EarningsQuarterData>[];
+    for (final rawPeriod in rawPeriods) {
+      if (rawPeriod is! Map ||
+          rawPeriod['estimatedEps'] is! num ||
+          rawPeriod['actualEps'] is! num) {
+        continue;
+      }
+      result.add(
+        EarningsQuarterData(
+          quarter: rawPeriod['topLabel']?.toString() ?? '',
+          estimated: (rawPeriod['estimatedEps'] as num).toDouble(),
+          actual: (rawPeriod['actualEps'] as num).toDouble(),
+        ),
+      );
+    }
+    return result;
   }
 
   String _formatCurrency(double val) {
