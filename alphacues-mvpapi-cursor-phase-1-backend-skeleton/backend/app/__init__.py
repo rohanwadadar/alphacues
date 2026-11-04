@@ -33,6 +33,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     app = Flask(__name__)
     app.config.from_object(config_class)
+    app.config["APP_ENV"] = app_env
     configure_security_headers(app)
     configure_logging(app)
     audit_secrets_safety(app)

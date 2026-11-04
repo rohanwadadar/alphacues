@@ -33,7 +33,7 @@ class ScreenerStrategy(db.Model):
     filters: Mapped[dict[str, Any]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"), nullable=False, default=dict
     )
-    sort_by: Mapped[str] = mapped_column(Text, nullable=False, default="marketCap")
+    sort_by: Mapped[str] = mapped_column(Text, nullable=False, default="changePercent")
     sort_order: Mapped[str] = mapped_column(Text, nullable=False, default="desc")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

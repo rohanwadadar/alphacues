@@ -49,7 +49,7 @@ class ScreenerFilterSchema(Schema):
 class ScreenerScanRequestSchema(Schema):
     filters = fields.Nested(ScreenerFilterSchema, load_default=dict)
     sort_by = fields.String(
-        load_default="marketCap",
+        load_default="changePercent",
         validate=validate.OneOf(VALID_SORT_FIELDS),
     )
     sort_order = fields.String(
@@ -65,7 +65,7 @@ class ScreenerScanRequestSchema(Schema):
     def clean_sort(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if isinstance(data, dict):
             if "sort_by" in data and (not data["sort_by"] or data["sort_by"].strip() == ""):
-                data["sort_by"] = "marketCap"
+                data["sort_by"] = "changePercent"
         return data
 
 
@@ -75,7 +75,7 @@ class CreateStrategySchema(Schema):
     description = fields.String(required=False, allow_none=True)
     filters = fields.Nested(ScreenerFilterSchema, load_default=dict)
     sort_by = fields.String(
-        load_default="marketCap",
+        load_default="changePercent",
         validate=validate.OneOf(VALID_SORT_FIELDS),
     )
     sort_order = fields.String(

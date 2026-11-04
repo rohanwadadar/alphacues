@@ -77,15 +77,24 @@ def audit_secrets_safety(app: Flask) -> dict[str, str]:
     warnings: dict[str, str] = {}
 
     secret_key = app.config.get("SECRET_KEY", "")
-    if secret_key == "replace-me" or not secret_key:
-        warnings["SECRET_KEY"] = "SECRET_KEY uses standard default placeholder."
+    if not isinstance(secret_key, str) or len(secret_key) < 32 or secret_key == "replace-me":
+        warnings["SECRET_KEY"] = "SECRET_KEY must be a non-placeholder value of at least 32 characters."
 
     database_url = app.config.get("SQLALCHEMY_DATABASE_URI", "")
     if "alphacues:alphacues@localhost" in database_url and app_env == "production":
         warnings["DATABASE_URL"] = "DATABASE_URL contains default local credentials in production."
 
+    if app_env == "production":
+        if not app.config.get("ALPACA_API_KEY") or not app.config.get("ALPACA_SECRET_KEY"):
+            warnings["ALPACA_CREDENTIALS"] = "Alpaca credentials are required in production."
+        if app.config.get("MOCK_EXTERNAL_SERVICES"):
+            warnings["MOCK_EXTERNAL_SERVICES"] = "Mock external services must be disabled in production."
+
     if app_env == "production" and warnings:
         logger.error("PRODUCTION SECRETS AUDIT FAILED: %s", warnings)
+        raise RuntimeError(
+            "Unsafe production configuration: " + ", ".join(sorted(warnings))
+        )
     else:
         logger.info("Secrets audit completed. Active warnings count: %d", len(warnings))
 

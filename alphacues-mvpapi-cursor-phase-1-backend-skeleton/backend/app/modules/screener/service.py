@@ -40,7 +40,7 @@ class ScreenerService:
     def run_scan(
         market_adapter: MarketDataSource,
         filters: dict[str, Any],
-        sort_by: str = "marketCap",
+        sort_by: str = "changePercent",
         sort_order: str = "desc",
         limit: int = 50,
         symbols: tuple[str, ...] | list[str] | None = None,
@@ -69,22 +69,19 @@ class ScreenerService:
             price = float(quote.lastPrice)
             change_pct = float(quote.changePercent)
 
-            # Build item using only real live price data — no slow fundamentals calls.
-            # marketCap, peRatio etc. are shown correctly on the symbol detail page
-            # which fetches fundamentals individually.
             item = {
                 "symbol": sym,
                 "name": f"{sym}",
-                "marketCap": round(price * 1_500_000_000, 2),
-                "peRatio": round(12.5 + (abs(hash(sym)) % 300) / 10.0, 1),
-                "eps": round(2.5 + (abs(hash(sym)) % 100) / 10.0, 2),
-                "dividendYield": round(0.5 + (abs(hash(sym)) % 40) / 10.0, 2),
-                "fiftyTwoWeekHigh": round(price * 1.25, 2),
-                "fiftyTwoWeekLow": round(price * 0.75, 2),
+                "marketCap": None,
+                "peRatio": None,
+                "eps": None,
+                "dividendYield": None,
+                "fiftyTwoWeekHigh": None,
+                "fiftyTwoWeekLow": None,
                 "price": price,
                 "changePercent": change_pct,
                 "changeAmount": float(quote.changeAmount),
-                "exchange": "NASDAQ",
+                "exchange": None,
             }
 
             if not ScreenerService._matches_filters(item, filters):
@@ -117,11 +114,11 @@ class ScreenerService:
             return True
 
         if "marketCapMin" in filters and filters["marketCapMin"] is not None:
-            if item["marketCap"] < float(filters["marketCapMin"]):
+            if item["marketCap"] is None or item["marketCap"] < float(filters["marketCapMin"]):
                 return False
 
         if "marketCapMax" in filters and filters["marketCapMax"] is not None:
-            if item["marketCap"] > float(filters["marketCapMax"]):
+            if item["marketCap"] is None or item["marketCap"] > float(filters["marketCapMax"]):
                 return False
 
         if "peRatioMin" in filters and filters["peRatioMin"] is not None:
@@ -155,7 +152,10 @@ class ScreenerService:
                 return False
 
         if "exchange" in filters and filters["exchange"]:
-            if item["exchange"].upper() != filters["exchange"].upper():
+            if (
+                item["exchange"] is None
+                or item["exchange"].upper() != filters["exchange"].upper()
+            ):
                 return False
 
         return True
@@ -166,7 +166,7 @@ class ScreenerService:
         name: str,
         description: str | None = None,
         filters: dict[str, Any] | None = None,
-        sort_by: str = "marketCap",
+        sort_by: str = "changePercent",
         sort_order: str = "desc",
     ) -> ScreenerStrategy:
         strategy = ScreenerStrategy(

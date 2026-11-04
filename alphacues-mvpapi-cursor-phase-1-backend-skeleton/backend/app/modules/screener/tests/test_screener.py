@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 import json
 from pathlib import Path
 
@@ -7,6 +8,7 @@ import pytest
 
 from app.shared.db import db
 from app.shared.feature_flags import FeatureFlag
+from app.adapters.protocols import SnapshotPayload
 
 CONTRACTS_DIR = Path(__file__).resolve().parents[4] / "tests" / "fixtures" / "contracts"
 
@@ -63,15 +65,27 @@ def test_screener_feature_flag_disabled(client, auth_headers, app):
     assert body["error"]["code"] == "FEATURE_DISABLED"
 
 
-def test_screener_scan_deterministic(client, auth_headers):
-    payload = {
-        "filters": {
-            "marketCapMin": 2000000000000,
-            "peRatioMax": 36.0,
-        },
-        "sort_by": "marketCap",
-        "sort_order": "desc",
-    }
+def test_screener_scan_returns_live_quotes_without_fabricated_fundamentals(
+    client, auth_headers, app
+):
+    class QuoteAdapter:
+        def get_snapshot(self, symbols):
+            return [
+                SnapshotPayload(
+                    symbol=symbol,
+                    lastPrice=Decimal("100"),
+                    changeAmount=Decimal(index),
+                    changePercent=Decimal(-index),
+                    asOf="2026-11-04T12:00:00Z",
+                )
+                for index, symbol in enumerate(symbols)
+            ]
+
+        def get_quote(self, symbol):
+            raise AssertionError("All screener symbols should be in the snapshot")
+
+    app.extensions["market_data_adapter"] = QuoteAdapter()
+    payload = {"sort_by": "changePercent", "sort_order": "desc"}
     # Run scan twice with identical filters
     res1 = client.post("/api/v1/screener/run", json=payload, headers=auth_headers)
     assert res1.status_code == 200
@@ -85,7 +99,10 @@ def test_screener_scan_deterministic(client, auth_headers):
     symbols1 = [item["symbol"] for item in body1["data"]["items"]]
     symbols2 = [item["symbol"] for item in body2["data"]["items"]]
     assert symbols1 == symbols2
-    assert symbols1[0] == "MSFT"
+    assert symbols1[0] == "AAPL"
+    assert body1["data"]["items"][0]["marketCap"] is None
+    assert body1["data"]["items"][0]["peRatio"] is None
+    assert body1["data"]["items"][0]["exchange"] is None
 
 
 def test_screener_filter_validation_error(client, auth_headers):

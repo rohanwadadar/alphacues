@@ -55,12 +55,12 @@ class MoverSchema(Schema):
 class FundamentalsSchema(Schema):
     symbol = fields.String(required=True)
     name = fields.String(required=True)
-    marketCap = fields.Float(required=True)
+    marketCap = fields.Float(required=True, allow_none=True)
     peRatio = fields.Float(required=False, allow_none=True)
     eps = fields.Float(required=False, allow_none=True)
     dividendYield = fields.Float(required=False, allow_none=True)
-    fiftyTwoWeekHigh = fields.Float(required=True)
-    fiftyTwoWeekLow = fields.Float(required=True)
+    fiftyTwoWeekHigh = fields.Float(required=True, allow_none=True)
+    fiftyTwoWeekLow = fields.Float(required=True, allow_none=True)
     description = fields.String(required=False, allow_none=True)
 
     # Performance & Key Statistics

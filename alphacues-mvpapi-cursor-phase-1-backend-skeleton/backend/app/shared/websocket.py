@@ -78,12 +78,7 @@ class StreamNamespace(Namespace):
 
     def on_disconnect(self) -> None:
         if not current_app.config.get("TESTING"):
-            removed = remove_client_subscriptions(get_redis(), request.sid)
-            if removed:
-                get_redis().publish(
-                    "alphacues:stream:subscription_changed",
-                    "1",
-                )
+            remove_client_subscriptions(get_redis(), request.sid)
         session["subscriptions"] = set()
 
     def on_subscribe_quotes(self, data: dict[str, Any] | None) -> None:
@@ -113,16 +108,11 @@ class StreamNamespace(Namespace):
             valid_symbols = valid_symbols[: max(remaining, 0)]
 
         if not current_app.config.get("TESTING") and valid_symbols:
-            added, _ = update_client_subscriptions(
+            update_client_subscriptions(
                 get_redis(),
                 request.sid,
                 subscribe=valid_symbols,
             )
-            if added:
-                get_redis().publish(
-                    "alphacues:stream:subscription_changed",
-                    "1",
-                )
 
         for symbol in valid_symbols:
             join_room(_quote_room(symbol))
@@ -143,16 +133,11 @@ class StreamNamespace(Namespace):
             and SYMBOL_PATTERN.match(raw_symbol.upper())
         }
         if not current_app.config.get("TESTING") and valid_symbols:
-            _, removed = update_client_subscriptions(
+            update_client_subscriptions(
                 get_redis(),
                 request.sid,
                 unsubscribe=valid_symbols,
             )
-            if removed:
-                get_redis().publish(
-                    "alphacues:stream:subscription_changed",
-                    "1",
-                )
 
         for raw_symbol in symbols:
             if not isinstance(raw_symbol, str):

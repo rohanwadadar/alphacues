@@ -103,7 +103,11 @@ def _dict_to_fundamentals(data: dict[str, Any]) -> FundamentalsPayload:
     return FundamentalsPayload(
         symbol=data["symbol"],
         name=data["name"],
-        marketCap=Decimal(str(data["marketCap"])),
+        marketCap=(
+            Decimal(str(data["marketCap"]))
+            if data.get("marketCap") is not None
+            else None
+        ),
         peRatio=Decimal(str(data["peRatio"])) if data.get("peRatio") is not None else None,
         eps=Decimal(str(data["eps"])) if data.get("eps") is not None else None,
         dividendYield=(
@@ -111,8 +115,16 @@ def _dict_to_fundamentals(data: dict[str, Any]) -> FundamentalsPayload:
             if data.get("dividendYield") is not None
             else None
         ),
-        fiftyTwoWeekHigh=Decimal(str(data["fiftyTwoWeekHigh"])),
-        fiftyTwoWeekLow=Decimal(str(data["fiftyTwoWeekLow"])),
+        fiftyTwoWeekHigh=(
+            Decimal(str(data["fiftyTwoWeekHigh"]))
+            if data.get("fiftyTwoWeekHigh") is not None
+            else None
+        ),
+        fiftyTwoWeekLow=(
+            Decimal(str(data["fiftyTwoWeekLow"]))
+            if data.get("fiftyTwoWeekLow") is not None
+            else None
+        ),
         description=data.get("description"),
         volume=int(data["volume"]) if data.get("volume") is not None else None,
         avgVolume=str(data["avgVolume"]) if data.get("avgVolume") is not None else None,
@@ -179,20 +191,10 @@ class MarketService:
             _payload_to_dict(payload),
             ttl_seconds=QUOTE_TTL_SECONDS,
         )
-        try:
-            from app.modules.alerts.service import AlertEvaluationService
-            AlertEvaluationService.evaluate_alerts_for_symbol(payload.symbol, payload.lastPrice)
-        except Exception:
-            pass
         return payload
 
     def upsert_tick(self, quote: QuotePayload) -> None:
         StockTick.upsert_tick(self._session, quote)
-        try:
-            from app.modules.alerts.service import AlertEvaluationService
-            AlertEvaluationService.evaluate_alerts_for_symbol(quote.symbol, quote.lastPrice)
-        except Exception:
-            pass
     def get_bars(self, symbol: str, timeframe: str, range: str) -> BarsPayload:
         cache_key = f"market:bars:{symbol}:{timeframe}:{range}"
         cached = self._cache.get_json(cache_key)

@@ -23,11 +23,10 @@ def init_extensions(app) -> None:
         broker_connection_retry_on_startup=True,
     )
 
-    # TODO: Railway production requires sticky sessions for Socket.IO scaling.
     socketio_init_kwargs = {
         "async_mode": "eventlet",
         "cors_allowed_origins": app.config.get("CORS_ORIGINS", "*"),
     }
-    if not app.config.get("TESTING") and not app.config.get("MOCK_EXTERNAL_SERVICES"):
-        socketio_init_kwargs["message_queue"] = app.config["REDIS_URL"]
+    if not app.config.get("TESTING"):
+        socketio_init_kwargs["message_queue"] = app.config["SOCKETIO_MESSAGE_QUEUE"]
     socketio.init_app(app, **socketio_init_kwargs)
