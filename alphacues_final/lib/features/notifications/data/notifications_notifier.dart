@@ -7,6 +7,7 @@ import '../../../core/platform/connectivity_service.dart';
 import '../../../core/realtime/socket_client.dart';
 import '../../../core/realtime/socket_events.dart';
 import '../../alerts/data/alerts_providers.dart';
+import '../../dashboard/data/dashboard_providers.dart';
 import 'notifications_repository.dart';
 
 export 'notifications_repository.dart';
@@ -132,6 +133,7 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
         .toList();
     _cached = optimistic;
     state = AsyncData(optimistic);
+    ref.read(dashboardNotificationBadgeProvider.notifier).decrement();
 
     try {
       await ref.read(notificationsRepositoryProvider).markRead(notificationId);
@@ -149,12 +151,20 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
     final optimistic = current.map((item) => item.copyWith(isRead: true)).toList();
     _cached = optimistic;
     state = AsyncData(optimistic);
+    ref.read(dashboardNotificationBadgeProvider.notifier).clear();
 
     try {
       await ref.read(notificationsRepositoryProvider).markAllRead();
     } catch (_) {
       await refresh();
     }
+  }
+
+  void addLocalNotification(NotificationModel item) {
+    final current = state.asData?.value ?? _cached ?? const <NotificationModel>[];
+    final next = [item, ...current];
+    _cached = next;
+    state = AsyncData(next);
   }
 }
 

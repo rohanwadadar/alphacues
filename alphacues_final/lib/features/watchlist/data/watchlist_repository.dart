@@ -281,6 +281,20 @@ class WatchlistRepository {
       );
       parseEnvelope<dynamic>(response.data, parseData: (_) => null);
     } on DioException catch (error) {
+      if (error.response?.statusCode == 409) {
+        try {
+          await removeSymbol(watchlistId, symbol);
+          final retryResponse = await _dio.post<dynamic>(
+            '/api/v1/watchlist/$watchlistId/items',
+            data: {
+              'symbol': symbol,
+              if (quantity != null) 'quantity': quantity,
+            },
+          );
+          parseEnvelope<dynamic>(retryResponse.data, parseData: (_) => null);
+          return;
+        } catch (_) {}
+      }
       throw _mapDioError(error);
     }
   }

@@ -9,6 +9,7 @@ import '../network/api_client.dart';
 import '../realtime/socket_client.dart';
 import 'auth_token_store.dart';
 import 'user_scope.dart';
+import '../../features/settings/data/settings_provider.dart';
 
 export '../../features/auth/domain/auth_user.dart' show AuthUser;
 
@@ -51,6 +52,11 @@ class AuthSessionNotifier extends Notifier<AuthState> {
 
   Future<SendOtpResult> sendOtp(String email) {
     return _repository.sendOtp(email: email.trim().toLowerCase());
+  }
+
+  /// Used when re-sending OTP in the new user registration flow
+  Future<SendOtpResult> sendOtpForNewUser(String email) {
+    return _repository.sendOtpForNewUser(email: email.trim().toLowerCase());
   }
 
   Future<void> verifyOtp({
@@ -118,6 +124,10 @@ class AuthSessionNotifier extends Notifier<AuthState> {
 
     try {
       final user = await _repository.getMe(skipTokenRefresh: true);
+      _syncUserProfileToSettings(user);
+      if (!user.isNewUser) {
+        ref.read(settingsProvider.notifier).completeOnboarding();
+      }
       state = AuthState(
         status: AuthStatus.authenticated,
         session: AuthSession(user: user),
@@ -138,11 +148,51 @@ class AuthSessionNotifier extends Notifier<AuthState> {
       accessToken: accessToken,
       refreshToken: refreshToken,
     );
+    _syncUserProfileToSettings(user);
+    if (!user.isNewUser) {
+      ref.read(settingsProvider.notifier).completeOnboarding();
+    }
     state = AuthState(
       status: AuthStatus.authenticated,
       session: AuthSession(user: user),
     );
     ref.read(socketClientProvider).connect();
+  }
+
+  void updateUser(AuthUser newUser) {
+    if (state.session != null) {
+      _syncUserProfileToSettings(newUser);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        session: AuthSession(user: newUser),
+      );
+    }
+  }
+
+  void _syncUserProfileToSettings(AuthUser user) {
+    if (user.name != null && user.name!.isNotEmpty) {
+      const validTradingStyles = [
+        'Swing Trader',
+        'Day Trader',
+        'Value Investor',
+        'Options Scalper',
+      ];
+      final style = (user.tradingStyle != null && validTradingStyles.contains(user.tradingStyle))
+          ? user.tradingStyle
+          : 'Swing Trader';
+
+      const validRisk = ['Conservative', 'Moderate', 'Aggressive'];
+      final risk = (user.riskTolerance != null && validRisk.contains(user.riskTolerance))
+          ? user.riskTolerance
+          : 'Moderate';
+
+      ref.read(settingsProvider.notifier).updateProfile(
+            displayName: user.name!,
+            bio: ref.read(settingsProvider).bio,
+            tradingStyle: style,
+            riskTolerance: risk,
+          );
+    }
   }
 
   Future<void> _clearSession() async {

@@ -23,6 +23,19 @@ class AuthRepository {
     return envelope.data!;
   }
 
+  Future<SendOtpResult> sendOtpForNewUser({required String email}) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/register-send-otp',
+      data: {'email': email},
+      options: Options(extra: {'skipAuth': true}),
+    );
+    final envelope = parseEnvelope(
+      response.data,
+      parseData: (json) => json == null ? null : SendOtpResult.fromJson(json),
+    );
+    return envelope.data!;
+  }
+
   Future<VerifyOtpResult> verifyOtp({
     required String email,
     required String challengeId,
@@ -58,6 +71,25 @@ class AuthRepository {
     final response = await _dio.get<Map<String, dynamic>>(
       '/api/v1/auth/me',
       options: Options(extra: {if (skipTokenRefresh) 'skipRefreshRetry': true}),
+    );
+    final envelope = parseEnvelope(
+      response.data,
+      parseData: (json) {
+        if (json == null) return null;
+        final user = json['user'];
+        if (user is Map<String, dynamic>) {
+          return AuthUser.fromJson(user);
+        }
+        return AuthUser.fromJson(json);
+      },
+    );
+    return envelope.data!;
+  }
+
+  Future<AuthUser> updateProfile(Map<String, dynamic> data) async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/api/v1/auth/me',
+      data: data,
     );
     final envelope = parseEnvelope(
       response.data,

@@ -28,7 +28,7 @@ class _DuplicateSymbolRepository extends WatchlistRepository {
   }
 
   @override
-  Future<void> addSymbol(String watchlistId, String symbol) async {
+  Future<void> addSymbol(String watchlistId, String symbol, {double? quantity}) async {
     throw const DuplicateSymbolException(
       'AAPL is already in this watchlist.',
     );

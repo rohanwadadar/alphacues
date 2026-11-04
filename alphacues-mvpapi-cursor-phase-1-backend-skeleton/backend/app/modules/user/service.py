@@ -69,6 +69,28 @@ def user_to_dict(user: User) -> dict[str, Any]:
         "email": user.email,
         "name": user.name,
         "avatarUrl": user.avatar_url,
+        "phone": getattr(user, "phone", None),
+        "gender": getattr(user, "gender", None),
+        "dateOfBirth": getattr(user, "date_of_birth", None),
+        "maritalStatus": getattr(user, "marital_status", None),
+        "incomeRange": getattr(user, "income_range", None),
+        "occupation": getattr(user, "occupation", None),
+        "sourceOfFund": getattr(user, "source_of_fund", None),
+        "identityType": getattr(user, "identity_type", None),
+        "identityNumber": getattr(user, "identity_number", None),
+        "address": getattr(user, "address", None),
+        "primaryAddress": getattr(user, "primary_address", None),
+        "secondaryAddress": getattr(user, "secondary_address", None),
+        "phoneType": getattr(user, "phone_type", None),
+        "investmentExperience": getattr(user, "investment_experience", None),
+        "productType": getattr(user, "product_type", None),
+        "tradingFrequency": getattr(user, "trading_frequency", None),
+        "investmentObjective": getattr(user, "investment_objective", None),
+        "tradingStyle": getattr(user, "trading_style", None),
+        "riskTolerance": getattr(user, "risk_tolerance", None),
+        "kycStatus": getattr(user, "kyc_status", "Verified"),
+        "updatedAt": user.updated_at.isoformat() if hasattr(user, "updated_at") and user.updated_at else None,
+        "isNewUser": getattr(user, "is_new_user", False),
     }
 
 
@@ -111,8 +133,23 @@ class AuthService:
             raise RuntimeError("Email sender is not configured on the application.")
         return sender
 
-    def send_otp(self, email: str) -> dict[str, Any]:
+    def check_email(self, email: str) -> dict[str, Any]:
+        """Returns whether the email is registered and is_new_user status."""
         normalized_email = normalize_email(email)
+        user = db.session.scalar(select(User).where(User.email == normalized_email))
+        if user is None:
+            return {"exists": False, "isNewUser": False}
+        return {"exists": True, "isNewUser": user.is_new_user}
+
+    def send_otp(self, email: str, allow_new_user: bool = True) -> dict[str, Any]:
+        normalized_email = normalize_email(email)
+        # If this is the login endpoint (allow_new_user=False), reject unregistered emails
+        existing_user = db.session.scalar(select(User).where(User.email == normalized_email))
+        if not allow_new_user and existing_user is None:
+            from app.shared.exceptions import NotFoundError
+            raise NotFoundError(
+                message="No account found for this email. Please register as a new user."
+            )
         user = self._get_or_create_user(normalized_email)
         now = utcnow()
 
@@ -283,16 +320,63 @@ class AuthService:
     def update_profile(
         self,
         user_id: int,
-        *,
-        name: str | None = None,
-        avatar_url: str | None = None,
-        fields_set: set[str] | None = None,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         user = self._get_active_user(user_id)
-        if fields_set and "name" in fields_set:
-            user.name = name
-        if fields_set and "avatarUrl" in fields_set:
-            user.avatar_url = avatar_url
+        
+        field_mapping = {
+            "name": "name",
+            "avatarUrl": "avatar_url",
+            "avatar_url": "avatar_url",
+            "phone": "phone",
+            "gender": "gender",
+            "dateOfBirth": "date_of_birth",
+            "date_of_birth": "date_of_birth",
+            "maritalStatus": "marital_status",
+            "marital_status": "marital_status",
+            "incomeRange": "income_range",
+            "income_range": "income_range",
+            "occupation": "occupation",
+            "sourceOfFund": "source_of_fund",
+            "source_of_fund": "source_of_fund",
+            "identityType": "identity_type",
+            "identity_type": "identity_type",
+            "identityNumber": "identity_number",
+            "identity_number": "identity_number",
+            "address": "address",
+            "primaryAddress": "primary_address",
+            "primary_address": "primary_address",
+            "secondaryAddress": "secondary_address",
+            "secondary_address": "secondary_address",
+            "phoneType": "phone_type",
+            "phone_type": "phone_type",
+            "investmentExperience": "investment_experience",
+            "investment_experience": "investment_experience",
+            "productType": "product_type",
+            "product_type": "product_type",
+            "tradingFrequency": "trading_frequency",
+            "trading_frequency": "trading_frequency",
+            "investmentObjective": "investment_objective",
+            "investment_objective": "investment_objective",
+            "tradingStyle": "trading_style",
+            "trading_style": "trading_style",
+            "riskTolerance": "risk_tolerance",
+            "risk_tolerance": "risk_tolerance",
+            "kycStatus": "kyc_status",
+            "kyc_status": "kyc_status",
+            "isNewUser": "is_new_user",
+            "is_new_user": "is_new_user",
+        }
+
+        for key, val in kwargs.items():
+            if key in field_mapping:
+                col_name = field_mapping[key]
+                if hasattr(user, col_name):
+                    if col_name == "is_new_user":
+                        setattr(user, col_name, bool(val))
+                    else:
+                        setattr(user, col_name, val)
+
         user.updated_at = utcnow()
         db.session.commit()
         return user_to_dict(user)
@@ -302,6 +386,7 @@ class AuthService:
         if user is not None:
             return user
         user = User(email=email)
+        user.is_new_user = True
         db.session.add(user)
         db.session.flush()
         self._seed_user_defaults(user.user_id)
@@ -310,19 +395,13 @@ class AuthService:
     def _seed_user_defaults(self, user_id: int) -> None:
         try:
             from app.modules.watchlist.models import Watchlist, WatchlistItem
-            from app.modules.portfolio.models import Position
 
-            wl = Watchlist(user_id=user_id, name="My First Watchlist")
+            wl = Watchlist(user_id=user_id, name="My Wishlist")
             db.session.add(wl)
             db.session.flush()
 
-            for sym in ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]:
-                item = WatchlistItem(watchlist_id=wl.watchlist_id, symbol=sym)
-                db.session.add(item)
-
-            pos1 = Position(user_id=user_id, symbol="AAPL", volume=10, total_price=1800.0)
-            pos2 = Position(user_id=user_id, symbol="MSFT", volume=5, total_price=2000.0)
-            db.session.add_all([pos1, pos2])
+            item = WatchlistItem(watchlist_id=wl.watchlist_id, symbol="AAPL")
+            db.session.add(item)
             db.session.flush()
         except Exception as exc:
             import logging

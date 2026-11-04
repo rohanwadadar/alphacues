@@ -146,13 +146,15 @@ class PortfolioService:
 
     @staticmethod
     def _apply_sell(position: Position, price: Decimal, volume: int) -> None:
-        if position.volume < volume:
-            raise ValidationError(message="Insufficient holdings for SELL.")
-        if position.volume == 0:
-            raise ValidationError(message="Insufficient holdings for SELL.")
+        if position.volume <= 0:
+            position.volume = 0
+            position.total_price = ZERO
+            position.updated_at = _utcnow()
+            return
+        actual_vol = min(volume, position.volume)
         avg_cost = position.total_price / Decimal(position.volume)
-        position.total_price -= avg_cost * volume
-        position.volume -= volume
+        position.total_price -= avg_cost * actual_vol
+        position.volume -= actual_vol
         if position.volume == 0:
             position.total_price = ZERO
         position.updated_at = _utcnow()
@@ -346,26 +348,56 @@ class PortfolioService:
         total_profit = ZERO
         total_cost_basis = ZERO
         day_change = ZERO
+        now = _utcnow()
+
+        positions_data = []
 
         for position in positions:
             quote = quotes_by_symbol.get(position.symbol)
             if quote is None:
-                continue
-            market_value = quote.lastPrice * position.volume
-            unrealized_pl = market_value - position.total_price
-            day_change_pos = quote.changeAmount * position.volume
+                market_value = position.total_price
+                unrealized_pl = ZERO
+                day_change_pos = ZERO
+                last_price = _decimal_to_number(position.total_price / Decimal(position.volume) if position.volume else ZERO)
+                change_amt = 0.0
+                change_pct = 0.0
+            else:
+                market_value = quote.lastPrice * position.volume
+                unrealized_pl = market_value - position.total_price
+                # If position was bought today, its 1D change is only from its purchase point today
+                if position.updated_at and position.updated_at.date() == now.date():
+                    day_change_pos = unrealized_pl
+                else:
+                    day_change_pos = quote.changeAmount * position.volume
+                last_price = _decimal_to_number(quote.lastPrice)
+                change_amt = _decimal_to_number(quote.changeAmount)
+                change_pct = _decimal_to_number(quote.changePercent)
 
             total_value += market_value
             total_profit += unrealized_pl
             total_cost_basis += position.total_price
             day_change += day_change_pos
 
+            positions_data.append({
+                "symbol": position.symbol,
+                "volume": position.volume,
+                "totalPrice": _decimal_to_number(position.total_price),
+                "total_price": _decimal_to_number(position.total_price),
+                "updatedAt": _format_timestamp(position.updated_at),
+                "updated_at": _format_timestamp(position.updated_at),
+                "lastPrice": last_price,
+                "last_price": last_price,
+                "changeAmount": change_amt,
+                "change_amount": change_amt,
+                "changePercent": change_pct,
+                "change_percent": change_pct,
+            })
+
         if total_cost_basis > ZERO:
             total_return = (total_value - total_cost_basis) / total_cost_basis * 100
         else:
             total_return = ZERO
 
-        now = _utcnow()
         return {
             "portfolioId": str(user_id),
             "totalValue": _decimal_to_number(total_value),
@@ -374,6 +406,7 @@ class PortfolioService:
             "totalReturn": _decimal_to_number(total_return),
             "dayChange": _decimal_to_number(day_change),
             "asOf": _format_timestamp(now),
+            "positions": positions_data,
         }
 
     @staticmethod

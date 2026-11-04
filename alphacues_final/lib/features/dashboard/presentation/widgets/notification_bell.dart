@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../app/router/app_routes.dart';
-import '../../../../app/theme/app_theme.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../notifications/presentation/notifications_panel.dart';
 import '../../data/dashboard_providers.dart';
 
 class NotificationBell extends ConsumerWidget {
@@ -12,18 +11,38 @@ class NotificationBell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(dashboardNotificationBadgeProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final purpleColor = isDark ? AppColors.darkPrimary : AppColors.primary;
 
-    return IconButton(
-      onPressed: () => context.go(AppRoutes.alerts),
-      icon: Badge(
-        isLabelVisible: unreadCount > 0,
-        label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-        child: const Icon(Icons.notifications_outlined),
-      ),
-      tooltip: 'Alerts',
-      constraints: const BoxConstraints(
-        minWidth: AppTheme.minTouchTarget,
-        minHeight: AppTheme.minTouchTarget,
+    return Tooltip(
+      message: 'Notifications',
+      child: IconButton(
+        onPressed: () {
+          showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const NotificationsPanel(),
+          );
+        },
+        icon: Badge(
+          isLabelVisible: unreadCount > 0,
+          label: Text(
+            unreadCount > 99 ? '99+' : '$unreadCount',
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: AppColors.negative,
+          child: Icon(
+            Icons.notifications_rounded,
+            size: 24,
+            color: purpleColor,
+          ),
+        ),
       ),
     );
   }

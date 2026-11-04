@@ -36,6 +36,7 @@ class _PortfolioEventFormDialogState
   late String _action;
   late DateTime _selectedDate;
   late final String _idempotencyKey;
+  bool _isLoadingPrice = false;
 
   static const _actions = ['BUY', 'SELL'];
 
@@ -56,6 +57,9 @@ class _PortfolioEventFormDialogState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(portfolioEventFormProvider.notifier).reset();
+        if (event == null && _symbolController.text.isNotEmpty) {
+          _fetchAndSetMarketPrice(_symbolController.text);
+        }
       }
     });
   }
@@ -68,6 +72,26 @@ class _PortfolioEventFormDialogState
     super.dispose();
   }
 
+  Future<void> _fetchAndSetMarketPrice(String symbol) async {
+    final clean = symbol.trim().toUpperCase();
+    if (clean.isEmpty) return;
+    setState(() => _isLoadingPrice = true);
+    try {
+      final repository = ref.read(marketRepositoryProvider);
+      final quote = await repository.getQuote(clean);
+      if (mounted && quote.lastPrice > 0) {
+        setState(() {
+          _priceController.text = quote.lastPrice.toStringAsFixed(2);
+          _isLoadingPrice = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingPrice = false);
+      }
+    }
+  }
+
   String _formatUtcTimestamp(DateTime local) {
     return formatPortfolioEventTimestamp(local);
   }
@@ -77,8 +101,8 @@ class _PortfolioEventFormDialogState
     final today = DateTime(now.year, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
-      initialDate: today,
-      firstDate: today,
+      initialDate: _selectedDate.isAfter(today) ? today : _selectedDate,
+      firstDate: DateTime(2020),
       lastDate: today,
     );
     if (picked == null || !mounted) {
@@ -142,7 +166,7 @@ class _PortfolioEventFormDialogState
       Navigator.of(context).pop();
       TradeAnimationOverlay.show(
         context,
-        type: _action == 'BUY' ? TradeType.buy : TradeType.sell,
+        type: _action == 'BUY' ? TradeType.add : TradeType.remove,
         symbol: symbol,
       );
     } on PortfolioValidationErrorException catch (error) {
@@ -151,28 +175,37 @@ class _PortfolioEventFormDialogState
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ).showSnackBar(SnackBar(
+        backgroundColor: const Color(0xFF673AB7),
+        content: Text(error.message),
+      ));
     } on PortfolioRateLimitedException catch (error) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ).showSnackBar(SnackBar(
+        backgroundColor: const Color(0xFF673AB7),
+        content: Text(error.message),
+      ));
     } catch (error) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(portfolioErrorMessage(error))));
+      ).showSnackBar(SnackBar(
+        backgroundColor: const Color(0xFF673AB7),
+        content: Text(portfolioErrorMessage(error)),
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final formState = ref.watch(portfolioEventFormProvider);
-    final title = widget.isEdit ? 'Edit transaction' : 'Add transaction';
+    final title = widget.isEdit ? 'Edit Watchlist Entry' : 'Add to Watchlist';
 
     return AlertDialog(
       title: Text(title),
@@ -187,7 +220,7 @@ class _PortfolioEventFormDialogState
               children: [
                 if (widget.isEdit) ...[
                   Text(
-                    'You can only edit or delete manually recorded transactions.',
+                    'You can edit or remove watchlist activity entries.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -209,6 +242,7 @@ class _PortfolioEventFormDialogState
                   displayStringForOption: (option) => option.symbol,
                   onSelected: (MarketSearchResult selection) {
                     _symbolController.text = selection.symbol;
+                    _fetchAndSetMarketPrice(selection.symbol);
                   },
                   fieldViewBuilder:
                       (context, fieldTextEditingController, focusNode, onFieldSubmitted) {
@@ -238,6 +272,7 @@ class _PortfolioEventFormDialogState
                       },
                       onFieldSubmitted: (_) {
                         _symbolController.text = fieldTextEditingController.text;
+                        _fetchAndSetMarketPrice(fieldTextEditingController.text);
                       },
                     );
                   },
@@ -275,8 +310,10 @@ class _PortfolioEventFormDialogState
                   child: SegmentedButton<String>(
                     segments: _actions
                         .map(
-                          (value) =>
-                              ButtonSegment(value: value, label: Text(value)),
+                          (value) => ButtonSegment(
+                            value: value,
+                            label: Text(value == 'BUY' ? 'Add to Watchlist' : 'Remove from Watchlist'),
+                          ),
                         )
                         .toList(),
                     selected: {_action},
@@ -307,6 +344,16 @@ class _PortfolioEventFormDialogState
                   decoration: InputDecoration(
                     labelText: 'Price per share',
                     errorText: formState.priceError,
+                    suffixIcon: _isLoadingPrice
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -351,7 +398,7 @@ class _PortfolioEventFormDialogState
                   height: AppSpacing.lg,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(widget.isEdit ? 'Save' : 'Add'),
+              : Text(widget.isEdit ? 'Save' : 'Add Position'),
         ),
       ],
     );

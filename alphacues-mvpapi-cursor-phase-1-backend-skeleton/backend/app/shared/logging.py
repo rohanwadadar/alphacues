@@ -11,6 +11,11 @@ if TYPE_CHECKING:
     pass
 
 
+import threading
+
+_request_id_local = threading.local()
+
+
 def configure_logging(app: Flask) -> None:
     log_level = getattr(
         logging,
@@ -32,26 +37,21 @@ def configure_logging(app: Flask) -> None:
     root_logger.setLevel(log_level)
     app.logger.setLevel(log_level)
 
-    old_factory = logging.getLogRecordFactory()
+    # Register the factory ONCE — reads from thread-local on every log call
+    _base_factory = logging.getLogRecordFactory()
 
-    def record_factory(*args, **kwargs):
-        record = old_factory(*args, **kwargs)
-        if not hasattr(record, "requestId"):
-            record.requestId = "-"
+    def _record_factory(*args, **kwargs):
+        record = _base_factory(*args, **kwargs)
+        record.requestId = getattr(_request_id_local, "request_id", "-")
         return record
 
-    logging.setLogRecordFactory(record_factory)
+    logging.setLogRecordFactory(_record_factory)
 
 
 def bind_request_id(request_id: str) -> None:
-    old_factory = logging.getLogRecordFactory()
+    """Store the current request ID in thread-local storage (no factory stacking)."""
+    _request_id_local.request_id = request_id
 
-    def record_factory(*args, **kwargs):
-        record = old_factory(*args, **kwargs)
-        record.requestId = request_id
-        return record
-
-    logging.setLogRecordFactory(record_factory)
 
 
 SLOW_ENDPOINT_THRESHOLD_MS = 200.0

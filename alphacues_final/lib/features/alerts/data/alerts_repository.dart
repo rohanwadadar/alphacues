@@ -22,6 +22,8 @@ class AlertModel {
     required this.cooldownSeconds,
     this.lastTriggeredAt,
     required this.createdAt,
+    this.action,
+    this.actionLabel,
   });
 
   final String alertId;
@@ -34,11 +36,15 @@ class AlertModel {
   final int cooldownSeconds;
   final String? lastTriggeredAt;
   final String createdAt;
+  final String? action;
+  final String? actionLabel;
 
   AlertModel copyWith({
     bool? isActive,
     bool? triggered,
     String? lastTriggeredAt,
+    String? action,
+    String? actionLabel,
   }) {
     return AlertModel(
       alertId: alertId,
@@ -51,22 +57,32 @@ class AlertModel {
       cooldownSeconds: cooldownSeconds,
       lastTriggeredAt: lastTriggeredAt ?? this.lastTriggeredAt,
       createdAt: createdAt,
+      action: action ?? this.action,
+      actionLabel: actionLabel ?? this.actionLabel,
     );
   }
 
   factory AlertModel.fromJson(Map<String, dynamic> json) {
+    final rawTarget = json['target'] ?? json['triggerPrice'] ?? 0;
+    final parsedTarget = double.tryParse(rawTarget.toString()) ?? 0.0;
+    final triggeredTime = json['lastTriggeredAt'] ?? json['triggeredAt'];
+    final action = json['action'] as String?;
+    final actionLabel = json['actionLabel'] as String?;
+
     return AlertModel(
-      alertId: json['alertId'] as String,
-      userId: json['userId'] as String,
-      symbol: json['symbol'] as String,
-      condition: json['condition'] as String,
-      ///target: (json['target'] as num).toDouble(),
-      target: double.parse(json['target'].toString()),
-      isActive: json['isActive'] as bool? ?? true,
-      triggered: json['triggered'] as bool? ?? false,
-      cooldownSeconds: json['cooldownSeconds'] as int? ?? 0,
-      lastTriggeredAt: json['lastTriggeredAt'] as String?,
-      createdAt: json['createdAt'] as String,
+      alertId: (json['alertId'] ?? json['id'] ?? '').toString(),
+      userId: (json['userId'] ?? '').toString(),
+      symbol: (json['symbol'] ?? '').toString(),
+      condition: (json['condition'] ?? 'ABOVE').toString(),
+      target: parsedTarget,
+      isActive: json['isActive'] as bool? ?? false,
+      triggered: json['triggered'] as bool? ??
+          (action == 'TRIGGERED' || triggeredTime != null),
+      cooldownSeconds: (json['cooldownSeconds'] as num?)?.toInt() ?? 0,
+      lastTriggeredAt: triggeredTime?.toString(),
+      createdAt: (json['createdAt'] ?? triggeredTime ?? '').toString(),
+      action: action,
+      actionLabel: actionLabel,
     );
   }
 }

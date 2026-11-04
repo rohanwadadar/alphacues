@@ -24,14 +24,14 @@ class ScreenerRepository {
     required ScreenerFilter filters,
     String sortBy = 'marketCap',
     String sortOrder = 'desc',
-    int limit = 50,
+    int limit = 1000,
   }) async {
     try {
       final response = await _dio.post<dynamic>(
         '/api/v1/screener/run',
         data: {
           'filters': filters.toJson(),
-          'sort_by': sortBy,
+          'sort_by': sortBy.isNotEmpty ? sortBy : 'marketCap',
           'sort_order': sortOrder,
           'limit': limit,
         },
@@ -149,6 +149,9 @@ class ScreenerRepository {
     try {
       await _dio.delete<dynamic>('/api/v1/screener/strategies/$strategyId');
     } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return;
+      }
       throw _mapDioError(e);
     } catch (e) {
       if (e is ApiException) rethrow;

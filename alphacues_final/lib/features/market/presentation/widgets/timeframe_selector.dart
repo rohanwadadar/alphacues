@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_spacing.dart';
 
-const kChartRanges = ['1D', '1W', '1M', '3M', '6M', '1Y', '5Y', 'MAX'];
+const kChartRanges = ['1D', '5D', '1M', '3M', 'YTD', '1Y', 'MAX'];
 
 /// Horizontal scrollable row of chart range chips.
 class TimeframeSelector extends StatelessWidget {

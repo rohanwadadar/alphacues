@@ -29,6 +29,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   String _email = '';
   String _challengeId = '';
   String _emailMasked = '';
+  bool _isNewUser = false;
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     _email = state.uri.queryParameters['email'] ?? '';
     _challengeId = state.uri.queryParameters['challengeId'] ?? '';
     _emailMasked = state.uri.queryParameters['masked'] ?? _email;
+    _isNewUser = (state.uri.queryParameters['isNew'] ?? 'false') == 'true';
     final expiresIn =
         int.tryParse(state.uri.queryParameters['expiresIn'] ?? '') ?? 300;
     _startCountdown(expiresIn);
@@ -117,7 +119,14 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
           .verifyOtp(email: _email, challengeId: _challengeId, otpCode: code);
 
       if (!mounted) return;
-      context.go(AppRoutes.dashboard);
+      // Route based on isNew flag passed from login screen
+      final user = ref.read(authSessionProvider).session?.user;
+      final isNew = _isNewUser || (user?.isNewUser ?? false);
+      if (isNew) {
+        context.go(AppRoutes.newUserKyc);
+      } else {
+        context.go(AppRoutes.dashboard);
+      }
     } on ApiException catch (e) {
       _setApiError(e);
     } catch (_) {
@@ -138,9 +147,13 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     });
 
     try {
-      final result = await ref
-          .read(authSessionProvider.notifier)
-          .sendOtp(_email);
+      final result = _isNewUser
+          ? await ref
+              .read(authSessionProvider.notifier)
+              .sendOtpForNewUser(_email)
+          : await ref
+              .read(authSessionProvider.notifier)
+              .sendOtp(_email);
       setState(() {
         _challengeId = result.challengeId;
         if (result.emailMasked != null) {

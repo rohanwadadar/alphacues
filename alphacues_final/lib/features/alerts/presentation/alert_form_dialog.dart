@@ -1,11 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_spacing.dart';
 import '../../../core/network/api_error.dart';
 import '../../market/data/market_repository.dart';
-import '../../watchlist/data/watchlist_providers.dart';
+import '../../market/data/symbol_search_provider.dart';
 import '../data/alerts_providers.dart';
 
 class AlertFormDialog extends ConsumerStatefulWidget {
@@ -66,6 +67,13 @@ class _AlertFormDialogState extends ConsumerState<AlertFormDialog> {
   late final TextEditingController _symbolController;
   late final TextEditingController _targetController;
   late final TextEditingController _cooldownController;
+  final _symbolFocusNode = FocusNode();
+  Timer? _debounceTimer;
+  Timer? _focusHideTimer;
+  List<MarketSearchResult> _searchResults = [];
+  bool _isSearching = false;
+  bool _showSuggestions = false;
+  String _selectedStockName = '';
   late String _condition;
   late bool _isActive;
   late Set<String> _notificationChannels;
@@ -89,14 +97,104 @@ class _AlertFormDialogState extends ConsumerState<AlertFormDialog> {
     _condition = widget.initialCondition;
     _isActive = widget.initialIsActive;
     _notificationChannels = {...widget.initialNotificationChannels};
+
+    if (widget.initialSymbol.isNotEmpty) {
+      _fetchAndSetMarketPrice(widget.initialSymbol);
+    }
+
+    _symbolFocusNode.addListener(() {
+      if (_symbolFocusNode.hasFocus) {
+        setState(() => _showSuggestions = true);
+        if (_searchResults.isEmpty) {
+          _onSymbolChanged(_symbolController.text);
+        }
+      } else {
+        _focusHideTimer?.cancel();
+        _focusHideTimer = Timer(const Duration(milliseconds: 250), () {
+          if (mounted) {
+            setState(() => _showSuggestions = false);
+          }
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _symbolFocusNode.dispose();
+    _debounceTimer?.cancel();
+    _focusHideTimer?.cancel();
     _symbolController.dispose();
     _targetController.dispose();
     _cooldownController.dispose();
     super.dispose();
+  }
+
+  void _onSymbolChanged(String value) {
+    setState(() {
+      _symbolError = null;
+      _selectedStockName = '';
+    });
+    _debounceTimer?.cancel();
+    final query = value.trim();
+    if (query.isEmpty) {
+      _loadDefaultSuggestions();
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _showSuggestions = true;
+    });
+
+    _debounceTimer = Timer(const Duration(milliseconds: 200), () async {
+      try {
+        final repository = ref.read(marketRepositoryProvider);
+        final results = await repository.searchSymbols(query, limit: 20);
+        if (mounted) {
+          setState(() {
+            _searchResults = rankSearchResults(results, query);
+            _isSearching = false;
+          });
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() {
+            _searchResults = [];
+            _isSearching = false;
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _loadDefaultSuggestions() async {
+    try {
+      setState(() => _isSearching = true);
+      final repository = ref.read(marketRepositoryProvider);
+      final results = await repository.searchSymbols('A', limit: 8);
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isSearching = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
+    }
+  }
+
+  void _selectStock(MarketSearchResult stock) {
+    setState(() {
+      _symbolController.text = stock.symbol;
+      _selectedStockName = stock.name;
+      _symbolError = null;
+      _showSuggestions = false;
+    });
+    _symbolFocusNode.unfocus();
+    _fetchAndSetMarketPrice(stock.symbol);
   }
 
   Future<void> _fetchAndSetMarketPrice(String symbol) async {
@@ -185,6 +283,7 @@ class _AlertFormDialogState extends ConsumerState<AlertFormDialog> {
         return;
       }
       ref.invalidate(alertsProvider);
+      ref.invalidate(alertHistoryProvider);
       Navigator.of(context).pop();
     } on AlertValidationErrorException catch (error) {
       if (!mounted) {
@@ -202,7 +301,10 @@ class _AlertFormDialogState extends ConsumerState<AlertFormDialog> {
       }
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
+        SnackBar(
+          backgroundColor: const Color(0xFF673AB7),
+          content: Text(error.message),
+        ),
       );
     } on ApiException catch (error) {
       if (!mounted) {
@@ -226,7 +328,10 @@ class _AlertFormDialogState extends ConsumerState<AlertFormDialog> {
         }
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Something went wrong: $e')),
+          SnackBar(
+            backgroundColor: const Color(0xFF673AB7),
+            content: Text('Something went wrong: $e'),
+          ),
         );
       }
   }
@@ -248,33 +353,8 @@ class _AlertFormDialogState extends ConsumerState<AlertFormDialog> {
   @override
   Widget build(BuildContext context) {
     final title = widget.isEdit ? 'Edit alert' : 'Create alert';
-    final watchlistsAsync = ref.watch(watchlistsProvider);
-
-    final Map<String, String> stockOptions = {
-      'AAPL': 'Apple Inc.',
-      'GOOGL': 'Alphabet Inc.',
-      'MSFT': 'Microsoft Corp.',
-      'TSLA': 'Tesla Inc.',
-      'AMZN': 'Amazon.com Inc.',
-      'NVDA': 'NVIDIA Corp.',
-      'META': 'Meta Platforms',
-    };
-
-    if (watchlistsAsync.hasValue) {
-      for (final w in watchlistsAsync.requireValue) {
-        final detailAsync = ref.watch(watchlistDetailProvider(w.watchlistId));
-        if (detailAsync case AsyncData(:final value)) {
-          for (final item in value.items) {
-            final sym = item.symbol.toUpperCase();
-            if (!stockOptions.containsKey(sym)) {
-              stockOptions[sym] = 'Tracked in ${w.name}';
-            }
-          }
-        }
-      }
-    }
-
-    final currentSymbol = _symbolController.text.trim().toUpperCase();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return AlertDialog(
       title: Text(title),
@@ -287,56 +367,159 @@ class _AlertFormDialogState extends ConsumerState<AlertFormDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Automated Stock Selection Dropdown
-                DropdownButtonFormField<String>(
-                  value: stockOptions.containsKey(currentSymbol) ? currentSymbol : null,
+                // Searchable Stock Selection with Live API Search
+                TextFormField(
+                  controller: _symbolController,
+                  focusNode: _symbolFocusNode,
+                  enabled: !_isSubmitting,
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: _onSymbolChanged,
                   decoration: InputDecoration(
                     labelText: 'Select Stock',
+                    hintText: 'Search all stocks (e.g. AAPL, NVDA)...',
                     errorText: _symbolError,
-                    prefixIcon: const Icon(Icons.show_chart),
-                    helperText: 'Select a stock from your watchlist',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _isSearching
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : (_symbolController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  _symbolController.clear();
+                                  _onSymbolChanged('');
+                                },
+                              )
+                            : null),
+                    helperText: _selectedStockName.isNotEmpty
+                        ? _selectedStockName
+                        : 'Search any stock in the market',
                   ),
-                  items: stockOptions.entries.map((entry) {
-                    return DropdownMenuItem<String>(
-                      value: entry.key,
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                            child: Text(
-                              entry.key[0],
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+                if (_showSuggestions && (_searchResults.isNotEmpty || _isSearching)) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 180),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        itemCount: _searchResults.length,
+                        separatorBuilder: (_, __) => Divider(
+                          height: 1,
+                          thickness: 0.5,
+                          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                        ),
+                        itemBuilder: (context, index) {
+                          final item = _searchResults[index];
+                          final isSelected = item.symbol.toUpperCase() ==
+                              _symbolController.text.trim().toUpperCase();
+                          return InkWell(
+                            onTap: () => _selectStock(item),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 13,
+                                    backgroundColor: isSelected
+                                        ? colorScheme.primary
+                                        : colorScheme.primaryContainer,
+                                    child: Text(
+                                      item.symbol.isNotEmpty ? item.symbol[0] : '?',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: isSelected
+                                            ? colorScheme.onPrimary
+                                            : colorScheme.onPrimaryContainer,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          item.symbol,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        if (item.name.isNotEmpty)
+                                          Text(
+                                            item.name,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: colorScheme.onSurfaceVariant,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (item.exchange.isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.surface,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: colorScheme.outline.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.exchange,
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${entry.key} - ${entry.value}',
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: _isSubmitting
-                      ? null
-                      : (selectedSymbol) {
-                          if (selectedSymbol != null) {
-                            setState(() {
-                              _symbolController.text = selectedSymbol;
-                              _symbolError = null;
-                            });
-                            _fetchAndSetMarketPrice(selectedSymbol);
-                          }
+                          );
                         },
-                ),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<String>(
-                  value: _condition,
+                  initialValue: _condition,
                   decoration: const InputDecoration(labelText: 'Condition'),
                   items: _conditions
                       .map(

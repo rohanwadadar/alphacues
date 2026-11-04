@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/router/app_routes.dart';
 import '../../../core/widgets/alpha_cues_logo.dart';
 import '../../../core/widgets/safe_screen.dart';
 import '../data/screener_providers.dart';
-import 'screener_filter_dialog.dart';
 import 'widgets/saved_strategies_bar.dart';
 import 'widgets/screener_loading_skeleton.dart';
 import 'widgets/screener_result_card.dart';
@@ -34,47 +34,30 @@ class ScreenerScreen extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
-          // Filter button — badge dot when filters are active
-          IconButton(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.filter_list),
-                if (!state.filters.isEmpty)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
+          // Open Strategy Builder → Create New Strategy form directly
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              tooltip: 'New Strategy',
+              onPressed: (state.isFeatureDisabled || state.isOffline)
+                  ? null
+                  : () => context.push(AppRoutes.strategy, extra: true),
+              icon: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: (state.isFeatureDisabled || state.isOffline)
+                      ? theme.colorScheme.onSurface.withValues(alpha: 0.2)
+                      : theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
             ),
-            tooltip: 'Filter',
-            onPressed: (state.isFeatureDisabled || state.isOffline)
-                ? null
-                : () async {
-                    final newFilter = await ScreenerFilterDialog.show(
-                      context,
-                      state.filters,
-                    );
-                    if (newFilter != null) {
-                      notifier.setFilters(newFilter);
-                    }
-                  },
-          ),
-          // Save strategy button
-          IconButton(
-            icon: const Icon(Icons.bookmark_add_outlined),
-            tooltip: 'Save Strategy',
-            onPressed: (state.isFeatureDisabled || state.isOffline)
-                ? null
-                : () => _showSaveStrategyDialog(context, ref, state),
           ),
         ],
       ),
@@ -180,60 +163,6 @@ class ScreenerScreen extends ConsumerWidget {
     );
   }
 
-  void _showSaveStrategyDialog(
-    BuildContext context,
-    WidgetRef ref,
-    ScreenerState state,
-  ) {
-    final nameController = TextEditingController();
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Save Screener Strategy'),
-        content: TextField(
-          controller: nameController,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Strategy Name',
-            hintText: 'e.g. Value Tech Stocks',
-          ),
-          textCapitalization: TextCapitalization.words,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              if (name.isEmpty) return;
-              Navigator.of(dialogContext).pop();
-              final ok = await ref
-                  .read(savedStrategiesProvider.notifier)
-                  .saveStrategy(
-                    name: name,
-                    filters: state.filters,
-                    sortBy: state.sortBy,
-                    sortOrder: state.sortOrder,
-                  );
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      ok ? 'Strategy saved!' : 'Failed to save strategy.',
-                    ),
-                  ),
-                );
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

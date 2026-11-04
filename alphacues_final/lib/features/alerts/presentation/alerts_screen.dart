@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
@@ -12,8 +13,8 @@ import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/loading_skeleton.dart';
 import '../../../core/widgets/safe_screen.dart';
 import '../../../core/widgets/stale_banner.dart';
+import '../../dashboard/presentation/widgets/notification_bell.dart';
 import '../../notifications/data/notifications_notifier.dart';
-import '../../notifications/presentation/notifications_panel.dart';
 import '../data/alerts_providers.dart';
 import 'alert_form_dialog.dart';
 
@@ -41,14 +42,6 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen>
     super.dispose();
   }
 
-  void _openNotificationsPanel() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => const NotificationsPanel(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.watch(notificationsProvider);
@@ -58,23 +51,43 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen>
         (state) => state.connectionState != SocketConnectionState.connected,
       ),
     );
-    final unreadCount = ref.watch(unreadNotificationsCountProvider);
     final mutationsEnabled = isOnline;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          tooltip: 'Back',
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go(AppRoutes.dashboard);
+            }
+          },
+        ),
         title: const Text(AppLabels.alerts),
         actions: [
-          IconButton(
-            onPressed: _openNotificationsPanel,
-            tooltip: 'Notifications',
-            icon: Badge(
-              isLabelVisible: unreadCount > 0,
-              label: Text('$unreadCount'),
-              child: const Icon(Icons.notifications_outlined),
+          if (mutationsEnabled && _tabController.index == 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                tooltip: 'Create Alert',
+                onPressed: () => AlertFormDialog.show(context),
+                icon: Icon(
+                  Icons.add_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+              ),
             ),
-          ),
+          const NotificationBell(),
+          const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -84,12 +97,6 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen>
           ],
         ),
       ),
-      floatingActionButton: mutationsEnabled && _tabController.index == 0
-          ? FloatingActionButton(
-              onPressed: () => AlertFormDialog.show(context),
-              child: const Icon(Icons.add),
-            )
-          : null,
       body: SafeScreen(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -175,11 +182,11 @@ class _AlertsList extends ConsumerWidget {
       data: (alerts) {
         if (alerts.isEmpty) {
           return EmptyState(
-            icon: Icons.notifications_outlined,
+            icon: Icons.notification_add_outlined,
             heading: emptyHeading,
             body: showActiveControls
                 ? 'Create a price alert to get notified when a symbol moves.'
-                : 'Triggered alerts will appear here.',
+                : 'Alert activities (set, triggered, removed) will appear here.',
             actionLabel: showActiveControls && mutationsEnabled
                 ? 'Create alert'
                 : null,
@@ -257,7 +264,10 @@ class _AlertsList extends ConsumerWidget {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete alert: $error')),
+          SnackBar(
+            backgroundColor: const Color(0xFF673AB7),
+            content: Text('Failed to delete alert: $error'),
+          ),
         );
       }
   }
@@ -291,12 +301,85 @@ class _AlertRow extends ConsumerWidget {
     }
   }
 
+  String get _actionText {
+    if (alert.actionLabel != null && alert.actionLabel!.isNotEmpty) {
+      return alert.actionLabel!;
+    }
+    if (alert.action != null && alert.action!.isNotEmpty) {
+      switch (alert.action!.toUpperCase()) {
+        case 'CREATED':
+        case 'SET':
+          return 'Set';
+        case 'DELETED':
+        case 'REMOVED':
+          return 'Removed';
+        case 'UPDATED':
+          return 'Updated';
+        case 'TRIGGERED':
+          return 'Triggered';
+      }
+    }
+    return alert.triggered ? 'Triggered' : 'Active';
+  }
+
+  Color _actionColor(ThemeData theme) {
+    final act = (alert.action ?? (alert.triggered ? 'TRIGGERED' : 'CREATED')).toUpperCase();
+    switch (act) {
+      case 'CREATED':
+      case 'SET':
+        return AppColors.positive;
+      case 'DELETED':
+      case 'REMOVED':
+        return AppColors.negative;
+      case 'UPDATED':
+        return const Color(0xFF1976D2);
+      case 'TRIGGERED':
+      default:
+        return const Color(0xFFE65100);
+    }
+  }
+
+  IconData _actionIcon() {
+    final act = (alert.action ?? (alert.triggered ? 'TRIGGERED' : 'CREATED')).toUpperCase();
+    switch (act) {
+      case 'CREATED':
+      case 'SET':
+        return Icons.add_circle_outline_rounded;
+      case 'DELETED':
+      case 'REMOVED':
+        return Icons.delete_outline_rounded;
+      case 'UPDATED':
+        return Icons.edit_outlined;
+      case 'TRIGGERED':
+      default:
+        return Icons.notifications_active_outlined;
+    }
+  }
+
+  String _formatTimeAgo(String iso) {
+    if (iso.isEmpty) return '';
+    try {
+      final date = DateTime.parse(iso).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(date);
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      return '${date.month}/${date.day}/${date.year}';
+    } catch (_) {
+      return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final subtitle =
-        '$_conditionLabel ${alert.target.toStringAsFixed(2)}'
-        '${alert.triggered ? ' · Triggered' : ''}';
+    final actionColor = _actionColor(theme);
+    final timeAgo = _formatTimeAgo(alert.createdAt);
+    final subtitle = showActiveControls
+        ? '$_conditionLabel ${alert.target.toStringAsFixed(2)}${alert.triggered ? ' · Triggered' : ''}'
+        : '$_conditionLabel ${alert.target.toStringAsFixed(2)} · $_actionText${timeAgo.isNotEmpty ? ' · $timeAgo' : ''}';
 
     return Dismissible(
       key: ValueKey(alert.alertId),
@@ -325,7 +408,7 @@ class _AlertRow extends ConsumerWidget {
             border: Border.all(color: theme.colorScheme.outline),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -343,31 +426,30 @@ class _AlertRow extends ConsumerWidget {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: alert.triggered
-                              ? AppColors.negativeBackground
-                              : AppColors.primaryContainer.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                        child: Icon(
-                          alert.triggered
-                              ? Icons.notifications_active_rounded
-                              : Icons.notifications_outlined,
-                          color: alert.triggered ? AppColors.negative : AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              alert.symbol,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                            InkWell(
+                              onTap: () => context.push('/market/${alert.symbol}'),
+                              borderRadius: BorderRadius.circular(4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    alert.symbol,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.open_in_new_rounded,
+                                    size: 13,
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: AppSpacing.xs),
@@ -389,11 +471,45 @@ class _AlertRow extends ConsumerWidget {
                                     .toggleActive(alert, value)
                               : null,
                         ),
+                      if (onTap != null)
+                        IconButton(
+                          onPressed: mutationsEnabled ? onTap : null,
+                          icon: Icon(
+                            Icons.edit_outlined,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          tooltip: 'Edit alert',
+                        ),
                       if (onDelete != null)
                         IconButton(
                           onPressed: mutationsEnabled ? onDelete : null,
                           icon: const Icon(Icons.delete_outline),
                           tooltip: 'Delete alert',
+                        ),
+                      if (!showActiveControls)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: actionColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                            border: Border.all(color: actionColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(_actionIcon(), size: 14, color: actionColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                _actionText,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: actionColor,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                     ],
                   ),

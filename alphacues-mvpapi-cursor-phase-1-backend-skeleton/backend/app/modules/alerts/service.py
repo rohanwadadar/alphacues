@@ -8,7 +8,12 @@ from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.modules.alerts.models import ALERT_CONDITIONS, Alert, AlertTriggerEvent
+from app.modules.alerts.models import (
+    ALERT_CONDITIONS,
+    Alert,
+    AlertHistoryEvent,
+    AlertTriggerEvent,
+)
 from app.modules.notifications.models import Notification, OutboxEvent
 from app.shared.cache import CacheService
 from app.shared.db import db
@@ -85,10 +90,51 @@ class AlertsService:
         return {
             "id": str(event.id),
             "alertId": str(event.alert_id),
+            "userId": str(alert.user_id),
             "symbol": alert.symbol,
             "condition": alert.condition,
-            "triggerPrice": _format_target(event.trigger_price),
+            "target": _format_target(event.trigger_price or alert.target),
+            "triggerPrice": _format_target(event.trigger_price or alert.target),
+            "action": "TRIGGERED",
+            "actionLabel": "Triggered",
+            "isActive": False,
+            "triggered": True,
+            "cooldownSeconds": alert.cooldown_seconds or 0,
             "triggeredAt": _format_timestamp(event.triggered_at),
+            "lastTriggeredAt": _format_timestamp(event.triggered_at),
+            "createdAt": _format_timestamp(event.triggered_at or alert.created_at),
+        }
+
+    @staticmethod
+    def history_event_to_dict(event: AlertHistoryEvent) -> dict[str, Any]:
+        return {
+            "id": str(event.id),
+            "alertId": str(event.alert_id) if event.alert_id is not None else "",
+            "userId": str(event.user_id),
+            "symbol": event.symbol,
+            "condition": event.condition,
+            "target": _format_target(event.target),
+            "triggerPrice": (
+                _format_target(event.trigger_price)
+                if event.trigger_price is not None
+                else None
+            ),
+            "action": event.action,
+            "actionLabel": event.action_label,
+            "isActive": event.action == "CREATED",
+            "triggered": event.action == "TRIGGERED",
+            "cooldownSeconds": 0,
+            "triggeredAt": (
+                _format_timestamp(event.created_at)
+                if event.action == "TRIGGERED"
+                else None
+            ),
+            "lastTriggeredAt": (
+                _format_timestamp(event.created_at)
+                if event.action == "TRIGGERED"
+                else None
+            ),
+            "createdAt": _format_timestamp(event.created_at),
         }
 
     @staticmethod
@@ -130,6 +176,19 @@ class AlertsService:
             cooldown_seconds=cooldown_seconds,
         )
         db.session.add(alert)
+
+        history_event = AlertHistoryEvent(
+            alert_id=alert.alert_id,
+            user_id=user_id,
+            symbol=normalized_symbol,
+            condition=condition,
+            target=target,
+            trigger_price=None,
+            action="CREATED",
+            action_label="Set",
+            created_at=alert.created_at,
+        )
+        db.session.add(history_event)
         db.session.commit()
 
         if idempotency_key:
@@ -138,6 +197,26 @@ class AlertsService:
                 str(alert.alert_id),
                 ttl_seconds=IDEMPOTENCY_TTL_SECONDS,
             )
+
+        try:
+            curr_price = None
+            cached_quote = CacheService().get_json(f"market:quote:{normalized_symbol}")
+            if cached_quote and "lastPrice" in cached_quote:
+                curr_price = Decimal(str(cached_quote["lastPrice"]))
+            else:
+                from flask import current_app
+                adapter = current_app.extensions.get("market_data_adapter") if current_app else None
+                if adapter:
+                    q = adapter.get_quote(normalized_symbol)
+                    if q and q.lastPrice > 0:
+                        curr_price = q.lastPrice
+
+            if curr_price is not None:
+                if AlertEvaluationService.evaluate_alert(alert, curr_price, None):
+                    from app.modules.notifications.service import NotificationService
+                    NotificationService.process_pending_outbox_events()
+        except Exception:
+            pass
 
         return alert
 
@@ -159,6 +238,20 @@ class AlertsService:
         edited = any(
             key in updates for key in ("symbol", "condition", "target", "is_active")
         )
+        if edited:
+            history_event = AlertHistoryEvent(
+                alert_id=alert.alert_id,
+                user_id=user_id,
+                symbol=alert.symbol,
+                condition=alert.condition,
+                target=alert.target,
+                trigger_price=None,
+                action="UPDATED",
+                action_label="Updated",
+                created_at=_utcnow(),
+            )
+            db.session.add(history_event)
+
         if edited and alert.is_active:
             alert.triggered = False
             alert.last_triggered_at = None
@@ -174,6 +267,23 @@ class AlertsService:
     @staticmethod
     def delete_alert(user_id: int, alert_id: int) -> None:
         alert = AlertsService._get_owned_alert(user_id, alert_id)
+        history_event = AlertHistoryEvent(
+            alert_id=alert.alert_id,
+            user_id=user_id,
+            symbol=alert.symbol,
+            condition=alert.condition,
+            target=alert.target,
+            trigger_price=None,
+            action="DELETED",
+            action_label="Removed",
+            created_at=_utcnow(),
+        )
+        db.session.add(history_event)
+        db.session.execute(
+            delete(AlertTriggerEvent).where(
+                AlertTriggerEvent.alert_id == alert.alert_id
+            )
+        )
         db.session.delete(alert)
         db.session.commit()
 
@@ -218,7 +328,58 @@ class AlertsService:
         return paginated_envelope(items, next_cursor=next_cursor)
 
     @staticmethod
-    def list_trigger_history(
+    def ensure_history_migrated() -> None:
+        try:
+            # Check if alert_history_events has any rows
+            count = db.session.scalar(select(func.count(AlertHistoryEvent.id)))
+            if count == 0:
+                # 1. Backfill existing alerts as "CREATED" / "Set"
+                existing_alerts = db.session.scalars(select(Alert)).all()
+                for a in existing_alerts:
+                    db.session.add(
+                        AlertHistoryEvent(
+                            alert_id=a.alert_id,
+                            user_id=a.user_id,
+                            symbol=a.symbol,
+                            condition=a.condition,
+                            target=a.target,
+                            trigger_price=None,
+                            action="CREATED",
+                            action_label="Set",
+                            created_at=a.created_at,
+                        )
+                    )
+                # 2. Backfill existing trigger events as "TRIGGERED"
+                existing_triggers = db.session.execute(
+                    select(
+                        AlertTriggerEvent,
+                        Alert.user_id,
+                        Alert.symbol,
+                        Alert.condition,
+                        Alert.target,
+                    ).outerjoin(Alert, Alert.alert_id == AlertTriggerEvent.alert_id)
+                ).all()
+                for trig, u_id, sym, cond, tgt in existing_triggers:
+                    if u_id:
+                        db.session.add(
+                            AlertHistoryEvent(
+                                alert_id=trig.alert_id,
+                                user_id=u_id,
+                                symbol=sym or "UNKNOWN",
+                                condition=cond or "ABOVE",
+                                target=tgt or trig.trigger_price,
+                                trigger_price=trig.trigger_price,
+                                action="TRIGGERED",
+                                action_label="Triggered",
+                                created_at=trig.triggered_at,
+                            )
+                        )
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    @staticmethod
+    def _list_legacy_trigger_history(
         user_id: int,
         *,
         limit: int,
@@ -261,6 +422,59 @@ class AlertsService:
         items = [
             AlertsService.trigger_event_to_dict(event, alert)
             for event, alert in page
+        ]
+        return paginated_envelope(items, next_cursor=next_cursor)
+
+    @staticmethod
+    def list_trigger_history(
+        user_id: int,
+        *,
+        limit: int,
+        cursor: str | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        AlertsService.ensure_history_migrated()
+
+        query = (
+            select(AlertHistoryEvent)
+            .where(AlertHistoryEvent.user_id == user_id)
+            .order_by(
+                AlertHistoryEvent.created_at.desc(),
+                AlertHistoryEvent.id.desc(),
+            )
+        )
+
+        if cursor is not None:
+            sort_value, row_id = decode_cursor(cursor)
+            cursor_created_at = datetime.fromisoformat(
+                sort_value.replace("Z", "+00:00")
+            )
+            query = query.where(
+                or_(
+                    AlertHistoryEvent.created_at < cursor_created_at,
+                    and_(
+                        AlertHistoryEvent.created_at == cursor_created_at,
+                        AlertHistoryEvent.id < row_id,
+                    ),
+                )
+            )
+
+        rows = list(db.session.scalars(query.limit(limit + 1)).all())
+        if not rows and cursor is None:
+            return AlertsService._list_legacy_trigger_history(
+                user_id, limit=limit, cursor=cursor
+            )
+
+        page, next_cursor = paginate_rows(
+            rows,
+            limit=limit,
+            cursor_extractor=lambda event: (
+                _cursor_sort_value(event.created_at),
+                event.id,
+            ),
+        )
+        items = [
+            AlertsService.history_event_to_dict(event)
+            for event in page
         ]
         return paginated_envelope(items, next_cursor=next_cursor)
 
@@ -313,15 +527,21 @@ class AlertEvaluationService:
         alert_id: int,
         now: datetime,
     ) -> bool:
-        existing = session.scalar(
+        from datetime import timedelta
+        start_of_minute = now.replace(second=0, microsecond=0)
+        end_of_minute = start_of_minute + timedelta(minutes=1)
+        query = (
             select(AlertTriggerEvent.id)
             .where(
                 AlertTriggerEvent.alert_id == alert_id,
-                func.date_trunc("minute", AlertTriggerEvent.triggered_at)
-                == func.date_trunc("minute", now),
+                AlertTriggerEvent.triggered_at >= start_of_minute,
+                AlertTriggerEvent.triggered_at < end_of_minute,
             )
-            .with_for_update()
         )
+        bind = session.get_bind()
+        if bind is not None and bind.dialect.name != "sqlite":
+            query = query.with_for_update()
+        existing = session.scalar(query)
         return existing is not None
 
     @staticmethod
@@ -366,6 +586,19 @@ class AlertEvaluationService:
         )
         db_session.add(trigger_event)
 
+        history_event = AlertHistoryEvent(
+            alert_id=alert.alert_id,
+            user_id=alert.user_id,
+            symbol=alert.symbol,
+            condition=alert.condition,
+            target=alert.target,
+            trigger_price=current_price,
+            action="TRIGGERED",
+            action_label="Triggered",
+            created_at=now,
+        )
+        db_session.add(history_event)
+
         alert.triggered = True
         alert.last_triggered_at = now
 
@@ -405,6 +638,85 @@ class AlertEvaluationService:
             return False
 
         return True
+ 
+    @staticmethod
+    def evaluate_alerts_for_symbol(
+        symbol: str,
+        current_price: Decimal,
+        previous_price: Decimal | None = None,
+    ) -> int:
+        """Find active, untriggered alerts for symbol and evaluate them."""
+        normalized = symbol.upper().strip()
+        active_alerts = list(
+            db.session.scalars(
+                select(Alert).where(
+                    Alert.symbol == normalized,
+                    Alert.is_active == True,
+                    Alert.triggered == False,
+                )
+            ).all()
+        )
+        if not active_alerts:
+            return 0
+
+        triggered_count = 0
+        for alert in active_alerts:
+            try:
+                if AlertEvaluationService.evaluate_alert(
+                    alert, current_price, previous_price
+                ):
+                    triggered_count += 1
+            except Exception:
+                db.session.rollback()
+
+        if triggered_count > 0:
+            try:
+                from app.modules.notifications.service import NotificationService
+                NotificationService.process_pending_outbox_events()
+            except Exception:
+                pass
+
+        return triggered_count
+
+    @staticmethod
+    def evaluate_all_active_alerts() -> int:
+        """Scan and evaluate all active, untriggered alerts against latest prices."""
+        active_alerts = list(
+            db.session.scalars(
+                select(Alert).where(
+                    Alert.is_active == True,
+                    Alert.triggered == False,
+                )
+            ).all()
+        )
+        if not active_alerts:
+            return 0
+
+        symbols = {a.symbol for a in active_alerts}
+        from app.shared.cache import CacheService
+        cache = CacheService()
+
+        total_triggered = 0
+        from flask import current_app
+        adapter = current_app.extensions.get("market_data_adapter") if current_app else None
+
+        for sym in symbols:
+            try:
+                price = None
+                cached_quote = cache.get_json(f"market:quote:{sym}")
+                if cached_quote and "lastPrice" in cached_quote:
+                    price = Decimal(str(cached_quote["lastPrice"]))
+                elif adapter:
+                    q = adapter.get_quote(sym)
+                    if q and q.lastPrice > 0:
+                        price = q.lastPrice
+                
+                if price is not None and price > 0:
+                    total_triggered += AlertEvaluationService.evaluate_alerts_for_symbol(sym, price)
+            except Exception:
+                pass
+
+        return total_triggered
 
     @staticmethod
     def evaluate_alert_for_test(

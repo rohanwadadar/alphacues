@@ -79,6 +79,8 @@ def issue_token(
 def require_auth(func: F) -> F:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
+        if request.method == "OPTIONS":
+            return current_app.make_default_options_response()
         token = extract_bearer_token()
         payload = verify_access_token(token)
         g.current_user = payload

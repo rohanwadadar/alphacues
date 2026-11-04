@@ -29,7 +29,13 @@ def init_limiter(app) -> None:
 
 def is_rate_limit_storage_available() -> bool:
     storage_uri = current_app.config.get("RATELIMIT_STORAGE_URI") or ""
-    if storage_uri.startswith("memory://") or current_app.config.get("MOCK_EXTERNAL_SERVICES") or current_app.config.get("TESTING"):
+    app_env = current_app.config.get("APP_ENV") or current_app.config.get("ENV") or "development"
+    if (
+        storage_uri.startswith("memory://")
+        or current_app.config.get("MOCK_EXTERNAL_SERVICES")
+        or current_app.config.get("TESTING")
+        or app_env in ("development", "testing", "dev")
+    ):
         return True
     try:
         return bool(get_redis().ping())
@@ -42,7 +48,7 @@ def require_rate_limit_storage(func: F) -> F:
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
-        if not is_rate_limit_storage_available():
+        if request.method != "OPTIONS" and not is_rate_limit_storage_available():
             raise ServiceUnavailableError(
                 message="Rate limiting is temporarily unavailable.",
                 details={"reason": "redis_unavailable"},
@@ -97,6 +103,8 @@ def is_auth_path(path: str) -> bool:
 
 
 def enforce_auth_fail_closed() -> None:
+    if request.method == "OPTIONS":
+        return
     if is_auth_path(request.path) and not is_rate_limit_storage_available():
         raise ServiceUnavailableError(
             message="Rate limiting is temporarily unavailable.",

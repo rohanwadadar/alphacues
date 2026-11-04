@@ -77,6 +77,7 @@ class SavedStrategiesBar extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            backgroundColor: const Color(0xFF673AB7),
             content: Text(
               ok
                   ? '"${strategy.name}" deleted.'

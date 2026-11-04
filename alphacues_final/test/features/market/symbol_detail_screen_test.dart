@@ -9,6 +9,7 @@ import 'package:frontend/core/realtime/quote_subscription_manager.dart';
 import 'package:frontend/core/realtime/socket_client.dart';
 import 'package:frontend/core/storage/secure_token_store.dart';
 import 'package:frontend/features/market/presentation/symbol_detail_screen.dart';
+import 'package:frontend/features/settings/data/settings_provider.dart';
 
 import '../../core/realtime/fake_realtime_socket.dart';
 
@@ -33,6 +34,12 @@ class _FixedAuthSessionNotifier extends AuthSessionNotifier {
 
   @override
   Future<void> bootstrapSession() async {}
+}
+
+class _TestSettingsNotifier extends SettingsNotifier {
+  _TestSettingsNotifier() : super() {
+    state = state.copyWith(hasCompletedOnboarding: true);
+  }
 }
 
 void main() {
@@ -78,6 +85,7 @@ void main() {
               watchConnectivity: false,
             );
           }),
+          settingsProvider.overrideWith((ref) => _TestSettingsNotifier()),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,

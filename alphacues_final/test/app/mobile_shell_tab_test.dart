@@ -96,57 +96,50 @@ void main() {
   group('AuthenticatedShell.selectedIndexForLocation', () {
     test('returns 0 for /dashboard', () {
       expect(
-        AuthenticatedShell.selectedIndexForLocation('/dashboard', false),
+        AuthenticatedShell.selectedIndexForLocation('/dashboard'),
         equals(0),
       );
     });
 
     test('returns 0 for unknown path (falls through to home)', () {
       expect(
-        AuthenticatedShell.selectedIndexForLocation('/', false),
+        AuthenticatedShell.selectedIndexForLocation('/'),
         equals(0),
       );
     });
 
     test('returns 1 for /watchlists', () {
       expect(
-        AuthenticatedShell.selectedIndexForLocation('/watchlists', false),
+        AuthenticatedShell.selectedIndexForLocation('/watchlists'),
         equals(1),
       );
     });
 
     test('returns 1 for /watchlists/123 (stack push, branch index still 1)', () {
       expect(
-        AuthenticatedShell.selectedIndexForLocation('/watchlists/123', false),
+        AuthenticatedShell.selectedIndexForLocation('/watchlists/123'),
         equals(1),
       );
     });
 
     test('returns 2 for /alerts', () {
       expect(
-        AuthenticatedShell.selectedIndexForLocation('/alerts', false),
+        AuthenticatedShell.selectedIndexForLocation('/alerts'),
         equals(2),
       );
     });
 
     test('returns 3 for /portfolio', () {
       expect(
-        AuthenticatedShell.selectedIndexForLocation('/portfolio', false),
+        AuthenticatedShell.selectedIndexForLocation('/portfolio'),
         equals(3),
       );
     });
 
     test('returns 4 for /screener when screener is enabled', () {
       expect(
-        AuthenticatedShell.selectedIndexForLocation('/screener', true),
+        AuthenticatedShell.selectedIndexForLocation('/screener'),
         equals(4),
-      );
-    });
-
-    test('returns 0 (not 4) for /screener when screener is disabled', () {
-      expect(
-        AuthenticatedShell.selectedIndexForLocation('/screener', false),
-        equals(0),
       );
     });
   });

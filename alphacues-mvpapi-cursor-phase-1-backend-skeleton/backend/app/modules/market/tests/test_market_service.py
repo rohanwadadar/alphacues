@@ -4,19 +4,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.adapters.fake_market_data import FakeMarketDataAdapter
-from app.adapters.protocols import BarsPayload
-from app.modules.market.service import MarketService
-
-
 @pytest.fixture
 def adapter():
-    fake = FakeMarketDataAdapter()
-    fake.get_quote = MagicMock(wraps=fake.get_quote)
-    fake.get_bars = MagicMock(wraps=fake.get_bars)
-    fake.get_snapshot = MagicMock(wraps=fake.get_snapshot)
-    fake.get_fundamentals = MagicMock(wraps=fake.get_fundamentals)
-    return fake
+    mock = MagicMock()
+    return mock
 
 
 @pytest.fixture

@@ -9,6 +9,7 @@ class DashboardSectionCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.child,
+    this.headerAction,
     this.isStale = false,
     this.errorMessage,
     this.onRetry,
@@ -16,6 +17,7 @@ class DashboardSectionCard extends StatelessWidget {
 
   final String title;
   final Widget child;
+  final Widget? headerAction;
   final bool isStale;
   final String? errorMessage;
   final VoidCallback? onRetry;
@@ -52,7 +54,8 @@ class DashboardSectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isStale)
+                if (headerAction != null) headerAction!,
+                if (isStale && headerAction == null)
                   Text(
                     'Stale',
                     style: theme.textTheme.labelSmall?.copyWith(

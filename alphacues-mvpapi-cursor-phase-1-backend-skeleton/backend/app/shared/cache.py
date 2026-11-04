@@ -22,8 +22,8 @@ def init_redis(redis_url: str) -> Redis:
     _redis_client = Redis.from_url(
         redis_url,
         decode_responses=True,
-        socket_timeout=0.2,
-        socket_connect_timeout=0.2,
+        socket_timeout=1.0,
+        socket_connect_timeout=1.0,
     )
     return _redis_client
 
@@ -39,8 +39,14 @@ TTL_FUNDAMENTALS_MIN = 3600
 TTL_FUNDAMENTALS_MAX = 21600
 
 
+import time
+
+_memory_cache: dict[str, tuple[float, str]] = {}
+_redis_last_check_time = 0.0
+_redis_is_online = False
+
 class CacheService:
-    """Redis-backed cache with safe bypass when Redis is unavailable."""
+    """Redis-backed cache with fast in-memory fallback when Redis is unavailable."""
 
     def __init__(self, client: Redis | None = None) -> None:
         self._client = client
@@ -56,22 +62,35 @@ class CacheService:
         return self._client
 
     def _available(self) -> bool:
+        global _redis_last_check_time, _redis_is_online
         from flask import current_app
+        now = time.time()
         try:
             if current_app and (current_app.config.get("MOCK_EXTERNAL_SERVICES") or current_app.config.get("TESTING")):
-                self._cache_bypasses += 1
                 return False
-            is_pingable = bool(self.client.ping())
-            if not is_pingable:
-                self._cache_bypasses += 1
-            return is_pingable
+            # Check Redis connection at most once every 5 seconds to avoid connection spam
+            if now - _redis_last_check_time < 5.0:
+                return _redis_is_online
+            _redis_last_check_time = now
+            _redis_is_online = bool(self.client.ping())
+            return _redis_is_online
         except Exception:
-            self._cache_bypasses += 1
-            logger.warning("Redis cache unavailable; bypassing cache operation")
+            _redis_last_check_time = now
+            _redis_is_online = False
             return False
 
     def get(self, key: str) -> str | None:
         if not self._available():
+            # In-memory cache fallback
+            item = _memory_cache.get(key)
+            if item is not None:
+                expire_at, val = item
+                if time.time() < expire_at:
+                    self._cache_hits += 1
+                    return val
+                else:
+                    _memory_cache.pop(key, None)
+            self._cache_misses += 1
             return None
         try:
             val = self.client.get(key)
@@ -82,27 +101,28 @@ class CacheService:
             return val
         except Exception:
             self._cache_bypasses += 1
-            logger.warning("Redis cache read failed for key=%s", key, exc_info=True)
             return None
 
     def set(self, key: str, value: str, *, ttl_seconds: int) -> bool:
         if not self._available():
-            return False
+            # In-memory cache fallback
+            _memory_cache[key] = (time.time() + ttl_seconds, value)
+            return True
         try:
             self.client.setex(key, ttl_seconds, value)
             return True
         except Exception:
-            logger.warning("Redis cache write failed for key=%s", key, exc_info=True)
-            return False
+            _memory_cache[key] = (time.time() + ttl_seconds, value)
+            return True
 
     def delete(self, key: str) -> bool:
+        _memory_cache.pop(key, None)
         if not self._available():
-            return False
+            return True
         try:
             self.client.delete(key)
             return True
         except Exception:
-            logger.warning("Redis cache delete failed for key=%s", key, exc_info=True)
             return False
 
     def get_json(self, key: str) -> Any | None:

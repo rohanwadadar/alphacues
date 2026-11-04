@@ -33,7 +33,7 @@ class BaseConfig:
     API_VERSION = "1"
 
     MOCK_EXTERNAL_SERVICES = (
-        os.getenv("MOCK_EXTERNAL_SERVICES", "true").lower() == "true"
+        os.getenv("MOCK_EXTERNAL_SERVICES", "false").lower() == "true"
     )
     EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "console")
     SMTP_HOST = os.getenv("SMTP_HOST", "localhost")

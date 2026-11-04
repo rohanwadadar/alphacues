@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../settings/data/settings_provider.dart';
 
@@ -27,39 +26,52 @@ class _OnboardingGuideModalState extends ConsumerState<OnboardingGuideModal> {
 
   final List<Map<String, dynamic>> _steps = const [
     {
-      'title': 'Welcome to AlphaCues',
-      'subtitle': 'Your modern trading and market intelligence hub',
-      'description': 'Track real-time stock prices, monitor your portfolio value, and discover market-moving cues instantly.',
-      'icon': Icons.trending_up_rounded,
+      'title': 'Wishlist & Watchlist',
+      'subtitle': '1st Wishlist with 1 Single Stock',
+      'description':
+          'Your default "My Wishlist" starts clean with 1 single stock (AAPL). Tap the "+" icon on any stock card or strategy builder to easily add or remove stocks to custom wishlists.',
+      'icon': Icons.bookmark_add_rounded,
       'gradient': [Color(0xFF7C3AED), Color(0xFFA855F7)],
     },
     {
-      'title': '20+ Year Graph History',
-      'subtitle': 'Split-normalized historical charting',
-      'description': 'Scrub through historical price data from 2004 to today. Seamlessly toggle between smooth Line curves and Candlesticks.',
-      'icon': Icons.show_chart_rounded,
+      'title': 'Portfolio Management',
+      'subtitle': 'Real-Time Holdings & Cash Balance',
+      'description':
+          'Track your total balance (\$0.00 initial clean slate), monitor daily P&L, view position breakdowns, and manage portfolio positions effortlessly.',
+      'icon': Icons.pie_chart_rounded,
       'gradient': [Color(0xFF2563EB), Color(0xFF60A5FA)],
     },
     {
-      'title': 'Market Sector Treemap',
-      'subtitle': 'Visual S&P 500 Heatmap',
-      'description': 'See how Tech, Healthcare, Financials, and Energy perform at a glance. Tap any sector to inspect its top constituent stocks.',
-      'icon': Icons.grid_view_rounded,
+      'title': 'Notifications & Alerts',
+      'subtitle': 'Instant Market Price Triggers',
+      'description':
+          'Tap the notification bell at the top right of any screen to configure real-time price triggers, order execution alerts, and market trend notifications.',
+      'icon': Icons.notifications_active_rounded,
+      'gradient': [Color(0xFFEC4899), Color(0xFFF472B6)],
+    },
+    {
+      'title': 'Strategy Builder',
+      'subtitle': 'Breakout, Growth & Custom Filters',
+      'description':
+          'Filter stocks by Price, Market Cap, P/E Ratio, RSI, and Volume. Save your custom strategies to access them instantly with one tap.',
+      'icon': Icons.auto_graph_rounded,
       'gradient': [Color(0xFF10B981), Color(0xFF34D399)],
     },
     {
-      'title': 'Social Copy Trading',
-      'subtitle': 'Follow verified top traders',
-      'description': 'Explore community leaderboards, view win-rate metrics, and replicate successful portfolio strategies with virtual funds.',
-      'icon': Icons.workspace_premium_rounded,
+      'title': 'Market News & Insights',
+      'subtitle': 'Breaking Financial Headlines',
+      'description':
+          'Stay ahead of Wall Street with real-time curated market news, sector heatmaps, and daily top gainers/losers.',
+      'icon': Icons.newspaper_rounded,
       'gradient': [Color(0xFFF59E0B), Color(0xFFFBBF24)],
     },
     {
-      'title': 'Real-Time Price Alerts',
-      'subtitle': 'Never miss a breakout or dip',
-      'description': 'Set custom target price triggers on any stock. Receive push notifications when target conditions break above or below.',
-      'icon': Icons.add_alert_rounded,
-      'gradient': [Color(0xFFEC4899), Color(0xFFF472B6)],
+      'title': 'All Set! Ready to Trade',
+      'subtitle': 'Your AlphaCues Hub is Configured',
+      'description':
+          'You are fully set up. Tap "Get Started" to dive into the dashboard and build your first stock strategy!',
+      'icon': Icons.rocket_launch_rounded,
+      'gradient': [Color(0xFF6366F1), Color(0xFF818CF8)],
     },
   ];
 

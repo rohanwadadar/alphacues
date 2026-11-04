@@ -5,8 +5,10 @@ from decimal import Decimal
 from functools import wraps
 from typing import Any
 
-from flask import Blueprint, current_app, request
+from flask import Blueprint, current_app, g, request
 from marshmallow import ValidationError as MarshmallowValidationError
+
+from app.modules.portfolio.service import PortfolioService
 
 from app.adapters.market_data import UpstreamTimeoutError, UpstreamUnavailableError
 from app.modules.market.schemas import (
@@ -72,6 +74,8 @@ def _load_query(schema, args: dict[str, Any] | None = None) -> dict[str, Any]:
 def _handle_market_errors(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+        if request.method == "OPTIONS":
+            return current_app.make_default_options_response()
         try:
             return func(*args, **kwargs)
         except UpstreamTimeoutError as exc:
@@ -193,16 +197,27 @@ def get_fundamentals():
 @require_auth
 @_handle_market_errors
 def get_dashboard():
+    user_id = int(g.user_id) if hasattr(g, "user_id") and g.user_id else None
+    portfolio_data = None
+    if user_id is not None:
+        try:
+            portfolio_data = PortfolioService.get_summary(user_id)
+        except Exception:
+            portfolio_data = None
+
     summary = _market_service().get_dashboard_summary()
     gainers_data = [asdict(item) for item in summary["gainers"]]
     losers_data = [asdict(item) for item in summary["losers"]]
     all_movers_data = gainers_data + losers_data
 
-    return json_response(
-        {
-            "gainers": mover_schema.dump(_serialize_payload(gainers_data)),
-            "losers": mover_schema.dump(_serialize_payload(losers_data)),
-            "topMovers": mover_schema.dump(_serialize_payload(all_movers_data)),
-            "movers": mover_schema.dump(_serialize_payload(all_movers_data)),
-        }
-    )
+    resp_data = {
+        "gainers": mover_schema.dump(_serialize_payload(gainers_data)),
+        "losers": mover_schema.dump(_serialize_payload(losers_data)),
+        "topMovers": mover_schema.dump(_serialize_payload(all_movers_data)),
+        "movers": mover_schema.dump(_serialize_payload(all_movers_data)),
+    }
+    if portfolio_data is not None:
+        resp_data["portfolio"] = portfolio_data
+        resp_data["portfolioSummary"] = portfolio_data
+
+    return json_response(resp_data)

@@ -1,5 +1,3 @@
-import 'dart:html' as html;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../data/news_repository.dart';
@@ -14,7 +12,8 @@ class NewsDetailScreen extends StatelessWidget {
     if (raw.isEmpty) return 'Recent';
     try {
       final dt = DateTime.parse(raw);
-      final diff = DateTime.now().difference(dt);
+      final diff = DateTime.now().toUtc().difference(dt.toUtc());
+      if (diff.inMinutes < 1) return 'Just now';
       if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
       if (diff.inHours < 24) return '${diff.inHours}h ago';
       return '${dt.day}/${dt.month}/${dt.year}';
@@ -23,11 +22,14 @@ class NewsDetailScreen extends StatelessWidget {
     }
   }
 
-  void _launchUrl(String url) {
+  void _launchUrl(BuildContext context, String url) {
     if (url.isEmpty) return;
-    if (kIsWeb) {
-      html.window.open(url, '_blank');
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Source URL: $url'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -46,7 +48,7 @@ class NewsDetailScreen extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.open_in_browser_rounded),
               tooltip: 'Read Original',
-              onPressed: () => _launchUrl(article.url),
+              onPressed: () => _launchUrl(context, article.url),
             ),
         ],
       ),
@@ -145,7 +147,7 @@ class NewsDetailScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: colorScheme.outlineVariant),
               ),
@@ -202,7 +204,7 @@ class NewsDetailScreen extends StatelessWidget {
                 child: FilledButton.icon(
                   icon: const Icon(Icons.launch_rounded),
                   label: const Text('Read Full Article on Source'),
-                  onPressed: () => _launchUrl(article.url),
+                  onPressed: () => _launchUrl(context, article.url),
                 ),
               ),
           ],

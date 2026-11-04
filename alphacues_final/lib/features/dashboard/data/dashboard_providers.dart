@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/user_scope.dart';
 import '../../../core/platform/connectivity_service.dart';
+import '../../../core/realtime/socket_client.dart';
+import '../../../core/realtime/socket_events.dart';
 import '../../watchlist/data/watchlist_repository.dart'
     show ServiceUnavailableException;
 import 'dashboard_repository.dart';
@@ -130,8 +132,20 @@ final dashboardProvider =
     );
 
 class DashboardNotificationBadgeNotifier extends Notifier<int> {
+  StreamSubscription<NotificationNewPayload>? _sub;
+
   @override
-  int build() => 0;
+  int build() {
+    final socket = ref.watch(socketClientProvider);
+    _sub?.cancel();
+    _sub = socket.notifications.listen((_) {
+      increment();
+    });
+    ref.onDispose(() {
+      _sub?.cancel();
+    });
+    return 0;
+  }
 
   void seed(int count) {
     state = count;
@@ -139,6 +153,14 @@ class DashboardNotificationBadgeNotifier extends Notifier<int> {
 
   void increment() {
     state = state + 1;
+  }
+
+  void decrement([int amount = 1]) {
+    state = (state - amount).clamp(0, 999999);
+  }
+
+  void clear() {
+    state = 0;
   }
 }
 

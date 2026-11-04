@@ -69,12 +69,30 @@ class FundamentalsPayload:
     fiftyTwoWeekHigh: Decimal
     fiftyTwoWeekLow: Decimal
     description: str | None
+    volume: int | None = None
+    avgVolume: str | None = None
+    openPrice: Decimal | None = None
+    prevClose: Decimal | None = None
+    rvol: Decimal | None = None
+    todaysLow: Decimal | None = None
+    todaysHigh: Decimal | None = None
+    dayRange: str | None = None
+    yearRange: str | None = None
+    expertBuyPercent: Decimal | None = None
+    expertHoldPercent: Decimal | None = None
+    expertSellPercent: Decimal | None = None
+    # Financial Overview Chart Series
+    earningsPrices: list[dict[str, Any]] | None = None
+    roeSeries: list[dict[str, Any]] | None = None
+    debtEquitySeries: list[dict[str, Any]] | None = None
+    netProfitMarginSeries: list[dict[str, Any]] | None = None
+    financialStatements: dict[str, Any] | None = None
 
 
 VALID_TIMEFRAMES = frozenset(
     {"5min", "15min", "30min", "1hour", "1day", "1week", "1month"}
 )
-VALID_RANGES = frozenset({"1D", "1W", "1M", "3M", "6M", "1Y", "5Y", "MAX"})
+VALID_RANGES = frozenset({"1D", "5D", "1W", "1M", "3M", "YTD", "6M", "1Y", "5Y", "MAX"})
 
 
 class MarketDataSource(Protocol):

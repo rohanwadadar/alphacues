@@ -8,6 +8,8 @@ abstract final class AppRoutes {
   static const portfolio = '/portfolio';
   static const screener = '/screener';
   static const settings = '/settings';
+  static const strategy = '/strategy';
+  static const newUserKyc = '/new-user-kyc';
 
   static String watchlistDetail(String id) => '/watchlists/$id';
   static String symbolDetail(String symbol) => '/symbols/$symbol';
@@ -15,12 +17,13 @@ abstract final class AppRoutes {
 
 /// Bottom navigation labels.
 abstract final class AppLabels {
-  static const dashboard = 'Dashboard';
-  static const watchlists = 'Watchlists';
+  static const dashboard = 'Home';
+  static const watchlists = 'Watchlist';
   static const alerts = 'Alerts';
   static const portfolio = 'Portfolio';
   static const screener = 'Screener';
-  static const settings = 'Settings';
+  static const settings = 'Profile';
+  static const strategy = 'Strategy';
   static const login = 'Login';
   static const verifyOtp = 'Verify OTP';
   static const notFound = 'Not Found';

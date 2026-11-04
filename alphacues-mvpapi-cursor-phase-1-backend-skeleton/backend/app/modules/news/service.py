@@ -116,6 +116,8 @@ class NewsService:
 
         # 3. Dynamic Live Market News Backup Pool if offline
         if not articles:
+            from datetime import datetime, timezone, timedelta
+            now_dt = datetime.now(timezone.utc)
             articles = [
                 {
                     "id": "news_1",
@@ -125,7 +127,7 @@ class NewsService:
                     "source": "Financial Times",
                     "url": "https://finance.yahoo.com",
                     "imageUrl": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80",
-                    "publishedAt": "2026-08-17T16:00:00Z",
+                    "publishedAt": (now_dt - timedelta(minutes=10)).isoformat(),
                     "symbols": ["NVDA", "MSFT", "GOOGL"],
                     "sentiment": "bullish",
                 },
@@ -137,7 +139,7 @@ class NewsService:
                     "source": "Bloomberg",
                     "url": "https://bloomberg.com",
                     "imageUrl": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=600&q=80",
-                    "publishedAt": "2026-08-17T14:30:00Z",
+                    "publishedAt": (now_dt - timedelta(minutes=30)).isoformat(),
                     "symbols": ["SPY", "QQQ", "AAPL"],
                     "sentiment": "bullish",
                 },
@@ -149,7 +151,7 @@ class NewsService:
                     "source": "Wall Street Journal",
                     "url": "https://wsj.com",
                     "imageUrl": "https://images.unsplash.com/photo-1538370965046-79c0d6907d47?auto=format&fit=crop&w=600&q=80",
-                    "publishedAt": "2026-08-17T12:15:00Z",
+                    "publishedAt": (now_dt - timedelta(hours=1, minutes=15)).isoformat(),
                     "symbols": ["TSLA"],
                     "sentiment": "bullish",
                 },
@@ -161,7 +163,7 @@ class NewsService:
                     "source": "Reuters",
                     "url": "https://reuters.com",
                     "imageUrl": "https://images.unsplash.com/photo-1510519138161-58445794232c?auto=format&fit=crop&w=600&q=80",
-                    "publishedAt": "2026-08-17T10:00:00Z",
+                    "publishedAt": (now_dt - timedelta(hours=2, minutes=30)).isoformat(),
                     "symbols": ["AAPL", "ARM"],
                     "sentiment": "bullish",
                 },

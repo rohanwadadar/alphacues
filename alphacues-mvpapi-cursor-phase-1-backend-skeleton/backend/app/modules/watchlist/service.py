@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 from flask import current_app
@@ -9,6 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.modules.market.service import MarketService
+from app.modules.portfolio.models import Position
+from app.modules.portfolio.service import PortfolioService
 from app.modules.watchlist.models import Watchlist, WatchlistItem
 from app.shared.cache import TTL_WATCHLIST_SUMMARY_MIN, CacheService
 from app.shared.db import db
@@ -157,6 +160,52 @@ class WatchlistService:
         except Exception:
             price_at_addition = None
 
+        # If symbol already exists in this watchlist, update its quantity
+        existing_item = db.session.scalar(
+            select(WatchlistItem).where(
+                WatchlistItem.watchlist_id == watchlist.watchlist_id,
+                WatchlistItem.symbol == normalized,
+            )
+        )
+        if existing_item:
+            old_qty = existing_item.quantity or 0.0
+            existing_item.quantity = quantity
+            if price_at_addition and price_at_addition > 0:
+                existing_item.price_at_addition = price_at_addition
+            db.session.commit()
+
+            # Record BUY or SELL delta event for portfolio history
+            if quantity is not None and old_qty != quantity and price_at_addition and price_at_addition > 0:
+                delta = quantity - old_qty
+                try:
+                    if delta > 0:
+                        PortfolioService.record_event(
+                            user_id=user_id,
+                            symbol=normalized,
+                            action="BUY",
+                            price=Decimal(str(price_at_addition)),
+                            volume=int(delta),
+                            time_stamp=datetime.now(timezone.utc),
+                        )
+                    elif delta < 0:
+                        pos = db.session.get(Position, (user_id, normalized))
+                        sell_vol = int(abs(delta))
+                        actual_sell = min(sell_vol, pos.volume) if pos and pos.volume > 0 else sell_vol
+                        if pos and pos.volume > 0 and actual_sell > 0:
+                            PortfolioService.record_event(
+                                user_id=user_id,
+                                symbol=normalized,
+                                action="SELL",
+                                price=Decimal(str(price_at_addition)),
+                                volume=int(actual_sell),
+                                time_stamp=datetime.now(timezone.utc),
+                            )
+                except Exception as e:
+                    current_app.logger.warning(f"Could not auto-create portfolio delta event: {e}")
+
+            WatchlistService._invalidate_list_cache(user_id)
+            return existing_item
+
         item = WatchlistItem(
             watchlist_id=watchlist.watchlist_id,
             symbol=normalized,
@@ -172,19 +221,28 @@ class WatchlistService:
                 message=f"Symbol {normalized} is already in this watchlist."
             ) from exc
 
-        # Automatically sync with Portfolio if quantity > 0
-        if quantity and quantity > 0 and price_at_addition and price_at_addition > 0:
+        # Automatically sync with Portfolio so Transaction History tracks addition
+        add_qty = int(quantity) if (quantity and quantity > 0) else 1
+        add_price = price_at_addition if (price_at_addition and price_at_addition > 0) else None
+        if not add_price:
             try:
-                PortfolioService.record_event(
-                    user_id=user_id,
-                    symbol=normalized,
-                    action="BUY",
-                    price=Decimal(str(price_at_addition)),
-                    volume=int(quantity),
-                    time_stamp=item.added_at,
-                )
-            except Exception as e:
-                current_app.logger.warning(f"Could not auto-create portfolio event: {e}")
+                quote = _market_service().get_quote(normalized)
+                if quote and quote.lastPrice:
+                    add_price = float(quote.lastPrice)
+            except Exception:
+                pass
+        add_price = add_price if (add_price and add_price > 0) else 100.0
+        try:
+            PortfolioService.record_event(
+                user_id=user_id,
+                symbol=normalized,
+                action="BUY",
+                price=Decimal(str(add_price)),
+                volume=add_qty,
+                time_stamp=item.added_at,
+            )
+        except Exception as e:
+            current_app.logger.warning(f"Could not auto-create portfolio event: {e}")
 
         WatchlistService._invalidate_list_cache(user_id)
         return item
@@ -201,8 +259,35 @@ class WatchlistService:
         )
         if item is None:
             raise NotFoundError(message="Symbol was not found in this watchlist.")
+
+        # Attempt to get live market price for exit / removal event
+        price_at_removal = item.price_at_addition or 0.0
+        try:
+            quote = _market_service().get_quote(normalized)
+            if quote and quote.lastPrice:
+                price_at_removal = float(quote.lastPrice)
+        except Exception:
+            pass
+
+        qty = int(item.quantity or 1.0)
         db.session.delete(item)
         db.session.commit()
+
+        # Always record removal event in PortfolioEvent so Transaction History tracks the removal
+        if qty > 0:
+            eff_price = price_at_removal if price_at_removal > 0 else (item.price_at_addition or 100.0)
+            try:
+                PortfolioService.record_event(
+                    user_id=user_id,
+                    symbol=normalized,
+                    action="SELL",
+                    price=Decimal(str(eff_price)),
+                    volume=int(qty),
+                    time_stamp=datetime.now(timezone.utc),
+                )
+            except Exception as e:
+                current_app.logger.warning(f"Could not auto-create portfolio sell event on watchlist remove: {e}")
+
         WatchlistService._invalidate_list_cache(user_id)
 
     @staticmethod

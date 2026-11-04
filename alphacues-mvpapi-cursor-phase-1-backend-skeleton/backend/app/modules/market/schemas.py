@@ -63,6 +63,27 @@ class FundamentalsSchema(Schema):
     fiftyTwoWeekLow = fields.Float(required=True)
     description = fields.String(required=False, allow_none=True)
 
+    # Performance & Key Statistics
+    volume = fields.Integer(required=False, allow_none=True)
+    avgVolume = fields.String(required=False, allow_none=True)
+    openPrice = fields.Float(required=False, allow_none=True)
+    prevClose = fields.Float(required=False, allow_none=True)
+    rvol = fields.Float(required=False, allow_none=True)
+    todaysLow = fields.Float(required=False, allow_none=True)
+    todaysHigh = fields.Float(required=False, allow_none=True)
+    dayRange = fields.String(required=False, allow_none=True)
+    yearRange = fields.String(required=False, allow_none=True)
+    expertBuyPercent = fields.Float(required=False, allow_none=True)
+    expertHoldPercent = fields.Float(required=False, allow_none=True)
+    expertSellPercent = fields.Float(required=False, allow_none=True)
+
+    # Financial Overview Chart Series
+    earningsPrices = fields.List(fields.Dict(), required=False, allow_none=True)
+    roeSeries = fields.List(fields.Dict(), required=False, allow_none=True)
+    debtEquitySeries = fields.List(fields.Dict(), required=False, allow_none=True)
+    netProfitMarginSeries = fields.List(fields.Dict(), required=False, allow_none=True)
+    financialStatements = fields.Dict(required=False, allow_none=True)
+
 
 class BarsQuerySchema(Schema):
     symbol = fields.String(required=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import Blueprint, g, request
+from flask_cors import CORS
 from marshmallow import ValidationError as MarshmallowValidationError
 
 from app.modules.user.schemas import (
@@ -22,6 +23,7 @@ from app.shared.limiter import (
 from app.shared.response import json_response
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
+CORS(auth_bp)
 
 send_otp_schema = SendOtpSchema()
 verify_otp_schema = VerifyOtpSchema()
@@ -51,26 +53,64 @@ def _load_json(schema):
 
 
 def _auth_rate_limit():
+    from flask import current_app
+    limit_str = f"{current_app.config.get('RATE_LIMIT_AUTH_PER_MINUTE', 30)} per minute" if current_app else "30 per minute"
     return limiter.limit(
-        "5 per minute",
+        limit_str,
         key_func=auth_ip_key,
         on_breach=on_rate_limit_breach,
     )
 
 
-@auth_bp.post("/send-otp")
+def _refresh_rate_limit():
+    return limiter.limit(
+        "60 per minute",
+        key_func=auth_ip_key,
+        on_breach=on_rate_limit_breach,
+    )
+
+
+@auth_bp.route("/check-email", methods=["POST", "OPTIONS"])
 @_auth_rate_limit()
-def send_otp():
+def check_email():
+    if request.method == "OPTIONS":
+        return json_response({})
+    data = _load_json(send_otp_schema)
+    email = normalize_email(data["email"])
+    result = _auth_service().check_email(email)
+    return json_response(result)
+
+
+@auth_bp.route("/register-send-otp", methods=["POST", "OPTIONS"])
+@_auth_rate_limit()
+def register_send_otp():
+    if request.method == "OPTIONS":
+        return json_response({})
     data = _load_json(send_otp_schema)
     email = normalize_email(data["email"])
     bind_rate_limit_email(email)
-    result = _auth_service().send_otp(email)
+    result = _auth_service().send_otp(email, allow_new_user=True)
     return json_response(result, status_code=201)
 
 
-@auth_bp.post("/verify-otp")
+@auth_bp.route("/send-otp", methods=["POST", "OPTIONS"])
+@_auth_rate_limit()
+def send_otp():
+    if request.method == "OPTIONS":
+        return json_response({})
+    data = _load_json(send_otp_schema)
+    email = normalize_email(data["email"])
+    bind_rate_limit_email(email)
+    # Existing login flow: only for already-registered users
+    result = _auth_service().send_otp(email, allow_new_user=False)
+    return json_response(result, status_code=201)
+
+
+@auth_bp.route("/verify-otp", methods=["POST", "OPTIONS"])
 @_auth_rate_limit()
 def verify_otp():
+    if request.method == "OPTIONS":
+        return json_response({})
     data = _load_json(verify_otp_schema)
     email = normalize_email(data["email"])
     bind_rate_limit_email(email)
@@ -82,17 +122,21 @@ def verify_otp():
     return json_response(result)
 
 
-@auth_bp.post("/refresh")
-@_auth_rate_limit()
+@auth_bp.route("/refresh", methods=["POST", "OPTIONS"])
+@_refresh_rate_limit()
 def refresh_tokens():
+    if request.method == "OPTIONS":
+        return json_response({})
     data = _load_json(refresh_schema)
     result = _auth_service().refresh_tokens(data["refreshToken"])
     return json_response(result)
 
 
-@auth_bp.post("/logout")
+@auth_bp.route("/logout", methods=["POST", "OPTIONS"])
 @_auth_rate_limit()
 def logout():
+    if request.method == "OPTIONS":
+        return json_response({})
     refresh_token = None
     access_token = None
     payload = request.get_json(silent=True) or {}
@@ -115,43 +159,41 @@ def logout():
     return json_response(result)
 
 
-@auth_bp.get("/verify")
+@auth_bp.route("/verify", methods=["GET", "OPTIONS"])
 def verify_token():
+    if request.method == "OPTIONS":
+        return json_response({})
     token = extract_bearer_token()
     result = _auth_service().verify_access(token)
     return json_response(result)
 
 
-@auth_bp.get("/me")
+@auth_bp.route("/me", methods=["GET", "PUT", "OPTIONS"])
+@auth_bp.route("/profile", methods=["GET", "PUT", "OPTIONS"])
 @require_auth
 def get_me():
+    if request.method == "OPTIONS":
+        return json_response({})
     user_id = int(g.user_id)
-    result = _auth_service().get_profile(user_id)
-    return json_response(result)
-
-
-@auth_bp.put("/me")
-@require_auth
-def update_me():
-    payload = request.get_json(silent=True)
-    if payload is None:
-        raise ValidationError(
-            message="Request body must be valid JSON.",
-            details={"field": "body"},
+    if request.method == "PUT":
+        payload = request.get_json(silent=True)
+        if payload is None:
+            raise ValidationError(
+                message="Request body must be valid JSON.",
+                details={"field": "body"},
+            )
+        try:
+            data = update_profile_schema.load(payload, partial=True)
+        except MarshmallowValidationError as exc:
+            raise ValidationError(
+                message="Request validation failed.",
+                details=exc.normalized_messages(),
+            ) from exc
+        result = _auth_service().update_profile(
+            user_id,
+            **data,
         )
-    try:
-        data = update_profile_schema.load(payload, partial=True)
-    except MarshmallowValidationError as exc:
-        raise ValidationError(
-            message="Request validation failed.",
-            details=exc.normalized_messages(),
-        ) from exc
-    fields_set = set(payload.keys())
-    user_id = int(g.user_id)
-    result = _auth_service().update_profile(
-        user_id,
-        name=data.get("name"),
-        avatar_url=data.get("avatarUrl"),
-        fields_set=fields_set,
-    )
+        return json_response(result)
+
+    result = _auth_service().get_profile(user_id)
     return json_response(result)

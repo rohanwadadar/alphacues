@@ -17,16 +17,17 @@ import '../../../core/widgets/safe_screen.dart';
 import '../../onboarding/presentation/onboarding_guide_modal.dart';
 import '../../settings/data/settings_provider.dart';
 import '../../market/data/symbol_search_provider.dart';
+import '../../screener/data/screener_providers.dart';
 import '../data/dashboard_providers.dart';
 import 'widgets/dashboard_formatters.dart';
-import 'widgets/market_treemap_widget.dart';
-import '../../social/presentation/social_copy_trading_widget.dart';
+// import 'widgets/market_treemap_widget.dart';
+// import '../../social/presentation/social_copy_trading_widget.dart';
 import 'widgets/dashboard_skeleton.dart';
 import 'widgets/notification_bell.dart';
 import 'widgets/portfolio_summary_widget.dart';
-import 'widgets/top_movers_widget.dart';
+// import 'widgets/top_movers_widget.dart';
 import 'widgets/watchlist_summary_widget.dart';
-import '../../news/presentation/widgets/market_news_widget.dart';
+// import '../../news/presentation/widgets/market_news_widget.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -212,9 +213,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
     );
 
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: const AlphaCuesFullLogo(),
@@ -227,63 +225,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       body: SafeScreen(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                  decoration: InputDecoration(
-                    hintText: 'Search stocks, ETFs, symbols...',
-                    hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                    ),
-                    prefixIcon: Icon(Icons.search_rounded, color: colorScheme.primary, size: 22),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 20),
-                            onPressed: () => _searchController.clear(),
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide(color: colorScheme.primary, width: 2),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: _searchQuery.isNotEmpty 
-                ? _DashboardSearchResults(query: _searchQuery) 
-                : contentBody,
-            ),
-          ],
-        ),
+        child: contentBody,
       ),
     );
   }
@@ -389,7 +331,7 @@ class _DashboardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Single-column phone layout (Task 24): on screens ≤600dp the list fills
+    // Single-column phone layout (Task 24): on screens â‰¤600dp the list fills
     // edge-to-edge. On wider devices (tablet/web) content is max 600dp wide.
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -407,6 +349,7 @@ class _DashboardContent extends StatelessWidget {
                   ),
                 ),
               ),
+            // ── 1. Portfolio Summary (top of home page) ──────────────────
             PortfolioSummaryWidget(
               portfolio: snapshot?.portfolio,
               isStale: isStale,
@@ -414,20 +357,35 @@ class _DashboardContent extends StatelessWidget {
               onRetry: onRetryPortfolio,
             ),
             const SizedBox(height: AppSpacing.lg),
+
+            // ── 2. Watchlist Section (from 2nd page, placed below Portfolio) ──
             const WatchlistSummaryWidget(),
             const SizedBox(height: AppSpacing.lg),
-            TopMoversWidget(
-              movers: snapshot?.topMovers ?? const [],
-              isStale: isStale,
-              errorMessage: moversError,
-              onRetry: onRetryMovers,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const MarketTreemapWidget(),
-            const SizedBox(height: AppSpacing.lg),
-            const SocialCopyTradingWidget(),
-            const SizedBox(height: AppSpacing.lg),
-            const MarketNewsWidget(),
+
+            // ── Commented out for future release per request ──────────────
+            // Strategy Quick-Access:
+            // const _StrategyQuickAccess(),
+            // const SizedBox(height: AppSpacing.lg),
+
+            // Market Movers:
+            // TopMoversWidget(
+            //   movers: snapshot?.topMovers ?? const [],
+            //   isStale: isStale,
+            //   errorMessage: moversError,
+            //   onRetry: onRetryMovers,
+            // ),
+            // const SizedBox(height: AppSpacing.lg),
+
+            // Market Movers Treemap:
+            // const MarketTreemapWidget(),
+            // const SizedBox(height: AppSpacing.lg),
+
+            // Social Copy Trading:
+            // const SocialCopyTradingWidget(),
+            // const SizedBox(height: AppSpacing.lg),
+
+            // Market News:
+            // const MarketNewsWidget(),
           ],
         );
 
@@ -483,6 +441,131 @@ class _RetryBanner extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Strategy Quick-Access — horizontal card row of saved strategies.
+/// Tapping any card navigates to the Strategy Builder tab.
+class _StrategyQuickAccess extends ConsumerWidget {
+  const _StrategyQuickAccess();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final savedStrategies = ref.watch(savedStrategiesProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Strategies',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            TextButton.icon(
+              onPressed: () => context.push(
+                '${AppRoutes.strategy}?create=true',
+                extra: true,
+              ),
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: const Text('New'),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        savedStrategies.when(
+          loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (strategies) {
+            if (strategies.isEmpty) {
+              return GestureDetector(
+                onTap: () => context.go(AppRoutes.strategy),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: colorScheme.primary.withOpacity(0.12), shape: BoxShape.circle),
+                        child: Icon(Icons.auto_graph_rounded, color: colorScheme.primary, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text('Build your first strategy ?',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return SizedBox(
+              height: 100,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: strategies.length + 1,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, i) {
+                  if (i == strategies.length) {
+                    return GestureDetector(
+                      onTap: () => context.go(AppRoutes.strategy),
+                      child: Container(
+                        width: 90,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: colorScheme.primary.withOpacity(0.3)),
+                        ),
+                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.add_rounded, color: colorScheme.primary, size: 28),
+                          const SizedBox(height: 4),
+                          Text('New', style: TextStyle(color: colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ]),
+                      ),
+                    );
+                  }
+                  final s = strategies[i];
+                  return GestureDetector(
+                    onTap: () => context.go(AppRoutes.strategy),
+                    child: Container(
+                      width: 130,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          colors: [colorScheme.primary.withOpacity(0.15), colorScheme.primary.withOpacity(0.05)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: colorScheme.primary.withOpacity(0.2)),
+                      ),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Icon(Icons.auto_graph_rounded, color: colorScheme.primary, size: 20),
+                        const Spacer(),
+                        Text(s.name, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 2),
+                        Text(s.filters.isEmpty ? 'All stocks' : 'Filtered', style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant)),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

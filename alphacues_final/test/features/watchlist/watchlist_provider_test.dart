@@ -16,7 +16,7 @@ class _MockWatchlistRepository extends WatchlistRepository {
   var getWatchlistCalls = 0;
 
   @override
-  Future<void> addSymbol(String watchlistId, String symbol) async {
+  Future<void> addSymbol(String watchlistId, String symbol, {double? quantity}) async {
     addSymbolCalls++;
   }
 

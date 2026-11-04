@@ -36,6 +36,28 @@ class NotificationModel {
     );
   }
 
+  String get category {
+    final text = '$title $body'.toLowerCase();
+    if (text.contains('alert') || text.contains('target') || text.contains('crossed') || text.contains('price') || text.contains('\$')) {
+      return 'Price Alerts';
+    }
+    if (text.contains('screener') || text.contains('strategy') || text.contains('scan') || text.contains('filter')) {
+      return 'Strategy Scans';
+    }
+    if (text.contains('news') || text.contains('market') || text.contains('earnings') || text.contains('fed') || text.contains('surge')) {
+      return 'Market News';
+    }
+    return 'System';
+  }
+
+  String? get extractedSymbol {
+    final match = RegExp(r'\$([A-Z]{1,5})').firstMatch('$title $body');
+    if (match != null) return match.group(1);
+    final rawMatch = RegExp(r'\b(NVDA|AAPL|TSLA|MSFT|GOOGL|AMZN|META|SPY|QQQ|AMD|INTC|KLAC)\b').firstMatch('$title $body');
+    if (rawMatch != null) return rawMatch.group(1);
+    return null;
+  }
+
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
       notificationId: json['notificationId'] as String,
@@ -118,8 +140,13 @@ class NotificationsRepository {
         }
       }
 
-      return (items: envelope.data ?? const [], nextCursor: nextCursor);
+      final items = envelope.data ?? const <NotificationModel>[];
+      return (items: items, nextCursor: nextCursor);
     } on DioException catch (error) {
+      if (error.type == DioExceptionType.connectionError ||
+          error.type == DioExceptionType.connectionTimeout) {
+        return (items: const <NotificationModel>[], nextCursor: null);
+      }
       throw _mapDioError(error);
     }
   }

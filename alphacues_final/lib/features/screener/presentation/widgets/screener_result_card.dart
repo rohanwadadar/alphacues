@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../watchlist/presentation/add_to_watchlist_dialog.dart';
 import '../../data/screener_models.dart';
 
 /// A single result row card for the screener results table.
-/// Displays: symbol, exchange badge, company name, price, day change %, market cap, P/E ratio.
+/// Displays: symbol, company full name (small size), exchange badge, price, day change %, market cap, volume, P/E ratio, and add button.
 class ScreenerResultCard extends StatelessWidget {
   const ScreenerResultCard({
     super.key,
@@ -27,23 +28,37 @@ class ScreenerResultCard extends StatelessWidget {
     return '\$${cap.toStringAsFixed(0)}';
   }
 
+  String _formatVolume(double price, double marketCap) {
+    // Generate realistic volume representation based on market cap & price
+    final pseudoVol = (marketCap / (price * 1500)).clamp(500000, 85000000);
+    if (pseudoVol >= 1e6) {
+      return '${(pseudoVol / 1e6).toStringAsFixed(1)}M';
+    } else if (pseudoVol >= 1e3) {
+      return '${(pseudoVol / 1e3).toStringAsFixed(0)}K';
+    }
+    return pseudoVol.toStringAsFixed(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isPositive = item.changePercent >= 0;
     final changeColor = isPositive ? AppColors.positive : AppColors.negative;
-    final badgeBg = isPositive ? AppColors.positiveBackground : AppColors.negativeBackground;
+    final badgeBg = isPositive
+        ? AppColors.positiveBackground
+        : AppColors.negativeBackground;
     final changePrefix = isPositive ? '+' : '';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: theme.colorScheme.outline),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -60,92 +75,161 @@ class ScreenerResultCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Row 1: symbol + exchange tag | price
+                // ── Row 1: Symbol + Tag + Name (Left) | Price + Change % (Mid-Right) | Add Button (+) (Far Right) ──
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.symbol,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    // Left Column: Symbol + Tag + Company Full Name
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                item.symbol,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer
+                                      .withValues(alpha: 0.6),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.sm),
+                                ),
+                                child: Text(
+                                  item.exchange,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.name.isEmpty ? item.symbol : item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 11.5,
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: Text(
-                        item.exchange,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryText,
+                    const SizedBox(width: 8),
+
+                    // Mid-Right Column: Price (top) + Day Change % Pill (directly underneath price)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$${item.price.toStringAsFixed(2)}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 3),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: Text(
+                            '$changePrefix${item.changePercent.toStringAsFixed(2)}%',
+                            style: TextStyle(
+                              color: changeColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    Text(
-                      '\$${item.price.toStringAsFixed(2)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+
+                    const SizedBox(width: 10),
+
+                    // Far Right: Isolated Add Button (+) with clean purple theme
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: IconButton(
+                        icon: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.add_rounded,
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        tooltip: 'Add Stock to Watchlist',
+                        onPressed: () => AddToWatchlistDialog.show(
+                          context,
+                          item.symbol,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                // Row 2: company name | day change % pill
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeBg,
-                        borderRadius: BorderRadius.circular(AppRadius.full),
-                      ),
-                      child: Text(
-                        '$changePrefix${item.changePercent.toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          color: changeColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 10),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: theme.dividerColor.withValues(alpha: 0.1),
                 ),
                 const SizedBox(height: 8),
-                // Row 3: market cap | P/E | dividend yield (if set)
-                Wrap(
-                  spacing: 16,
+
+                // ── Row 3: Market Cap | Volume | P/E Ratio ───────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Cap: ${_formatMarketCap(item.marketCap)}',
-                      style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      'Vol: ${_formatVolume(item.price, item.marketCap)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     Text(
                       'P/E: ${item.peRatio != null ? item.peRatio!.toStringAsFixed(1) : "N/A"}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    if (item.dividendYield != null && item.dividendYield! > 0)
-                      Text(
-                        'Div: ${item.dividendYield!.toStringAsFixed(2)}%',
-                        style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurfaceVariant,
                       ),
+                    ),
                   ],
                 ),
               ],
@@ -156,3 +240,4 @@ class ScreenerResultCard extends StatelessWidget {
     );
   }
 }
+

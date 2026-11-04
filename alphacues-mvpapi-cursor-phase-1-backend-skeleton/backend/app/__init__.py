@@ -15,6 +15,7 @@ from app.shared.cache import get_redis
 from app.shared.error_handler import register_error_handlers
 from app.shared.limiter import enforce_auth_fail_closed
 from app.shared.logging import configure_logging, register_request_correlation
+from app.shared.response import json_response
 from app.shared.security import audit_secrets_safety, configure_cors, configure_security_headers
 
 CONFIG_BY_NAME = {
@@ -32,7 +33,6 @@ def create_app(config_name: str | None = None) -> Flask:
 
     app = Flask(__name__)
     app.config.from_object(config_class)
-    configure_cors(app)
     configure_security_headers(app)
     configure_logging(app)
     audit_secrets_safety(app)
@@ -98,9 +98,16 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(admin_bp, url_prefix="/api/v1/admin")
     app.register_blueprint(news_bp, url_prefix="/api/v1/news")
 
+    configure_cors(app)
+
     from app.shared.websocket import init_websocket
 
     init_websocket(app)
+
+    @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+    @app.route('/<path:path>', methods=['OPTIONS'])
+    def global_options_handler(path):
+        return app.make_default_options_response()
 
     @app.before_request
     def auth_rate_limit_fail_closed() -> None:

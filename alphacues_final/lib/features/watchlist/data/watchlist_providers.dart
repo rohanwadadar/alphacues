@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_error.dart';
 import '../../../core/platform/connectivity_service.dart';
+import '../../portfolio/data/portfolio_providers.dart';
 import 'watchlist_repository.dart';
 
 export 'watchlist_repository.dart';
@@ -209,6 +210,9 @@ class AddSymbolNotifier extends AutoDisposeFamilyAsyncNotifier<void, String> {
           .read(watchlistRepositoryProvider)
           .addSymbol(arg, symbol.trim().toUpperCase(), quantity: quantity);
       ref.invalidate(watchlistDetailProvider(arg));
+      ref.invalidate(watchlistsProvider);
+      ref.invalidate(portfolioSummaryProvider);
+      ref.invalidate(portfolioTransactionsProvider);
     });
     if (state.hasError) {
       _inlineError = _messageFromError(state.error);
@@ -255,6 +259,9 @@ class RemoveSymbolNotifier extends AutoDisposeFamilyAsyncNotifier<void, String> 
           .read(watchlistRepositoryProvider)
           .removeSymbol(arg, symbol);
       ref.invalidate(watchlistDetailProvider(arg));
+      ref.invalidate(watchlistsProvider);
+      ref.invalidate(portfolioSummaryProvider);
+      ref.invalidate(portfolioTransactionsProvider);
     });
   }
 }

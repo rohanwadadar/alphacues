@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum TradeType { buy, sell }
+enum TradeType { add, remove, buy, sell }
 
 class TradeAnimationOverlay extends StatelessWidget {
   const TradeAnimationOverlay({
@@ -37,10 +37,10 @@ class TradeAnimationOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isBuy = type == TradeType.buy;
-    final color = isBuy ? Colors.green : Colors.red;
-    final title = isBuy ? 'BUY Executed' : 'SELL Executed';
-    final icon = isBuy ? Icons.arrow_downward : Icons.arrow_upward;
+    final isAdd = type == TradeType.add || type == TradeType.buy;
+    final color = isAdd ? Colors.green : Colors.red;
+    final title = isAdd ? 'Added Successfully' : 'Removed Successfully';
+    final icon = isAdd ? Icons.check_circle_rounded : Icons.remove_circle_rounded;
 
     return Center(
       child: Material(
@@ -80,7 +80,7 @@ class TradeAnimationOverlay extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '$symbol transaction confirmed',
+                isAdd ? '$symbol added to watchlist' : '$symbol removed from watchlist',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],

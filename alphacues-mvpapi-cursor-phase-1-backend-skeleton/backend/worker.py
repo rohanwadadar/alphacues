@@ -9,4 +9,4 @@ create_celery_app(flask_app)
 import app.tasks.outbox  # noqa: F401, E402
 
 if __name__ == "__main__":
-    celery_app.worker_main(argv=["worker", "--loglevel=info"])
+    celery_app.worker_main(argv=["worker", "--loglevel=info", "--pool=solo"])

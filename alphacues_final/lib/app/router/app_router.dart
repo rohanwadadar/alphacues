@@ -7,11 +7,11 @@ import '../../core/config/app_config.dart';
 import '../../core/presentation/not_found_screen.dart';
 import '../../features/alerts/presentation/alerts_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/new_user_kyc_wizard_screen.dart';
 import '../../features/auth/presentation/verify_otp_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/market/presentation/symbol_detail_screen.dart';
-import '../../features/portfolio/presentation/portfolio_screen.dart';
-import '../../features/screener/presentation/screener_screen.dart';
+import '../../features/screener/presentation/strategy_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/watchlist/presentation/watchlist_detail_screen.dart';
 import '../../features/watchlist/presentation/watchlists_screen.dart';
@@ -32,6 +32,7 @@ class _AuthNotifier extends ChangeNotifier {
 
 List<RouteBase> _buildRoutes(bool enableScreener) {
   final branches = <StatefulShellBranch>[
+    // Branch 0: Home (Dashboard)
     StatefulShellBranch(
       routes: [
         GoRoute(
@@ -42,6 +43,7 @@ List<RouteBase> _buildRoutes(bool enableScreener) {
         ),
       ],
     ),
+    // Branch 1: Watchlist
     StatefulShellBranch(
       routes: [
         GoRoute(
@@ -57,6 +59,7 @@ List<RouteBase> _buildRoutes(bool enableScreener) {
               pageBuilder: (context, state) => NoTransitionPage(
                 child: WatchlistDetailScreen(
                   watchlistId: state.pathParameters['watchlistId'] ?? '',
+                  autoEditSymbol: state.uri.queryParameters['editSymbol'],
                 ),
               ),
             ),
@@ -64,6 +67,7 @@ List<RouteBase> _buildRoutes(bool enableScreener) {
         ),
       ],
     ),
+    // Branch 2: Profile (Settings)
     StatefulShellBranch(
       routes: [
         GoRoute(
@@ -74,27 +78,6 @@ List<RouteBase> _buildRoutes(bool enableScreener) {
         ),
       ],
     ),
-    StatefulShellBranch(
-      routes: [
-        GoRoute(
-          path: AppRoutes.portfolio,
-          name: 'portfolio',
-          pageBuilder: (context, state) =>
-              const NoTransitionPage(child: PortfolioScreen()),
-        ),
-      ],
-    ),
-    if (enableScreener)
-      StatefulShellBranch(
-        routes: [
-          GoRoute(
-            path: AppRoutes.screener,
-            name: 'screener',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: ScreenerScreen()),
-          ),
-        ],
-      ),
   ];
 
   return <RouteBase>[
@@ -109,6 +92,27 @@ List<RouteBase> _buildRoutes(bool enableScreener) {
       name: 'verifyOtp',
       pageBuilder: (context, state) =>
           const NoTransitionPage(child: VerifyOtpScreen()),
+    ),
+    GoRoute(
+      path: AppRoutes.newUserKyc,
+      name: 'newUserKyc',
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) =>
+          const NoTransitionPage(child: NewUserKycWizardScreen()),
+    ),
+    GoRoute(
+      path: AppRoutes.strategy,
+      name: 'strategy',
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) {
+        final shouldOpenCreate =
+            state.uri.queryParameters['create'] == 'true' ||
+            state.uri.queryParameters['edit'] == 'true' ||
+            state.extra == true;
+        return NoTransitionPage(
+          child: StrategyScreen(openCreateOnLaunch: shouldOpenCreate),
+        );
+      },
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
@@ -130,14 +134,16 @@ List<RouteBase> _buildRoutes(bool enableScreener) {
         child: SymbolDetailScreen(symbol: state.pathParameters['symbol'] ?? ''),
       ),
     ),
-    if (!enableScreener)
-      GoRoute(
-        path: AppRoutes.screener,
-        redirect: (context, state) {
-          // screener disabled — always redirect away
-          return '/dashboard';
-        },
-      ),
+    // Keep portfolio as a redirect so deep-links don't break
+    GoRoute(
+      path: AppRoutes.portfolio,
+      redirect: (context, state) => AppRoutes.dashboard,
+    ),
+    // Keep screener redirect for any old links
+    GoRoute(
+      path: AppRoutes.screener,
+      redirect: (context, state) => AppRoutes.strategy,
+    ),
   ];
 }
 

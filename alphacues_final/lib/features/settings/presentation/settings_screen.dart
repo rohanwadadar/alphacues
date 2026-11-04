@@ -3,8 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/alpha_cues_logo.dart';
 import '../../../core/auth/auth_session_provider.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../dashboard/presentation/widgets/dashboard_formatters.dart';
+import '../../dashboard/presentation/widgets/notification_bell.dart';
 import '../../onboarding/presentation/onboarding_guide_modal.dart';
+import '../../portfolio/data/portfolio_providers.dart';
+import '../../portfolio/presentation/portfolio_event_form_dialog.dart';
 import '../data/settings_provider.dart';
+import 'govt_id_card_modal.dart';
+import 'profile_subscreens_modals.dart';
+import 'edit_profile_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -14,6 +22,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _compactLayout = false;
   static const List<Color> _avatarColors = [
     Color(0xFF2563EB), // Blue
     Color(0xFF10B981), // Emerald
@@ -40,6 +49,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: const [
+          NotificationBell(),
+          SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -194,10 +207,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── 2. ACCOUNT & SECURITY SECTION ─────────────────────────────
+            // ── 2. DASHBOARD TRANSACTIONS SECTION ─────────────────────────
+            const _DashboardTransactionsSection(),
+            const SizedBox(height: 20),
+
+            // ── 3. SECURITY ───────────────────────────────────────────────
             _buildSectionGroup(
               context,
-              title: 'Account & Security',
+              title: 'Security',
               children: [
                 _buildTile(
                   context,
@@ -209,79 +226,110 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildDivider(context),
                 _buildTile(
                   context,
-                  icon: Icons.lock_outline_rounded,
-                  title: 'Security & Biometrics',
-                  subtitle: settings.biometricsEnabled ? 'FaceID / PIN Active' : '2FA Active',
-                  onTap: () => _showSecurityDialog(context),
+                  icon: Icons.password_rounded,
+                  title: 'Change Password',
+                  subtitle: 'Update account password & security key',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Change Password',
+                    child: const ChangePasswordModal(),
+                  ),
                 ),
                 _buildDivider(context),
-                _buildSwitchTile(
+                _buildTile(
                   context,
-                  icon: Icons.notifications_none_rounded,
-                  title: 'Push Notifications',
-                  subtitle: 'Alerts on price movements & market cues',
-                  value: settings.pushNotificationsEnabled,
-                  onChanged: (val) {
-                    settingsNotifier.togglePushNotifications(val);
-                    _showSnackBar(
-                      context,
-                      val ? 'Push notifications enabled.' : 'Push notifications disabled.',
-                    );
-                  },
+                  icon: Icons.security_rounded,
+                  title: 'Security & App Lock',
+                  subtitle: settings.biometricsEnabled ? 'Biometrics Active • Auto-lock set' : 'Configure PIN & Biometrics',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Security & App Lock',
+                    child: const SecurityAppLockModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.phonelink_lock_rounded,
+                  title: 'Two-Factor Authentication',
+                  subtitle: 'Authenticator App, SMS & Security Codes',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Two-Factor Authentication',
+                    child: const TwoFactorAuthModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.shield_outlined,
+                  title: 'Privacy Settings',
+                  subtitle: 'Balance masking, public profile & analytics',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Privacy Settings',
+                    child: const PrivacySettingsModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.badge_outlined,
+                  title: 'Government Identity & KYC Card',
+                  subtitle: 'View verified regulatory credential',
+                  onTap: () => GovtIdCardModal.show(context),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // ── 3. ADVANCED TRADING & TECHNICAL EXECUTION ─────────────────
+            // ── 4. FINANCIAL ──────────────────────────────────────────────
             _buildSectionGroup(
               context,
-              title: 'Advanced Trading & Technical Execution',
+              title: 'Financial',
               children: [
+                _buildTile(
+                  context,
+                  icon: Icons.receipt_long_rounded,
+                  title: 'Tax Center',
+                  subtitle: 'Form 1099-B, realized gains & tax harvest',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Tax Center',
+                    child: const TaxCenterModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.assessment_outlined,
+                  title: 'Reports & Statements',
+                  subtitle: 'Monthly statements, trade confirmations & PDF audits',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Reports & Statements',
+                    child: const ReportsStatementsModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.card_giftcard_rounded,
+                  title: 'Rewards',
+                  subtitle: 'Alpha Tier benefits, trading rebates & bonus',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'AlphaCues Rewards',
+                    child: const RewardsModal(),
+                  ),
+                ),
+                _buildDivider(context),
                 _buildTile(
                   context,
                   icon: Icons.tune_rounded,
                   title: 'Default Trade Sizing & Order Type',
                   subtitle: '\$${settings.defaultPositionSize.toStringAsFixed(0)} • ${settings.defaultOrderType} Order',
                   onTap: () => _showTradeExecutionSettingsDialog(context),
-                ),
-                _buildDivider(context),
-                _buildSwitchTile(
-                  context,
-                  icon: Icons.show_chart_rounded,
-                  title: 'Extended Hours Chart Data',
-                  subtitle: 'Show pre-market (4:00 AM) & after-hours data',
-                  value: settings.showExtendedHours,
-                  onChanged: (val) {
-                    settingsNotifier.updateTechnicalSettings(showExtendedHours: val);
-                    _showSnackBar(
-                      context,
-                      val ? 'Extended hours data enabled.' : 'Extended hours data hidden.',
-                    );
-                  },
-                ),
-                _buildDivider(context),
-                _buildTile(
-                  context,
-                  icon: Icons.speed_rounded,
-                  title: 'Quote Streaming & Data Speed',
-                  subtitle: settings.quoteStreamSpeed,
-                  onTap: () => _showStreamSpeedDialog(context),
-                ),
-                _buildDivider(context),
-                _buildSwitchTile(
-                  context,
-                  icon: Icons.visibility_off_outlined,
-                  title: 'Privacy Mode (Blur Balances)',
-                  subtitle: 'Blur portfolio values when switching apps',
-                  value: settings.blurBalances,
-                  onChanged: (val) {
-                    settingsNotifier.updateTechnicalSettings(blurBalances: val);
-                    _showSnackBar(
-                      context,
-                      val ? 'Privacy Mode enabled.' : 'Privacy Mode disabled.',
-                    );
-                  },
                 ),
                 _buildDivider(context),
                 _buildTile(
@@ -295,10 +343,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── 4. ALPHACUES APP PREFERENCES ──────────────────────────────
+            // ── 5. COMMUNICATION ──────────────────────────────────────────
             _buildSectionGroup(
               context,
-              title: 'AlphaCues App Preferences',
+              title: 'Communication',
+              children: [
+                _buildTile(
+                  context,
+                  icon: Icons.mark_chat_unread_outlined,
+                  title: 'Message Center',
+                  subtitle: 'Direct support inbox, fill alerts & system notices',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Message Center',
+                    child: const MessageCenterModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.tune_outlined,
+                  title: 'Notification Preferences',
+                  subtitle: 'Customize price triggers, news & execution bells',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Notification Preferences',
+                    child: const NotificationPreferencesModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.notifications_none_rounded,
+                  title: 'Push Notifications',
+                  subtitle: 'Real-time price alerts & market cues',
+                  value: settings.pushNotificationsEnabled,
+                  onChanged: (val) {
+                    settingsNotifier.togglePushNotifications(val);
+                    _showSnackBar(
+                      context,
+                      val ? 'Push notifications enabled.' : 'Push notifications disabled.',
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // ── 6. APP PREFERENCE & DATA USAGE ────────────────────────────
+            _buildSectionGroup(
+              context,
+              title: 'App preference & Data usage',
               children: [
                 _buildSwitchTile(
                   context,
@@ -317,10 +412,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildDivider(context),
                 _buildTile(
                   context,
+                  icon: Icons.data_usage_rounded,
+                  title: 'Data Usage Settings',
+                  subtitle: 'Mobile data limits, chart resolution & cache policy',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Data Usage Settings',
+                    child: const DataUsageSettingsModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
                   icon: Icons.attach_money_rounded,
                   title: 'Base Currency Display',
                   subtitle: 'USD (\$)',
                   onTap: () => _showCurrencyDialog(context),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.speed_rounded,
+                  title: 'Quote Streaming & Data Speed',
+                  subtitle: settings.quoteStreamSpeed,
+                  onTap: () => _showStreamSpeedDialog(context),
                 ),
                 _buildDivider(context),
                 _buildTile(
@@ -334,25 +449,106 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── 5. TERMS, LEGAL & MANUAL ──────────────────────────────────
+            // ── 7. PREFERENCES ────────────────────────────────────────────
             _buildSectionGroup(
               context,
-              title: 'Terms, Legal & Feature Manual',
+              title: 'Preferences',
               children: [
+                _buildTile(
+                  context,
+                  icon: Icons.settings_suggest_outlined,
+                  title: 'Feature Settings',
+                  subtitle: 'Order defaults, quick trade & extended hours',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Feature Settings',
+                    child: const FeatureSettingsModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.dashboard_customize_outlined,
+                  title: 'Layout',
+                  subtitle: _compactLayout ? 'Compact card layout' : 'Standard card layout',
+                  value: _compactLayout,
+                  onChanged: (val) {
+                    setState(() => _compactLayout = val);
+                    _showSnackBar(
+                      context,
+                      val ? 'Compact layout enabled.' : 'Standard layout enabled.',
+                    );
+                  },
+                ),
+                _buildDivider(context),
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.show_chart_rounded,
+                  title: 'Extended Hours Chart Data',
+                  subtitle: 'Show pre-market (4:00 AM) & after-hours data',
+                  value: settings.showExtendedHours,
+                  onChanged: (val) {
+                    settingsNotifier.updateTechnicalSettings(showExtendedHours: val);
+                    _showSnackBar(
+                      context,
+                      val ? 'Extended hours data enabled.' : 'Extended hours data hidden.',
+                    );
+                  },
+                ),
+                _buildDivider(context),
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.visibility_off_outlined,
+                  title: 'Privacy Mode (Blur Balances)',
+                  subtitle: 'Blur portfolio values when switching apps',
+                  value: settings.blurBalances,
+                  onChanged: (val) {
+                    settingsNotifier.updateTechnicalSettings(blurBalances: val);
+                    _showSnackBar(
+                      context,
+                      val ? 'Privacy Mode enabled.' : 'Privacy Mode disabled.',
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // ── 8. SUPPORT ────────────────────────────────────────────────
+            _buildSectionGroup(
+              context,
+              title: 'Support',
+              children: [
+                _buildTile(
+                  context,
+                  icon: Icons.help_outline_rounded,
+                  title: 'FAQ',
+                  subtitle: 'Frequently asked questions & platform tutorials',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'AlphaCues FAQ',
+                    child: const FaqModal(),
+                  ),
+                ),
+                _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.support_agent_rounded,
+                  title: 'Contact Support',
+                  subtitle: '24/7 Live Desk, Ticket submission & phone',
+                  onTap: () => showProfileModal(
+                    context: context,
+                    title: 'Contact Support',
+                    child: const ContactSupportModal(),
+                  ),
+                ),
+                _buildDivider(context),
                 _buildTile(
                   context,
                   icon: Icons.auto_stories_rounded,
                   title: 'View App Onboarding Manual',
                   subtitle: 'Re-launch interactive feature walkthrough',
                   onTap: () => OnboardingGuideModal.show(context),
-                ),
-                _buildDivider(context),
-                _buildTile(
-                  context,
-                  icon: Icons.help_outline_rounded,
-                  title: 'AlphaCues Help Center & FAQ',
-                  subtitle: 'Trading guides & platform FAQ',
-                  onTap: () => _showHelpCenterSheet(context),
                 ),
                 _buildDivider(context),
                 _buildTile(
@@ -382,7 +578,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // ── 6. LOGOUT BUTTON ──────────────────────────────────────────
+            // ── 9. LOGOUT ─────────────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -425,9 +621,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Version info & Copyright
+            // App version footer
             Text(
-              'AlphaCues v2.4.0 (Build 2026.08)\n© 2026 AlphaCues Technologies Inc. All rights reserved.',
+              'App version 1.0.0 (AlphaCues Build 2026.08)\n© 2026 AlphaCues Technologies Inc. All rights reserved.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant, height: 1.4),
             ),
@@ -441,285 +637,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ── MODALS & DIALOGS IMPLEMENTATIONS ──────────────────────────────────────
 
   void _showEditProfileSheet(BuildContext context) {
-    final settings = ref.read(settingsProvider);
-    final nameController = TextEditingController(text: settings.displayName);
-    final bioController = TextEditingController(text: settings.bio);
-    int selectedColorIndex = settings.avatarColorIndex;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final theme = Theme.of(context);
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Edit Profile Information',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Avatar Accent Color', style: theme.textTheme.labelMedium),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: List.generate(_avatarColors.length, (index) {
-                      final color = _avatarColors[index];
-                      final isSelected = selectedColorIndex == index;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => selectedColorIndex = index),
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 12),
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected ? color : Colors.transparent,
-                              width: 2,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 16,
-                            backgroundColor: color,
-                            child: isSelected
-                                ? const Icon(Icons.check, color: Colors.white, size: 16)
-                                : null,
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Display Name',
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    value: settings.tradingStyle,
-                    decoration: const InputDecoration(
-                      labelText: 'Trading Strategy Style',
-                      prefixIcon: Icon(Icons.bolt_rounded),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Swing Trader', child: Text('Swing Trader')),
-                      DropdownMenuItem(value: 'Day Trader', child: Text('Day Trader')),
-                      DropdownMenuItem(value: 'Value Investor', child: Text('Value Investor')),
-                      DropdownMenuItem(value: 'Options Scalper', child: Text('Options Scalper')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        ref.read(settingsProvider.notifier).updateProfile(
-                              displayName: nameController.text.trim(),
-                              bio: bioController.text.trim(),
-                              tradingStyle: val,
-                            );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    value: settings.riskTolerance,
-                    decoration: const InputDecoration(
-                      labelText: 'Risk Tolerance Level',
-                      prefixIcon: Icon(Icons.shield_outlined),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Conservative', child: Text('Conservative (Low Risk)')),
-                      DropdownMenuItem(value: 'Moderate', child: Text('Moderate (Medium Risk)')),
-                      DropdownMenuItem(value: 'Aggressive', child: Text('Aggressive (High Risk)')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        ref.read(settingsProvider.notifier).updateProfile(
-                              displayName: nameController.text.trim(),
-                              bio: bioController.text.trim(),
-                              riskTolerance: val,
-                            );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: () {
-                        ref.read(settingsProvider.notifier).updateProfile(
-                              displayName: nameController.text.trim(),
-                              bio: bioController.text.trim(),
-                              avatarColorIndex: selectedColorIndex,
-                            );
-                        Navigator.pop(ctx);
-                        _showSnackBar(context, 'Profile information updated successfully!');
-                      },
-                      child: const Text('Save Profile Changes'),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
     );
   }
 
-  void _showSecurityDialog(BuildContext context) {
-    final settings = ref.read(settingsProvider);
-    bool biometrics = settings.biometricsEnabled;
 
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: const Row(
-                children: [
-                  Icon(Icons.shield_outlined, color: Colors.blue),
-                  SizedBox(width: 10),
-                  Text('Security & Privacy'),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SwitchListTile(
-                    title: const Text('Biometric / PIN Lock', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('Require FaceID/TouchID on app start', style: TextStyle(fontSize: 12)),
-                    value: biometrics,
-                    onChanged: (val) {
-                      setDialogState(() => biometrics = val);
-                      ref.read(settingsProvider.notifier).toggleBiometrics(val);
-                    },
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.key_outlined, size: 20),
-                    title: const Text('Change Password', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('Update system login password', style: TextStyle(fontSize: 12)),
-                    trailing: const Icon(Icons.chevron_right, size: 20),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _showChangePasswordDialog(context);
-                    },
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.devices_outlined, size: 20),
-                    title: const Text('Active Sessions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('1 Active Mobile Session (This Device)', style: TextStyle(fontSize: 12)),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text('Active', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showChangePasswordDialog(BuildContext context) {
-    final oldPass = TextEditingController();
-    final newPass = TextEditingController();
-    final confirmPass = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text('Change Password'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: oldPass,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Current Password'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: newPass,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'New Password'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: confirmPass,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Confirm New Password'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (newPass.text != confirmPass.text) {
-                  _showSnackBar(context, 'New passwords do not match.', isError: true);
-                  return;
-                }
-                if (newPass.text.length < 6) {
-                  _showSnackBar(context, 'Password must be at least 6 characters.', isError: true);
-                  return;
-                }
-                Navigator.pop(ctx);
-                _showSnackBar(context, 'Password updated successfully!');
-              },
-              child: const Text('Update'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   void _showTradeExecutionSettingsDialog(BuildContext context) {
     final settings = ref.read(settingsProvider);
@@ -1008,76 +932,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showHelpCenterSheet(BuildContext context) {
-    final faqs = [
-      {'q': 'How do I place paper trades?', 'a': 'Navigate to any stock detail page or Watchlist tab and tap "Buy" or "Sell". Select Market/Limit order and confirm.'},
-      {'q': 'Is real-time data included?', 'a': 'Yes! Alpaca WebSocket feeds provide real-time quote and trade updates.'},
-      {'q': 'How do alert notifications work?', 'a': 'You can set price target alerts under the Alerts tab. When triggered, push notifications will notify your device.'},
-      {'q': 'Where do fundamentals come from?', 'a': 'Fundamentals data is sourced via AlphaVantage financial overview APIs.'},
-    ];
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.7,
-          maxChildSize: 0.9,
-          builder: (context, scrollController) {
-            final theme = Theme.of(context);
-            return ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(20),
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Help Center & FAQ',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                ...faqs.map((faq) => ExpansionTile(
-                      title: Text(faq['q']!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-                          child: Text(faq['a']!, style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13)),
-                        ),
-                      ],
-                    )),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _showSnackBar(context, 'Support request submitted. Support team will email you shortly.');
-                    },
-                    icon: const Icon(Icons.email_outlined),
-                    label: const Text('Contact AlphaCues Support'),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 
   void _showPrivacyPolicyDialog(BuildContext context) {
     showDialog(
@@ -1228,6 +1083,324 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       indent: 56,
       endIndent: 16,
       color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+    );
+  }
+}
+
+/// Transaction History Section displayed on the Profile/Settings screen.
+/// Expandable card that opens to display all BUY & SELL trade executions.
+class _DashboardTransactionsSection extends ConsumerStatefulWidget {
+  const _DashboardTransactionsSection();
+
+  @override
+  ConsumerState<_DashboardTransactionsSection> createState() =>
+      __DashboardTransactionsSectionState();
+}
+
+class __DashboardTransactionsSectionState
+    extends ConsumerState<_DashboardTransactionsSection> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final transactionsAsync = ref.watch(portfolioTransactionsProvider);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+          childrenPadding:
+              const EdgeInsets.only(left: 18, right: 18, bottom: 18),
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              color: colorScheme.primary,
+              size: 22,
+            ),
+          ),
+          title: Text(
+            'Transaction History',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Text(
+            'Tap to view recent buy & sell trade executions',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          children: [
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Trades',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: () => PortfolioEventFormDialog.show(context),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('Add Trade'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            transactionsAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+              error: (err, _) => Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded,
+                        color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text('Error loading transactions: $err',
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.red)),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          ref.invalidate(portfolioTransactionsProvider),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+              data: (transactions) {
+                if (transactions.isEmpty) {
+                  return Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 40,
+                            color: colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.4),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No transactions logged yet',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap + Add Trade above to record your first trade.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: transactions.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 12, indent: 8, endIndent: 8),
+                  itemBuilder: (context, i) {
+                    final event = transactions[i];
+                    final isBuy = event.action.toUpperCase() == 'BUY';
+                    final chipColor =
+                        isBuy ? AppColors.positive : AppColors.negative;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isBuy
+                                  ? AppColors.positiveBackground
+                                  : AppColors.negativeBackground,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              isBuy
+                                  ? Icons.arrow_downward_rounded
+                                  : Icons.arrow_upward_rounded,
+                              color: chipColor,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      event.symbol,
+                                      style:
+                                          theme.textTheme.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            chipColor.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        event.action,
+                                        style: TextStyle(
+                                          color: chipColor,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${event.volume} shares @ \$${formatPrice(event.price)}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '\$${formatPrice(event.volume * event.price)}',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                formatAsOfTimestamp(event.timeStamp),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                          PopupMenuButton<String>(
+                            onSelected: (action) async {
+                              if (action == 'edit') {
+                                PortfolioEventFormDialog.show(context,
+                                    event: event);
+                              } else if (action == 'delete') {
+                                try {
+                                  await ref
+                                      .read(portfolioRepositoryProvider)
+                                      .deleteEvent(event.eventId);
+                                  ref.invalidate(
+                                      portfolioTransactionsProvider);
+                                  ref.invalidate(portfolioSummaryProvider);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('Transaction deleted')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text('Failed to delete: $e')),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Row(children: [
+                                  Icon(Icons.edit_outlined, size: 16),
+                                  SizedBox(width: 8),
+                                  Text('Edit', style: TextStyle(fontSize: 13)),
+                                ]),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(children: [
+                                  Icon(Icons.delete_outline,
+                                      size: 16, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete',
+                                      style: TextStyle(
+                                          fontSize: 13, color: Colors.red)),
+                                ]),
+                              ),
+                            ],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.more_vert_rounded,
+                                size: 18,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

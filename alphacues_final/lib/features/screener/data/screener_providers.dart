@@ -119,6 +119,7 @@ class ScreenerNotifier extends StateNotifier<ScreenerState> {
         filters: state.filters,
         sortBy: state.sortBy,
         sortOrder: state.sortOrder,
+        limit: 1000,
       );
       state = state.copyWith(isLoading: false, result: res);
     } on ApiException catch (e) {

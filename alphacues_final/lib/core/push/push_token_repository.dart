@@ -2,10 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import '../auth/auth_session_provider.dart';
 import '../network/api_client.dart';
 
 final pushTokenRepositoryProvider = Provider<PushTokenRepository>((ref) {
-  final dio = ref.watch(apiClientProvider);
+  final dio = ref.watch(dioProvider);
   return PushTokenRepository(dio);
 });
 

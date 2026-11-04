@@ -61,11 +61,9 @@ void main() {
       // selectedIndexForLocation is a deterministic pure function — test it directly.
       // When enableScreener=false, /screener path maps to index 0 (dashboard fallback).
       const location = '/screener';
-      const enableScreener = false;
 
       final index = AuthenticatedShell.selectedIndexForLocation(
         location,
-        enableScreener,
       );
 
       // Index 4 (screener) should NOT be returned when flag is false.

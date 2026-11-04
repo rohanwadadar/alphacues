@@ -191,7 +191,7 @@ class SocialCopyTradingWidget extends StatelessWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Copied ${trader.name}\'s strategy into Virtual Portfolio!'),
-                                backgroundColor: AppColors.positive,
+                                backgroundColor: const Color(0xFF673AB7),
                               ),
                             );
                           },

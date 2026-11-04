@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum AlertCondition { above, below, percentChange }
@@ -40,23 +39,7 @@ class PriceAlert {
 }
 
 class PriceAlertsNotifier extends StateNotifier<List<PriceAlert>> {
-  PriceAlertsNotifier()
-      : super([
-          PriceAlert(
-            id: '1',
-            symbol: 'GOOGL',
-            targetPrice: 350.0,
-            condition: AlertCondition.above,
-            createdAt: DateTime.now().subtract(const Duration(days: 1)),
-          ),
-          PriceAlert(
-            id: '2',
-            symbol: 'NVDA',
-            targetPrice: 120.0,
-            condition: AlertCondition.below,
-            createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-          ),
-        ]);
+  PriceAlertsNotifier() : super(const []);
 
   void addAlert({
     required String symbol,

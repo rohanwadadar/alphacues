@@ -11,6 +11,7 @@ const authenticatedRoutes = <String>{
   '/portfolio',
   '/screener',
   '/settings',
+  '/new-user-kyc',
 };
 
 bool isAuthenticatedRoute(String path) {

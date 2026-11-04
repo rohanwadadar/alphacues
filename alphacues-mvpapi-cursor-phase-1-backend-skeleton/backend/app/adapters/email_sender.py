@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 class ConsoleEmailSender:
     def send_otp(self, to_email: str, otp_code: str) -> None:
         print(f"[alphacues-otp] email={to_email} otp={otp_code}", flush=True)
+        with open("otp.txt", "w") as f:
+            f.write(f"email={to_email} otp={otp_code}")
 
 
 class SMTPEmailSender:

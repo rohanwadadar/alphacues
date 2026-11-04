@@ -194,6 +194,17 @@ abstract final class AppTheme {
           color: colorScheme.onSurfaceVariant,
         ),
       ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF673AB7),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+      ),
       dividerTheme: DividerThemeData(color: dividerColor),
       cardTheme: CardThemeData(
         color: cardColor,

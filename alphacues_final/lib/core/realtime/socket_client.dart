@@ -187,9 +187,9 @@ class SocketClient {
        _connectivity = connectivity ?? Connectivity(),
        _watchConnectivity = watchConnectivity && connectivity != null;
 
-  static const reconnectionDelayMs = 1000;
-  static const reconnectionDelayMaxMs = 30000;
-  static const reconnectionAttempts = 10;
+  static const reconnectionDelayMs = 500;
+  static const reconnectionDelayMaxMs = 3000;
+  static const reconnectionAttempts = 15;
 
   final AppConfig _config;
   final SecureTokenStore _tokenStore;
@@ -287,6 +287,7 @@ class SocketClient {
     socket.on('connect', (_) {
       _connectionNotifier.setConnected();
       socket.emit(kResumeSession, null);
+      socket.emit(kSubscribeNotifications, null);
       _onConnected();
     });
 
@@ -363,7 +364,7 @@ class SocketClient {
     final socket = io.io(
       url,
       io.OptionBuilder()
-          .setTransports(['websocket'])
+          .setTransports(['websocket', 'polling'])
           .disableAutoConnect()
           .enableReconnection()
           .setReconnectionAttempts(reconnectionAttempts)

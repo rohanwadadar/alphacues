@@ -78,6 +78,11 @@ def _publish_tick(
     logger.debug("Published quote tick channel=%s payload=%s", channel, payload)
     market_service.upsert_tick(enriched)
     db.session.commit()
+    try:
+        from app.modules.alerts.service import AlertEvaluationService
+        AlertEvaluationService.evaluate_alerts_for_symbol(enriched.symbol, enriched.lastPrice)
+    except Exception as exc:
+        logger.debug("Alert evaluation on tick skipped/failed: %s", exc)
 
 
 def main() -> int:

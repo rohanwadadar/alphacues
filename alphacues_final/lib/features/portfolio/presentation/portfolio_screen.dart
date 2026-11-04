@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/router/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme.dart';
@@ -11,6 +10,7 @@ import '../../../core/platform/connectivity_service.dart';
 import '../../../core/realtime/quote_subscription_manager.dart';
 import '../../../core/realtime/socket_client.dart';
 import '../../../core/realtime/socket_events.dart';
+import '../../../core/utils/us_market_time.dart';
 import '../../../core/widgets/alpha_cues_logo.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
@@ -18,6 +18,8 @@ import '../../../core/widgets/loading_skeleton.dart';
 import '../../../core/widgets/safe_screen.dart';
 import '../../../core/widgets/stale_banner.dart';
 import '../../dashboard/presentation/widgets/dashboard_formatters.dart';
+import '../../market/data/bars_provider.dart';
+import '../../market/data/market_repository.dart' show Bar;
 import '../../watchlist/data/watchlist_providers.dart';
 import '../../watchlist/presentation/widgets/watchlist_tracking_chart.dart';
 import '../data/portfolio_providers.dart';
@@ -135,14 +137,24 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF673AB7),
+          content: Text(error.message),
+        ),
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(portfolioErrorMessage(error))));
+      ).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF673AB7),
+          content: Text(portfolioErrorMessage(error)),
+        ),
+      );
     }
   }
 
@@ -229,15 +241,26 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                     ),
                     data: (transactions) {
                       if (transactions.isEmpty) {
-                        return EmptyState(
-                          icon: Icons.pie_chart_outline,
-                          heading: 'No holdings yet',
-                          body:
-                              'Add your first BUY to start tracking your portfolio.',
-                          actionLabel: mutationsEnabled
-                              ? 'Add transaction'
-                              : null,
-                          onAction: mutationsEnabled ? _openAddDialog : null,
+                        return ListView(
+                          children: [
+                            _SummaryCard(
+                              overview: overview,
+                              isDegraded: !isOnline || showStaleBanner,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: EmptyState(
+                                icon: Icons.pie_chart_outline,
+                                heading: 'Portfolio is Clear',
+                                body:
+                                    'Your portfolio is completely empty (\$0.00). Tap below to add your first transaction.',
+                                actionLabel: mutationsEnabled
+                                    ? 'Add transaction'
+                                    : null,
+                                onAction: mutationsEnabled ? _openAddDialog : null,
+                              ),
+                            ),
+                          ],
                         );
                       }
 
@@ -329,7 +352,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
 }
 
 class _SummaryCard extends ConsumerStatefulWidget {
-  const _SummaryCard({super.key, required this.overview, required this.isDegraded});
+  const _SummaryCard({required this.overview, required this.isDegraded});
 
   final PortfolioOverview overview;
   final bool isDegraded;
@@ -341,11 +364,17 @@ class _SummaryCard extends ConsumerStatefulWidget {
 class _SummaryCardState extends ConsumerState<_SummaryCard> {
   String _selectedRange = '1D';
   String? _selectedWatchlistId;
+  Map<String, dynamic>? _scrubbedPoint;
+
+  String _formatBarTimestamp(String isoStamp, String range) {
+    return formatUsMarketTimestamp(isoStamp, range: range);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final summary = widget.overview.summary;
+    final transactionsAsync = ref.watch(portfolioTransactionsProvider);
     final watchlistsAsync = ref.watch(watchlistsProvider);
 
     double displayTotalValue = summary.totalValue;
@@ -353,37 +382,225 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
     double displayTotalProfit = summary.totalProfit;
     double displayReturnPct = summary.totalReturn;
 
-    if (_selectedWatchlistId != null) {
-      final detailAsync = ref.watch(watchlistDetailProvider(_selectedWatchlistId!));
-      if (detailAsync case AsyncData(:final value)) {
-        displayTotalValue = value.items.fold<double>(0.0, (sum, item) {
-          final price = item.quote?.lastPrice ?? 150.0;
-          final qty = item.quantity ?? 1.0;
-          return sum + (price * qty);
-        });
-
-        displayDayChange = value.items.fold<double>(0.0, (sum, item) {
-          final chg = item.quote?.changeAmount ?? 2.5;
-          final qty = item.quantity ?? 1.0;
-          return sum + (chg * qty);
-        });
-
-        displayTotalProfit = displayDayChange;
-        displayReturnPct = displayTotalValue > 0 ? (displayDayChange / displayTotalValue * 100) : 0.0;
+    // Map earliest BUY transaction timestamp for each symbol
+    final txList = transactionsAsync.asData?.value ?? const <PortfolioEvent>[];
+    final Map<String, DateTime> firstBuyDates = {};
+    for (final tx in txList) {
+      if (tx.action.toUpperCase() == 'BUY') {
+        final parsed = DateTime.tryParse(tx.timeStamp)?.toUtc();
+        if (parsed != null) {
+          final existing = firstBuyDates[tx.symbol];
+          if (existing == null || parsed.isBefore(existing)) {
+            firstBuyDates[tx.symbol] = parsed;
+          }
+        }
       }
     }
 
-    final chartPoints = List.generate(20, (i) {
-      final base = displayTotalValue == 0 ? 2500.0 : displayTotalValue;
-      double mult = 1.0;
-      if (_selectedRange == '5D') mult = 1.0 + (i * 0.005);
-      else if (_selectedRange == '1M') mult = 1.0 + (i * 0.01);
-      else if (_selectedRange == '3M') mult = 1.0 + (i * 0.015);
-      else if (_selectedRange == 'YTD') mult = 1.0 + (i * 0.02);
-      else if (_selectedRange == '1Y') mult = 1.0 + (i * 0.025);
-      else if (_selectedRange == 'MAX') mult = 1.0 + (i * 0.03);
-      return {'value': base * (0.95 + 0.05 * (i / 20.0) * mult)};
-    });
+    final List<({String symbol, double quantity, DateTime? buyDate, double costBasis, double entryPrice})> chartHoldings = [];
+
+    if (_selectedWatchlistId == null) {
+      if (widget.overview.positions.isNotEmpty || summary.totalValue > 0) {
+        double calculatedVal = 0.0;
+        double calculatedCost = 0.0;
+        double calculatedDayChg = 0.0;
+        final now = DateTime.now().toUtc();
+
+        for (final pos in widget.overview.positions) {
+          DateTime? buyDate = firstBuyDates[pos.symbol];
+          buyDate ??= DateTime.tryParse(pos.updatedAt)?.toUtc();
+          buyDate ??= DateTime.now().toUtc();
+
+          final livePrice = pos.lastPrice ?? (pos.volume > 0 ? pos.totalPrice / pos.volume : 0.0);
+          final posVal = livePrice * pos.volume;
+          final posCost = pos.totalPrice;
+          final entryPrice = pos.volume > 0 ? (pos.totalPrice / pos.volume) : livePrice;
+          calculatedVal += posVal;
+          calculatedCost += posCost;
+
+          chartHoldings.add((
+            symbol: pos.symbol,
+            quantity: pos.volume.toDouble(),
+            buyDate: buyDate,
+            costBasis: posCost,
+            entryPrice: entryPrice,
+          ));
+
+          final isBoughtToday = buyDate.year == now.year && buyDate.month == now.month && buyDate.day == now.day;
+          if (isBoughtToday) {
+            calculatedDayChg += (posVal - pos.totalPrice);
+          } else {
+            calculatedDayChg += ((pos.changeAmount ?? 0.0) * pos.volume);
+          }
+        }
+
+        displayTotalValue = summary.totalValue > 0 ? summary.totalValue : calculatedVal;
+        if (displayTotalValue <= 0.0) {
+          displayTotalValue = calculatedVal;
+        }
+
+        displayTotalProfit = summary.totalProfit != 0.0
+            ? summary.totalProfit
+            : (calculatedCost > 0.0 ? (displayTotalValue - calculatedCost) : 0.0);
+
+        final allBoughtToday = chartHoldings.isNotEmpty &&
+            chartHoldings.every((h) =>
+                h.buyDate != null &&
+                h.buyDate!.year == now.year &&
+                h.buyDate!.month == now.month &&
+                h.buyDate!.day == now.day);
+        if (allBoughtToday) {
+          displayDayChange = calculatedDayChg;
+        } else {
+          displayDayChange = summary.dayChange != 0.0 ? summary.dayChange : calculatedDayChg;
+        }
+      } else {
+        displayTotalValue = summary.totalValue;
+        displayDayChange = summary.dayChange;
+        displayTotalProfit = summary.totalProfit;
+        displayReturnPct = summary.totalReturn;
+      }
+    } else {
+      final detailAsync = ref.watch(watchlistDetailProvider(_selectedWatchlistId!));
+      if (detailAsync case AsyncData(:final value)) {
+        double wlValue = 0.0;
+        double wlDayChange = 0.0;
+        for (final item in value.items) {
+          final pos = widget.overview.positions.where((p) => p.symbol == item.symbol).firstOrNull;
+          final price = item.quote?.lastPrice ?? (pos?.lastPrice ?? 0.0);
+          final chg = item.quote?.changeAmount ?? (pos?.changeAmount ?? 0.0);
+          final qty = item.quantity ?? (pos?.volume.toDouble() ?? 1.0);
+          wlValue += price * qty;
+          wlDayChange += chg * qty;
+
+          final buyDate = firstBuyDates[item.symbol] ??
+              DateTime.tryParse(pos?.updatedAt ?? '')?.toUtc();
+          final itemCost = pos != null && pos.totalPrice > 0 ? pos.totalPrice : (price * qty);
+          final itemEntryPrice = pos != null && pos.volume > 0 ? (pos.totalPrice / pos.volume) : price;
+          chartHoldings.add((
+            symbol: item.symbol,
+            quantity: qty,
+            buyDate: buyDate,
+            costBasis: itemCost,
+            entryPrice: itemEntryPrice,
+          ));
+        }
+
+        displayTotalValue = wlValue;
+        displayDayChange = wlDayChange;
+        displayTotalProfit = wlDayChange;
+        final prevWlVal = wlValue - wlDayChange;
+        displayReturnPct = prevWlVal > 0 ? (wlDayChange / prevWlVal * 100) : 0.0;
+      }
+    }
+
+    final prevClose = displayTotalValue - displayDayChange;
+    final todayReturnPercent = prevClose > 0 ? (displayDayChange / prevClose * 100) : 0.0;
+
+    // Build dynamic multi-stock historical equity curve
+    final List<Map<String, dynamic>> chartPoints = [];
+    if (chartHoldings.isEmpty || displayTotalValue <= 0.0) {
+      chartPoints.addAll(List.generate(20, (_) => {'value': 0.0, 'time': ''}));
+    } else {
+      final Map<String, List<Bar>> symbolBarsMap = {};
+      for (final h in chartHoldings) {
+        final barsAsync = ref.watch(barsProvider((symbol: h.symbol, range: _selectedRange)));
+        if (barsAsync case AsyncData(:final value) when value.bars.isNotEmpty) {
+          symbolBarsMap[h.symbol] = value.bars;
+        }
+      }
+
+      if (symbolBarsMap.isEmpty) {
+        chartPoints.addAll(List.generate(20, (_) => {'value': displayTotalValue, 'time': 'Market Closed'}));
+      } else {
+        final Set<String> allTimeStamps = {};
+        for (final bars in symbolBarsMap.values) {
+          for (final b in bars) {
+            allTimeStamps.add(b.timeStamp);
+          }
+        }
+
+        final sortedTimeStamps = allTimeStamps.toList()..sort();
+        if (sortedTimeStamps.isEmpty) {
+          chartPoints.addAll(List.generate(20, (_) => {'value': displayTotalValue, 'time': 'Market Closed'}));
+        } else {
+          for (final timeStr in sortedTimeStamps) {
+            final barTime = DateTime.tryParse(timeStr)?.toUtc();
+            double pointTotal = 0.0;
+
+            for (final h in chartHoldings) {
+              final isBeforeAcquisition = (barTime != null && h.buyDate != null && barTime.isBefore(h.buyDate!));
+              if (isBeforeAcquisition) {
+                // Before acquisition, position value was its initial cost basis (flat baseline before purchase)
+                pointTotal += h.costBasis;
+              } else {
+                final bars = symbolBarsMap[h.symbol];
+                double close = h.entryPrice;
+                if (bars != null && bars.isNotEmpty) {
+                  close = bars.first.closePrice;
+                  for (final b in bars) {
+                    if (b.timeStamp.compareTo(timeStr) <= 0) {
+                      close = b.closePrice;
+                    } else {
+                      break;
+                    }
+                  }
+                }
+                if (close <= 0.0) close = h.entryPrice;
+                pointTotal += (close * h.quantity);
+              }
+            }
+
+            chartPoints.add({
+              'value': pointTotal,
+              'time': _formatBarTimestamp(timeStr, _selectedRange),
+            });
+          }
+        }
+      }
+    }
+
+    // Flatline at displayTotalValue when market closed or all points are zero
+    final hasNonZero = chartPoints.any((pt) => (pt['value'] as num) > 0.0);
+    if (!hasNonZero && displayTotalValue > 0.0) {
+      chartPoints.clear();
+      chartPoints.addAll(List.generate(20, (_) => {'value': displayTotalValue, 'time': 'Market Closed'}));
+    }
+
+    // Range-based return calculation
+    double rangeChange = displayDayChange;
+    double rangeReturnPct = todayReturnPercent;
+
+    if (_selectedRange == 'MAX' && _selectedWatchlistId == null && displayTotalProfit != 0.0) {
+      rangeChange = displayTotalProfit;
+      rangeReturnPct = displayReturnPct;
+    } else if (chartPoints.isNotEmpty && _selectedRange != '1D') {
+      final startVal = (chartPoints.first['value'] as num).toDouble();
+      final endVal = (chartPoints.last['value'] as num).toDouble();
+      if (startVal > 0.0 && endVal > 0.0) {
+        rangeChange = endVal - startVal;
+        rangeReturnPct = (rangeChange / startVal) * 100;
+      }
+    }
+
+    double finalDisplayDayChange = _selectedRange == '1D' ? displayDayChange : rangeChange;
+    double finalDisplayReturnPct = _selectedRange == '1D' ? todayReturnPercent : rangeReturnPct;
+
+    if (_scrubbedPoint != null && chartPoints.isNotEmpty) {
+      final val = (_scrubbedPoint!['value'] as num).toDouble();
+      displayTotalValue = val;
+      if (_selectedRange == '1D') {
+        final baseline = prevClose > 0 ? prevClose : displayTotalValue;
+        finalDisplayDayChange = val - baseline;
+        finalDisplayReturnPct = baseline > 0 ? (finalDisplayDayChange / baseline * 100) : 0.0;
+      } else {
+        final startVal = (chartPoints.first['value'] as num).toDouble();
+        if (startVal > 0.0) {
+          finalDisplayDayChange = val - startVal;
+          finalDisplayReturnPct = (finalDisplayDayChange / startVal * 100);
+        }
+      }
+    }
 
     return Card(
       margin: const EdgeInsets.all(AppSpacing.md),
@@ -406,34 +623,44 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer.withOpacity(0.2),
+                      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2)),
+                      border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
                     ),
                     child: DropdownButton<String?>(
                       value: _selectedWatchlistId,
-                      isDense: true,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
+                      borderRadius: BorderRadius.circular(16),
                       items: [
-                        const DropdownMenuItem(
+                        DropdownMenuItem<String?>(
                           value: null,
-                          child: Text('All Watchlists'),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.pie_chart_rounded, size: 14, color: theme.colorScheme.primary),
+                              const SizedBox(width: 6),
+                              const Text('Total Portfolio', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
                         if (watchlistsAsync.hasValue)
                           ...watchlistsAsync.requireValue.map(
-                            (w) => DropdownMenuItem(
+                            (w) => DropdownMenuItem<String?>(
                               value: w.watchlistId,
-                              child: Text(w.name),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.star_rounded, size: 14, color: Colors.amber),
+                                  const SizedBox(width: 6),
+                                  Text(w.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
                             ),
                           ),
                       ],
-                      onChanged: (val) {
+                      onChanged: (value) {
                         setState(() {
-                          _selectedWatchlistId = val;
+                          _selectedWatchlistId = value;
+                          _scrubbedPoint = null;
                         });
                       },
                     ),
@@ -443,7 +670,7 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
             ),
             const SizedBox(height: 8),
 
-            // Big Total Valuation Display
+            // Total Portfolio Balance Value
             Text(
               formatPrice(displayTotalValue),
               style: theme.textTheme.headlineMedium?.copyWith(
@@ -452,23 +679,38 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
                 color: theme.colorScheme.onSurface,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
 
-            // Daily Change Badge
-            Row(
+            // Daily Change Pill
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                Icon(
-                  displayDayChange >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                  size: 16,
-                  color: displayDayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${formatSignedAmount(displayDayChange)} (${formatPercent(displayReturnPct)}) Today',
-                  style: TextStyle(
-                    color: displayDayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                // Daily Change Pill
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (finalDisplayDayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        finalDisplayDayChange >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                        size: 14,
+                        color: finalDisplayDayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_selectedRange: ${formatSignedAmount(finalDisplayDayChange)} (${formatPercent(finalDisplayReturnPct)})',
+                        style: TextStyle(
+                          color: finalDisplayDayChange >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -483,6 +725,11 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
               onRangeChanged: (range) {
                 setState(() {
                   _selectedRange = range;
+                });
+              },
+              onScrub: (point) {
+                setState(() {
+                  _scrubbedPoint = point;
                 });
               },
             ),
@@ -627,11 +874,39 @@ class _PositionRow extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              formatAsOfTimestamp(position.updatedAt),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (position.lastPrice != null) ...[
+                  Text(
+                    formatPrice(position.lastPrice! * position.volume),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    formatSignedAmount(
+                      (position.lastPrice! * position.volume) -
+                          position.totalPrice,
+                    ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color:
+                          ((position.lastPrice! * position.volume) >=
+                                  position.totalPrice)
+                              ? AppColors.positive
+                              : AppColors.negative,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    formatAsOfTimestamp(position.updatedAt),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -741,7 +1016,7 @@ class _TransactionRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Text(
-                      event.action,
+                      isBuy ? 'ADDED' : 'REMOVED',
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: chipColor,
                         fontWeight: FontWeight.w600,

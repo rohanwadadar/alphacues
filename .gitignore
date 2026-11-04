@@ -2,16 +2,21 @@
 *.zip
 *.tar.gz
 *.7z
+*.rar
+
+# Sub-repositories
+alphacues-api-unified/
 
 # Flutter / Dart
 build/
 .dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
+.flutter-plugins*
+**/.flutter-plugins*
 .pub-cache/
 .pub/
 
-# Python
+# Virtual Environments & Python
+.venv-ubuntu/
 .venv/
 venv/
 ENV/
@@ -20,6 +25,11 @@ __pycache__/
 *$py.class
 celerybeat-schedule*
 *.log
+.coverage*
+
+# Temporary scripts
+alphacues_final/*.py
+alphacues_final/*.txt
 
 # Java / Gradle / Android
 .gradle/

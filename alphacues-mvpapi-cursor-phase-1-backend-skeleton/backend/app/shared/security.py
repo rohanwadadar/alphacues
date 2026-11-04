@@ -39,7 +39,7 @@ def configure_cors(app: Flask) -> None:
 
     CORS(
         app,
-        resources={r"/api/*": {"origins": origins}},
+        resources={r"/*": {"origins": origins}},
         supports_credentials=True,
     )
     logger.info("Configured CORS allowed origins: %s", origins)

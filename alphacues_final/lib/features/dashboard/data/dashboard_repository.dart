@@ -160,29 +160,18 @@ class DashboardRepository {
         '/api/v1/notifications',
         queryParameters: {'limit': 1, 'unreadOnly': true},
       );
-      final envelope = parseEnvelope<Map<String, dynamic>>(
+      final envelope = parseEnvelope<dynamic>(
         response.data,
         parseData: (json) => json,
       );
 
       final data = envelope.data;
-      if (data != null) {
-        final unread =
-            data['unreadCount'] as int? ??
-            data['unreadNotificationCount'] as int?;
-        if (unread != null) {
-          return unread;
-        }
+      if (data is List) {
+        return data.length;
+      } else if (data is Map<String, dynamic>) {
+        final unread = data['unreadCount'] ?? data['count'];
+        if (unread is int) return unread;
       }
-
-      final raw = response.data;
-      if (raw is Map<String, dynamic>) {
-        final meta = raw['meta'];
-        if (meta is Map<String, dynamic>) {
-          return meta['unreadCount'] as int? ?? 0;
-        }
-      }
-
       return 0;
     } on DioException catch (error) {
       throw _mapDioError(error);

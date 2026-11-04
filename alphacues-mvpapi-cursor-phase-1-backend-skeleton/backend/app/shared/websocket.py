@@ -68,6 +68,7 @@ class StreamNamespace(Namespace):
 
         session["user_id"] = user_id
         session["subscriptions"] = set()
+        join_room(_user_room(str(user_id)))
         self.emit("connection_state", _connection_state(session["subscriptions"]))
         return True
 
@@ -213,19 +214,38 @@ def flush_quote_batch() -> int:
 
 
 def _redis_quote_listener(app: Flask) -> None:
+    import redis.exceptions
+    try:
+        import eventlet
+        sleep_fn = eventlet.sleep
+    except ImportError:
+        import time
+        sleep_fn = time.sleep
+
     pubsub = get_redis().pubsub(ignore_subscribe_messages=True)
     pubsub.psubscribe("quotes:*")
     logger.info("Redis quote listener subscribed to quotes:*")
 
-    for message in pubsub.listen():
-        if message.get("type") != "pmessage":
+    while True:
+        try:
+            message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            if not message:
+                sleep_fn(0.05)
+                continue
+            if message.get("type") != "pmessage":
+                continue
+            channel = message.get("channel") or ""
+            data = message.get("data")
+            if not isinstance(data, str):
+                continue
+            with app.app_context():
+                _handle_quote_message(app, channel, data)
+        except (TimeoutError, redis.exceptions.TimeoutError):
+            sleep_fn(0.05)
             continue
-        channel = message.get("channel") or ""
-        data = message.get("data")
-        if not isinstance(data, str):
-            continue
-        with app.app_context():
-            _handle_quote_message(app, channel, data)
+        except Exception as exc:
+            logger.debug("Redis quote listener transient error: %s", exc)
+            sleep_fn(0.5)
 
 
 def init_websocket(app: Flask) -> None:

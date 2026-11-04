@@ -14,6 +14,16 @@ import '../features/splash/presentation/splash_screen.dart';
 
 import '../features/settings/data/settings_provider.dart';
 
+class NoScrollbarBehavior extends MaterialScrollBehavior {
+  const NoScrollbarBehavior();
+
+  @override
+  Widget buildScrollbar(
+      BuildContext context, Widget child, ScrollableDetails details) {
+    return child;
+  }
+}
+
 class AlphaCuesApp extends ConsumerStatefulWidget {
   const AlphaCuesApp({super.key});
 
@@ -54,6 +64,7 @@ class _AlphaCuesAppState extends ConsumerState<AlphaCuesApp> {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: themeMode,
+          scrollBehavior: const NoScrollbarBehavior(),
           routerConfig: router,
           builder: (context, child) {
             if (authState.isLoading) {

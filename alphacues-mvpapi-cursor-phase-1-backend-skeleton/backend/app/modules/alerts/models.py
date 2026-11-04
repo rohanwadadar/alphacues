@@ -71,3 +71,31 @@ class AlertTriggerEvent(db.Model):
         DateTime(timezone=True), nullable=False
     )
     trigger_price: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+
+
+class AlertHistoryEvent(db.Model):
+    __tablename__ = "alert_history_events"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
+    alert_id: Mapped[int | None] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), nullable=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), ForeignKey("users.user_id"), nullable=False
+    )
+    symbol: Mapped[str] = mapped_column(Text, nullable=False)
+    condition: Mapped[str] = mapped_column(Text, nullable=False)
+    target: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+    trigger_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    action: Mapped[str] = mapped_column(Text, nullable=False)  # "CREATED", "TRIGGERED", "UPDATED", "DELETED"
+    action_label: Mapped[str] = mapped_column(Text, nullable=False)  # "Set", "Triggered", "Updated", "Removed"
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("idx_alert_history_user", "user_id"),
+        Index("idx_alert_history_user_created", "user_id", "created_at"),
+    )

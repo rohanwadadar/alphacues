@@ -1,11 +1,12 @@
-from __future__ import annotations
-
+import logging
 import time
 from dataclasses import asdict, is_dataclass
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.adapters.protocols import (
     BarsPayload,
@@ -113,6 +114,23 @@ def _dict_to_fundamentals(data: dict[str, Any]) -> FundamentalsPayload:
         fiftyTwoWeekHigh=Decimal(str(data["fiftyTwoWeekHigh"])),
         fiftyTwoWeekLow=Decimal(str(data["fiftyTwoWeekLow"])),
         description=data.get("description"),
+        volume=int(data["volume"]) if data.get("volume") is not None else None,
+        avgVolume=str(data["avgVolume"]) if data.get("avgVolume") is not None else None,
+        openPrice=Decimal(str(data["openPrice"])) if data.get("openPrice") is not None else None,
+        prevClose=Decimal(str(data["prevClose"])) if data.get("prevClose") is not None else None,
+        rvol=Decimal(str(data["rvol"])) if data.get("rvol") is not None else None,
+        todaysLow=Decimal(str(data["todaysLow"])) if data.get("todaysLow") is not None else None,
+        todaysHigh=Decimal(str(data["todaysHigh"])) if data.get("todaysHigh") is not None else None,
+        dayRange=data.get("dayRange"),
+        yearRange=data.get("yearRange"),
+        expertBuyPercent=Decimal(str(data["expertBuyPercent"])) if data.get("expertBuyPercent") is not None else None,
+        expertHoldPercent=Decimal(str(data["expertHoldPercent"])) if data.get("expertHoldPercent") is not None else None,
+        expertSellPercent=Decimal(str(data["expertSellPercent"])) if data.get("expertSellPercent") is not None else None,
+        earningsPrices=data.get("earningsPrices"),
+        roeSeries=data.get("roeSeries"),
+        debtEquitySeries=data.get("debtEquitySeries"),
+        netProfitMarginSeries=data.get("netProfitMarginSeries"),
+        financialStatements=data.get("financialStatements"),
     )
 
 
@@ -161,10 +179,20 @@ class MarketService:
             _payload_to_dict(payload),
             ttl_seconds=QUOTE_TTL_SECONDS,
         )
+        try:
+            from app.modules.alerts.service import AlertEvaluationService
+            AlertEvaluationService.evaluate_alerts_for_symbol(payload.symbol, payload.lastPrice)
+        except Exception:
+            pass
         return payload
 
     def upsert_tick(self, quote: QuotePayload) -> None:
         StockTick.upsert_tick(self._session, quote)
+        try:
+            from app.modules.alerts.service import AlertEvaluationService
+            AlertEvaluationService.evaluate_alerts_for_symbol(quote.symbol, quote.lastPrice)
+        except Exception:
+            pass
     def get_bars(self, symbol: str, timeframe: str, range: str) -> BarsPayload:
         cache_key = f"market:bars:{symbol}:{timeframe}:{range}"
         cached = self._cache.get_json(cache_key)
@@ -172,7 +200,12 @@ class MarketService:
             return _dict_to_bars(cached)
 
         payload = self._adapter.get_bars(symbol, timeframe, range)
-        StockTick.upsert_bars(self._session, payload)
+        try:
+            StockTick.upsert_bars(self._session, payload)
+        except Exception as exc:
+            logger.warning("Failed to upsert bars into stock_tick: %s", exc)
+            self._session.rollback()
+
         ttl = (
             BARS_SHORT_TTL_SECONDS
             if timeframe in SHORT_BAR_TIMEFRAMES

@@ -8,6 +8,7 @@ from marshmallow import (
     ValidationError,
     fields,
     post_load,
+    pre_load,
     validate,
     validates_schema,
 )
@@ -57,8 +58,16 @@ class ScreenerScanRequestSchema(Schema):
     )
     limit = fields.Integer(
         load_default=50,
-        validate=validate.Range(min=1, max=100),
+        validate=validate.Range(min=1, max=10000),
     )
+
+    @pre_load
+    def clean_sort(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if isinstance(data, dict):
+            if "sort_by" in data and (not data["sort_by"] or data["sort_by"].strip() == ""):
+                data["sort_by"] = "marketCap"
+        return data
+
 
 
 class CreateStrategySchema(Schema):

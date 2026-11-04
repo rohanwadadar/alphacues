@@ -1,4 +1,3 @@
-import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,11 +12,16 @@ import '../../../features/watchlist/data/watchlist_repository.dart'
 final marketSymbolPattern = watchlistSymbolPattern;
 
 /// Maps UI range chips to API `timeframe` query values.
+/// Standard broker bin sizing (Robinhood/Groww reference):
+/// 1D → 5min  | 5D → 1hour  | 1M → 1hour
+/// 3M/YTD/1Y → 1day  | MAX → 1month
 const Map<String, String> kRangeToTimeframe = {
   '1D': '5min',
-  '1W': '30min',
+  '5D': '1hour',
+  '1W': '1hour',
   '1M': '1hour',
   '3M': '1day',
+  'YTD': '1day',
   '6M': '1day',
   '1Y': '1day',
   '5Y': '1week',
@@ -142,6 +146,10 @@ class MarketFundamentals {
       ..remove('symbol');
     return MarketFundamentals(symbol: symbol, fields: fields);
   }
+
+  double? get marketCap => (fields['marketCap'] as num?)?.toDouble() ?? double.tryParse(fields['marketCap']?.toString() ?? '');
+  double? get peRatio => (fields['peRatio'] as num?)?.toDouble() ?? double.tryParse(fields['peRatio']?.toString() ?? '');
+  double? get eps => (fields['eps'] as num?)?.toDouble() ?? double.tryParse(fields['eps']?.toString() ?? '');
 
   List<MapEntry<String, dynamic>> get displayEntries {
     return fields.entries
@@ -363,10 +371,8 @@ class MarketRepository {
       }
     } catch (_) {}
 
-    // Fallback: Generate realistic bar series for range if API returns empty or fails
-    final fallbackList = await _generateFallbackBars(normalized, range);
-    _barsCache[cacheKey] = fallbackList;
-    return fallbackList;
+    // If API returns empty or fails, return empty list without fabricating dummy bars
+    return const <Bar>[];
   }
 
   void _refreshBarsInBackground(String symbol, String range, String cacheKey) async {
@@ -399,58 +405,6 @@ class MarketRepository {
     } catch (_) {}
   }
 
-  Future<List<Bar>> _generateFallbackBars(String symbol, String range) async {
-    double basePrice = 150.0;
-    try {
-      final q = await getQuote(symbol);
-      basePrice = q.lastPrice;
-    } catch (_) {}
-
-    final stepDays = range == 'MAX'
-        ? 28.0
-        : (range == '5Y'
-            ? 7.3
-            : (range == '1Y' ? 2.0 : 1.0));
-
-    final countMap = {
-      '1D': 30,
-      '1W': 40,
-      '1M': 60,
-      '3M': 90,
-      '6M': 120,
-      '1Y': 180,
-      '5Y': 250,
-      'MAX': 300,
-    };
-    final count = countMap[range] ?? 50;
-    final now = DateTime.now().toUtc();
-    final bars = <Bar>[];
-
-    // Generate smooth split-adjusted historical growth curve
-    for (int i = count - 1; i >= 0; i--) {
-      final daysAgo = (i * stepDays).round();
-      final dt = now.subtract(Duration(days: daysAgo));
-      final noise = (((i * 17 + symbol.hashCode) % 100) - 48) / 100.0;
-      
-      // Historical price starts lower and appreciates smoothly to current basePrice
-      final growthRatio = 1.0 - (i / (count * 1.2));
-      final closeP = (basePrice * growthRatio + noise * (basePrice * 0.02)).clamp(1.0, 10000.0);
-      final openP = (closeP - (noise * 0.8)).clamp(1.0, 10000.0);
-      final highP = max(openP, closeP) + (noise.abs() * 0.9) + 0.2;
-      final lowP = max(0.5, min(openP, closeP) - (noise.abs() * 0.9) - 0.2);
-      final volume = 1000000 + ((i * 31 + 100) % 5000000);
-
-      bars.add(Bar(
-        timeStamp: dt.toIso8601String(),
-        openPrice: openP,
-        highPrice: highP,
-        lowPrice: lowP,
-        closePrice: closeP,
-        volume: volume,
-      ));
-    }
-    return bars;
-  }
   Future<List<MarketSearchResult>> searchSymbols(String query, {int limit = 10}) async {
     final q = query.trim();
     if (q.isEmpty) {

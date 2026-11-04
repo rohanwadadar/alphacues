@@ -55,18 +55,16 @@ class MarketNewsWidget extends ConsumerWidget {
             // Content State
             newsAsync.when(
               data: (articles) {
-                if (articles.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: Text('No recent market news available.')),
-                  );
-                }
+                final displayArticles = articles.isNotEmpty
+                    ? articles
+                    : ref.read(newsRepositoryProvider).generateUrgentMarketNews();
 
                 // Display top 4 articles on Home Page
-                final previewArticles = articles.take(4).toList();
+                final previewArticles = displayArticles.take(4).toList();
 
                 return Column(
                   children: previewArticles.map((article) {
+                    final timeLabel = _formatTimeAgo(article.publishedAt);
                     return Column(
                       children: [
                         InkWell(
@@ -114,6 +112,14 @@ class MarketNewsWidget extends ConsumerWidget {
                                               color: colorScheme.primary,
                                             ),
                                           ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '• $timeLabel',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                            ),
+                                          ),
                                           const Spacer(),
                                           if (article.symbols.isNotEmpty)
                                             Container(
@@ -156,7 +162,7 @@ class MarketNewsWidget extends ConsumerWidget {
                           Divider(
                             height: 12,
                             thickness: 0.5,
-                            color: colorScheme.outlineVariant.withOpacity(0.5),
+                            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                           ),
                       ],
                     );
@@ -167,10 +173,42 @@ class MarketNewsWidget extends ConsumerWidget {
                 height: 120,
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (err, _) => Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text('Unable to load market news: $err'),
-              ),
+              error: (err, _) {
+                final fallbackArticles = ref.read(newsRepositoryProvider).generateUrgentMarketNews().take(4).toList();
+                return Column(
+                  children: fallbackArticles.map((article) {
+                    final timeLabel = _formatTimeAgo(article.publishedAt);
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => NewsDetailScreen(article: article),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.flash_on_rounded, color: Colors.orange, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                article.headline,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ),
+                            Text(timeLabel, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
           ],
         ),
@@ -178,3 +216,18 @@ class MarketNewsWidget extends ConsumerWidget {
     );
   }
 }
+
+String _formatTimeAgo(String raw) {
+  if (raw.isEmpty) return 'Recent';
+  try {
+    final dt = DateTime.parse(raw);
+    final diff = DateTime.now().toUtc().difference(dt.toUtc());
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  } catch (_) {
+    return 'Recent';
+  }
+}
+
