@@ -28,6 +28,8 @@ from app.adapters.protocols import (
     SearchResult,
     SnapshotPayload,
 )
+from app.shared.cache import get_redis
+from app.shared.stream_subscriptions import ACTIVE_STREAM_SYMBOLS_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -618,6 +620,26 @@ class AlpacaMarketDataAdapter(MarketDataSource):
 
         api_key = self._client._headers["APCA-API-KEY-ID"]
         secret_key = self._client._headers["APCA-API-SECRET-KEY"]
+        subscribed_symbols: set[str] = set()
+
+        def reconcile_subscriptions(ws: Any) -> None:
+            try:
+                desired = {
+                    symbol.upper()
+                    for symbol in get_redis().smembers(ACTIVE_STREAM_SYMBOLS_KEY)
+                }
+            except Exception as exc:
+                logger.warning("Unable to load active quote subscriptions: %s", exc)
+                return
+
+            to_add = desired - subscribed_symbols
+            to_remove = subscribed_symbols - desired
+            if to_add:
+                ws.send(json.dumps({"action": "subscribe", "quotes": sorted(to_add)}))
+            if to_remove:
+                ws.send(json.dumps({"action": "unsubscribe", "quotes": sorted(to_remove)}))
+            subscribed_symbols.clear()
+            subscribed_symbols.update(desired)
 
         def on_message(ws: Any, message: str) -> None:
             try:
@@ -632,17 +654,7 @@ class AlpacaMarketDataAdapter(MarketDataSource):
                     if msg == "connected":
                         ws.send(json.dumps({"action": "auth", "key": api_key, "secret": secret_key}))
                     elif msg == "authenticated":
-                        symbols = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "SPY", "QQQ"]
-                        try:
-                            from app.shared.db import db
-                            from app.modules.watchlist.models import WatchlistItem
-                            from sqlalchemy import select
-                            db_syms = list(db.session.scalars(select(WatchlistItem.symbol).distinct()).all())
-                            if db_syms:
-                                symbols = list(set(symbols + [s.upper() for s in db_syms if s]))
-                        except Exception:
-                            pass
-                        ws.send(json.dumps({"action": "subscribe", "quotes": symbols, "trades": symbols}))
+                        reconcile_subscriptions(ws)
                     continue
                 if t not in ("q", "t"):
                     continue
@@ -674,10 +686,14 @@ class AlpacaMarketDataAdapter(MarketDataSource):
         def on_open(ws_app: Any) -> None:
             pass
 
+        def on_pong(ws_app: Any, _message: Any) -> None:
+            reconcile_subscriptions(ws_app)
+
         ws_app = websocket.WebSocketApp(
             stream_url,
             on_message=on_message,
             on_open=on_open,
+            on_pong=on_pong,
         )
         while not should_stop():
             ws_app.run_forever(ping_interval=20, ping_timeout=10)

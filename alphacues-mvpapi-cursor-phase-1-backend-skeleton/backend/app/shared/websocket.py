@@ -6,13 +6,17 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from flask import Flask, request, session
+from flask import Flask, current_app, request, session
 from flask_socketio import Namespace, join_room, leave_room
 
 from app.extensions import socketio
 from app.shared.auth import verify_access_token
 from app.shared.cache import get_redis
 from app.shared.exceptions import TokenExpiredError, UnauthorizedError
+from app.shared.stream_subscriptions import (
+    remove_client_subscriptions,
+    update_client_subscriptions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +77,13 @@ class StreamNamespace(Namespace):
         return True
 
     def on_disconnect(self) -> None:
+        if not current_app.config.get("TESTING"):
+            removed = remove_client_subscriptions(get_redis(), request.sid)
+            if removed:
+                get_redis().publish(
+                    "alphacues:stream:subscription_changed",
+                    "1",
+                )
         session["subscriptions"] = set()
 
     def on_subscribe_quotes(self, data: dict[str, Any] | None) -> None:
@@ -101,6 +112,18 @@ class StreamNamespace(Namespace):
             )
             valid_symbols = valid_symbols[: max(remaining, 0)]
 
+        if not current_app.config.get("TESTING") and valid_symbols:
+            added, _ = update_client_subscriptions(
+                get_redis(),
+                request.sid,
+                subscribe=valid_symbols,
+            )
+            if added:
+                get_redis().publish(
+                    "alphacues:stream:subscription_changed",
+                    "1",
+                )
+
         for symbol in valid_symbols:
             join_room(_quote_room(symbol))
             subscriptions.add(symbol)
@@ -113,6 +136,24 @@ class StreamNamespace(Namespace):
             return
 
         subscriptions: set[str] = session.get("subscriptions") or set()
+        valid_symbols = {
+            raw_symbol.upper()
+            for raw_symbol in symbols
+            if isinstance(raw_symbol, str)
+            and SYMBOL_PATTERN.match(raw_symbol.upper())
+        }
+        if not current_app.config.get("TESTING") and valid_symbols:
+            _, removed = update_client_subscriptions(
+                get_redis(),
+                request.sid,
+                unsubscribe=valid_symbols,
+            )
+            if removed:
+                get_redis().publish(
+                    "alphacues:stream:subscription_changed",
+                    "1",
+                )
+
         for raw_symbol in symbols:
             if not isinstance(raw_symbol, str):
                 continue

@@ -461,17 +461,16 @@ class _FundamentalsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final f = fundamentals.fields;
 
-    // Resilient fallback logic so Key Statistics never show '-' for active symbols
     final livePrice = quote.lastPrice;
     final liveChange = quote.changeAmount;
     final calcPrevClose = (livePrice > 0 && liveChange != 0) ? (livePrice - liveChange) : null;
 
-    final volumeVal = f['volume'] ?? (livePrice > 0 ? (livePrice * 4500).toInt() : null);
-    final avgVolVal = f['avgVolume'] ?? (volumeVal != null ? '${((volumeVal as num) / 1e6).toStringAsFixed(1)}M' : null);
-    final openVal = f['openPrice'] ?? calcPrevClose ?? livePrice;
-    final prevCloseVal = f['prevClose'] ?? calcPrevClose ?? livePrice;
-    final lowVal = f['todaysLow'] ?? (livePrice > 0 ? (livePrice * 0.985) : null);
-    final highVal = f['todaysHigh'] ?? (livePrice > 0 ? (livePrice * 1.015) : null);
+    final volumeVal = f['volume'];
+    final avgVolVal = f['avgVolume'];
+    final openVal = f['openPrice'];
+    final prevCloseVal = f['prevClose'] ?? calcPrevClose;
+    final lowVal = f['todaysLow'];
+    final highVal = f['todaysHigh'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -491,9 +490,11 @@ class _FundamentalsSection extends StatelessWidget {
           _StatItem('P/E Ratio', _formatVal(f['peRatio'])),
         ]),
         const SizedBox(height: 32),
-        const _SectionHeader(title: 'Expert Ratings'),
-        const SizedBox(height: 16),
-        _buildRatingCard(context, f),
+        if (_hasExpertRatings(f)) ...[
+          const _SectionHeader(title: 'Expert Ratings'),
+          const SizedBox(height: 16),
+          _buildRatingCard(context, f),
+        ],
         // ── Financial Health commented out per user request ─────────────────
         // const SizedBox(height: 32),
         // const _SectionHeader(title: 'Financial Health', subtitle: 'Trends over recent periods'),
@@ -503,17 +504,16 @@ class _FundamentalsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildRatingCard(BuildContext context, Map f) {
-    var buy = (f['expertBuyPercent'] as num?)?.toDouble() ?? 0.0;
-    var hold = (f['expertHoldPercent'] as num?)?.toDouble() ?? 0.0;
-    var sell = (f['expertSellPercent'] as num?)?.toDouble() ?? 0.0;
+  bool _hasExpertRatings(Map f) {
+    return f['expertBuyPercent'] is num &&
+        f['expertHoldPercent'] is num &&
+        f['expertSellPercent'] is num;
+  }
 
-    // Ensure Expert Ratings are always viewable for every symbol
-    if (buy <= 0 && hold <= 0 && sell <= 0) {
-      buy = 75.0;
-      hold = 18.0;
-      sell = 7.0;
-    }
+  Widget _buildRatingCard(BuildContext context, Map f) {
+    final buy = (f['expertBuyPercent'] as num).toDouble();
+    final hold = (f['expertHoldPercent'] as num).toDouble();
+    final sell = (f['expertSellPercent'] as num).toDouble();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -676,54 +676,7 @@ class _FinancialTrendGrid extends StatelessWidget {
       if (res.isNotEmpty) return res;
     }
 
-    // Dynamic deterministic fallback trend series if missing from API payload
-    final pe = (f['peRatio'] as num?)?.toDouble() ?? 25.0;
-    final cap = (f['marketCap'] as num?)?.toDouble() ?? 1e11;
-    final seed = (pe + (cap % 1000)).abs();
-
-    switch (metricType) {
-      case 'earnings':
-        final base = (pe * 0.12).clamp(1.5, 15.0);
-        return [
-          base * 0.75,
-          base * 0.82,
-          base * 0.79,
-          base * 0.91,
-          base * 0.96,
-          base * 1.08,
-        ];
-      case 'roe':
-        final base = 12.0 + (seed % 10);
-        return [
-          base - 2.5,
-          base - 1.8,
-          base - 0.9,
-          base + 0.4,
-          base + 1.2,
-          base + 2.1,
-        ];
-      case 'debt':
-        final base = 0.4 + ((seed % 50) / 100.0);
-        return [
-          base + 0.25,
-          base + 0.20,
-          base + 0.14,
-          base + 0.08,
-          base + 0.03,
-          base,
-        ];
-      case 'margin':
-      default:
-        final base = 15.0 + (seed % 12);
-        return [
-          base - 3.0,
-          base - 2.1,
-          base - 1.2,
-          base - 0.4,
-          base + 0.8,
-          base + 1.6,
-        ];
-    }
+    return const [];
   }
 
   @override

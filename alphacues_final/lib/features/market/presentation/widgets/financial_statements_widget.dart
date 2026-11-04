@@ -35,8 +35,8 @@ class _RobinhoodFinancialsSectionState
     final colorScheme = theme.colorScheme;
 
     final periods = _isQuarterly
-        ? _generateQuarterlyData(widget.symbol, widget.fundamentals, widget.currentPrice)
-        : _generateAnnualData(widget.symbol, widget.fundamentals, widget.currentPrice);
+      ? _generateQuarterlyData(widget.fundamentals)
+      : _generateAnnualData(widget.fundamentals);
 
     if (periods.isEmpty) {
       return Container(
@@ -491,10 +491,14 @@ class _RobinhoodFinancialsSectionState
   }
 
   // ── High Accuracy Multi-Year Financial Series Generator ──────────────────
+  static double? _readNumber(Map item, String key) {
+    final value = item[key];
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+
   static List<_FinancialPeriod> _generateAnnualData(
-    String symbol,
     MarketFundamentals fundamentals,
-    double currentPrice,
   ) {
     final fs = fundamentals.fields['financialStatements'];
     if (fs is Map && fs['annual'] is List && (fs['annual'] as List).isNotEmpty) {
@@ -505,10 +509,11 @@ class _RobinhoodFinancialsSectionState
           final top = item['topLabel']?.toString() ?? 'FY';
           final bottom = item['bottomLabel']?.toString() ?? '25';
           final pLabel = item['periodLabel']?.toString() ?? '$top $bottom';
-          final rev = (item['revenue'] as num?)?.toDouble() ?? 0.0;
-          final gp = (item['grossProfit'] as num?)?.toDouble() ?? (rev * 0.44);
-          final ni = (item['netIncome'] as num?)?.toDouble() ?? (rev * 0.20);
-          final margin = (item['netMargin'] as num?)?.toDouble() ??
+            final rev = _readNumber(item, 'revenue');
+            final gp = _readNumber(item, 'grossProfit');
+            final ni = _readNumber(item, 'netIncome');
+            if (rev == null || gp == null || ni == null) continue;
+            final margin = _readNumber(item, 'netMargin') ??
               (rev > 0 ? (ni / rev * 100) : 0.0);
 
           periods.add(
@@ -527,35 +532,11 @@ class _RobinhoodFinancialsSectionState
       if (periods.isNotEmpty) return periods;
     }
 
-    // High fidelity fallback if fs is unavailable
-    final mCap = fundamentals.marketCap ?? (currentPrice > 0 ? currentPrice * 1000000000 : 250000000000.0);
-    final annualRev = mCap * 0.32;
-    final eps = fundamentals.eps ?? 3.50;
-    final isProfitable = eps >= 0;
-    final years = ['21', '22', '23', '24', '25'];
-    return years.asMap().entries.map((entry) {
-      final i = entry.key;
-      final yr = entry.value;
-      final rev = annualRev * (0.80 + i * 0.05);
-      final gp = rev * 0.44;
-      final ni = isProfitable ? rev * 0.21 : -(rev * 0.07);
-      final margin = rev > 0 ? (ni / rev * 100) : 0.0;
-      return _FinancialPeriod(
-        topLabel: 'FY',
-        bottomLabel: yr,
-        periodLabel: 'FY 20$yr',
-        revenue: rev,
-        grossProfit: gp,
-        netIncome: ni,
-        netMargin: margin,
-      );
-    }).toList();
+    return const <_FinancialPeriod>[];
   }
 
   static List<_FinancialPeriod> _generateQuarterlyData(
-    String symbol,
     MarketFundamentals fundamentals,
-    double currentPrice,
   ) {
     final fs = fundamentals.fields['financialStatements'];
     if (fs is Map && fs['quarterly'] is List && (fs['quarterly'] as List).isNotEmpty) {
@@ -566,10 +547,11 @@ class _RobinhoodFinancialsSectionState
           final top = item['topLabel']?.toString() ?? 'Q1';
           final bottom = item['bottomLabel']?.toString() ?? 'FY25';
           final pLabel = item['periodLabel']?.toString() ?? '$top $bottom';
-          final rev = (item['revenue'] as num?)?.toDouble() ?? 0.0;
-          final gp = (item['grossProfit'] as num?)?.toDouble() ?? (rev * 0.44);
-          final ni = (item['netIncome'] as num?)?.toDouble() ?? (rev * 0.20);
-          final margin = (item['netMargin'] as num?)?.toDouble() ??
+            final rev = _readNumber(item, 'revenue');
+            final gp = _readNumber(item, 'grossProfit');
+            final ni = _readNumber(item, 'netIncome');
+            if (rev == null || gp == null || ni == null) continue;
+            final margin = _readNumber(item, 'netMargin') ??
               (rev > 0 ? (ni / rev * 100) : 0.0);
 
           periods.add(
@@ -588,33 +570,7 @@ class _RobinhoodFinancialsSectionState
       if (periods.isNotEmpty) return periods;
     }
 
-    // High fidelity fallback if fs is unavailable
-    final mCap = fundamentals.marketCap ?? (currentPrice > 0 ? currentPrice * 1000000000 : 250000000000.0);
-    final baseRev = mCap * 0.08;
-    final eps = fundamentals.eps ?? 3.50;
-    final isProfitable = eps >= 0;
-    final qDefs = [
-      ('Q2', 'FY25', 'Q2 FY25', 0.92),
-      ('Q3', 'FY25', 'Q3 FY25', 0.96),
-      ('Q4', 'FY25', 'Q4 FY25', 1.15),
-      ('Q1', 'FY26', 'Q1 FY26', 1.02),
-      ('Q2', 'FY26', 'Q2 FY26', 1.05),
-    ];
-    return qDefs.map((q) {
-      final rev = baseRev * q.$4;
-      final gp = rev * 0.44;
-      final ni = isProfitable ? rev * 0.22 : -(rev * 0.08);
-      final margin = rev > 0 ? (ni / rev * 100) : 0.0;
-      return _FinancialPeriod(
-        topLabel: q.$1,
-        bottomLabel: q.$2,
-        periodLabel: q.$3,
-        revenue: rev,
-        grossProfit: gp,
-        netIncome: ni,
-        netMargin: margin,
-      );
-    }).toList();
+    return const <_FinancialPeriod>[];
   }
 }
 
@@ -1147,7 +1103,10 @@ class _RobinhoodEarningsSectionState extends State<RobinhoodEarningsSection> {
         if (rawItem is Map) {
           final top = rawItem['topLabel']?.toString() ?? 'Q1';
           final bottom = rawItem['bottomLabel']?.toString() ?? 'FY25';
-          final est = (rawItem['estimatedEps'] as num?)?.toDouble() ?? 0.0;
+            final est = rawItem['estimatedEps'] is num
+              ? (rawItem['estimatedEps'] as num).toDouble()
+              : double.tryParse(rawItem['estimatedEps']?.toString() ?? '');
+            if (est == null) continue;
           final act = (rawItem['actualEps'] as num?)?.toDouble();
           final isUp = rawItem['isUpcoming'] == true || act == null;
           final upDate = rawItem['upcomingDate']?.toString() ?? 'Next Release';
@@ -1171,46 +1130,7 @@ class _RobinhoodEarningsSectionState extends State<RobinhoodEarningsSection> {
       }
     }
 
-    // High fidelity fallback if rawList is empty
-    final epsVal = fundamentals.eps ?? (fundamentals.peRatio != null && fundamentals.peRatio! > 0 && currentPrice > 0 ? currentPrice / fundamentals.peRatio! : (currentPrice > 0 ? currentPrice * 0.03 : 2.50));
-    final baseEps = epsVal / 4.0;
-    final seed = symbol.codeUnits.fold<int>(0, (p, c) => p + c);
-    final qDefs = [
-      ('Q3', 'FY25', 0.95, 0.08, '10-24'),
-      ('Q4', 'FY25', 1.12, 0.05, '01-28'),
-      ('Q1', 'FY26', 0.98, -0.02, '04-26'),
-      ('Q2', 'FY26', 1.05, 0.12, '07-29'),
-    ];
-    final List<_EarningsQuarter> synthesized = [];
-    for (final q in qDefs) {
-      final jitter = ((seed % 11) - 5) * 0.01;
-      final est = double.parse((baseEps * q.$3).toStringAsFixed(2));
-      final act = double.parse((est * (1.0 + q.$4 + jitter)).toStringAsFixed(2));
-      synthesized.add(
-        _EarningsQuarter(
-          topLabel: q.$1,
-          bottomLabel: q.$2,
-          estimatedEps: est,
-          actualEps: act,
-          isUpcoming: false,
-          upcomingDate: q.$5,
-          reportTime: 'After-hours',
-        ),
-      );
-    }
-    final upcomingEst = double.parse((baseEps * 1.10).toStringAsFixed(2));
-    synthesized.add(
-      _EarningsQuarter(
-        topLabel: 'Q3',
-        bottomLabel: 'FY26',
-        estimatedEps: upcomingEst,
-        actualEps: null,
-        isUpcoming: true,
-        upcomingDate: 'Next Release',
-        reportTime: 'After-hours',
-      ),
-    );
-    return synthesized;
+    return const <_EarningsQuarter>[];
   }
 }
 
