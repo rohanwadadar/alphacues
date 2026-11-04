@@ -775,6 +775,8 @@ class AlphaVantageAdapter(MarketDataSource):
                     act = item.get("reportedEPS")
                     surp = item.get("surprise")
                     r_time = item.get("reportTime") or "post-market"
+                    if est in (None, "", "None"):
+                        continue
 
                     top_lbl = "Q1"
                     bottom_lbl = "FY25"
@@ -794,37 +796,12 @@ class AlphaVantageAdapter(MarketDataSource):
                         "bottomLabel": bottom_lbl,
                         "estimatedEps": float(est) if est not in (None, "", "None") else 0.0,
                         "actualEps": float(act) if act not in (None, "", "None") else None,
-                        "surprise": float(surp) if surp not in (None, "", "None") else 0.0,
+                        "surprise": float(surp) if surp not in (None, "", "None") else None,
                         "isUpcoming": False,
                         "reportTime": "After-hours" if "post" in r_time.lower() else "Before open",
                         "upcomingDate": r_date[5:] if len(r_date) >= 10 else "TBD",
                     })
 
-                if earnings_series:
-                    last_q = earnings_series[-1]
-                    last_est = last_q["estimatedEps"] or (float(eps_val) / 4)
-                    upcoming_est = round(last_est * 1.05, 2)
-                    last_q_num = int(last_q["topLabel"][1]) if len(last_q["topLabel"]) >= 2 and last_q["topLabel"][1].isdigit() else 4
-                    next_q_num = (last_q_num % 4) + 1
-                    next_fy = last_q["bottomLabel"]
-                    if next_q_num == 1:
-                        try:
-                            next_fy = f"FY{int(next_fy[2:]) + 1:02d}"
-                        except Exception:
-                            pass
-
-                    earnings_series.append({
-                        "fiscalDate": "",
-                        "reportedDate": "",
-                        "topLabel": f"Q{next_q_num}",
-                        "bottomLabel": next_fy,
-                        "estimatedEps": upcoming_est,
-                        "actualEps": None,
-                        "surprise": None,
-                        "isUpcoming": True,
-                        "reportTime": "After-hours",
-                        "upcomingDate": "Next Release",
-                    })
         except Exception as e_err:
             logger.warning(f"AlphaVantage EARNINGS warning for {upper}: {e_err}")
 
@@ -972,8 +949,6 @@ class CompositeMarketDataAdapter(MarketDataSource):
             snapshot = snap_data.get(upper) or (snap_data if isinstance(snap_data, dict) and "dailyBar" in snap_data else {})
             daily_bar = snapshot.get("dailyBar") or {}
             prev_bar = snapshot.get("prevDailyBar") or {}
-            latest_trade = snapshot.get("latestTrade") or {}
-
             v = daily_bar.get("v") or base.volume
             o = daily_bar.get("o") or base.openPrice
             h = daily_bar.get("h") or base.todaysHigh
