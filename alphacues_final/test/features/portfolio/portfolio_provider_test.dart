@@ -113,4 +113,34 @@ void main() {
     expect(repository.summaryCalls, 2);
     expect(repository.transactionsCalls, 2);
   });
+
+  test('live quote patches portfolio without refetching summary', () async {
+    final repository = _MockPortfolioRepository();
+    final container = ProviderContainer(
+      overrides: [
+        portfolioRepositoryProvider.overrideWithValue(repository),
+        connectivityServiceProvider.overrideWith(_OnlineConnectivity.new),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final initial = await container.read(portfolioSummaryProvider.future);
+    expect(repository.summaryCalls, 1);
+
+    container.read(portfolioSummaryProvider.notifier).patchQuote(
+          const QuoteUpdatePayload(
+            symbol: 'AAPL',
+            lastPrice: 190,
+            changeAmount: 2,
+            changePercent: 1.06,
+            asOf: '2026-05-13T14:31:00Z',
+          ),
+        );
+
+    final updated = container.read(portfolioSummaryProvider).requireValue;
+    expect(repository.summaryCalls, 1);
+    expect(updated.positions.single.lastPrice, 190);
+    expect(updated.summary.totalValue, initial.summary.totalValue);
+    expect(updated.summary.asOf, '2026-05-13T14:31:00Z');
+  });
 }

@@ -58,6 +58,24 @@ class PortfolioSummary {
   final double dayChange;
   final String asOf;
 
+  PortfolioSummary copyWith({
+    double? totalValue,
+    double? totalProfit,
+    double? totalReturn,
+    double? dayChange,
+    String? asOf,
+  }) {
+    return PortfolioSummary(
+      portfolioId: portfolioId,
+      totalValue: totalValue ?? this.totalValue,
+      availableBalance: availableBalance,
+      totalProfit: totalProfit ?? this.totalProfit,
+      totalReturn: totalReturn ?? this.totalReturn,
+      dayChange: dayChange ?? this.dayChange,
+      asOf: asOf ?? this.asOf,
+    );
+  }
+
   factory PortfolioSummary.fromJson(Map<String, dynamic> json) {
     return PortfolioSummary(
       portfolioId: json['portfolioId'] as String,

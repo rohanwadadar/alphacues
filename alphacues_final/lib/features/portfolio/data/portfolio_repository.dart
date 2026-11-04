@@ -32,6 +32,22 @@ class PortfolioPosition {
   final double? changeAmount;
   final double? changePercent;
 
+  PortfolioPosition copyWith({
+    double? lastPrice,
+    double? changeAmount,
+    double? changePercent,
+  }) {
+    return PortfolioPosition(
+      symbol: symbol,
+      volume: volume,
+      totalPrice: totalPrice,
+      updatedAt: updatedAt,
+      lastPrice: lastPrice ?? this.lastPrice,
+      changeAmount: changeAmount ?? this.changeAmount,
+      changePercent: changePercent ?? this.changePercent,
+    );
+  }
+
   factory PortfolioPosition.fromJson(Map<String, dynamic> json) {
     return PortfolioPosition(
       symbol: json['symbol'] as String,

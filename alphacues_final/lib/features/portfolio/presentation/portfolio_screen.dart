@@ -77,7 +77,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     if (!mounted || !_heldSymbols.contains(payload.symbol)) {
       return;
     }
-    ref.invalidate(portfolioSummaryProvider);
+    ref.read(portfolioSummaryProvider.notifier).patchQuote(payload);
   }
 
   void _syncSubscriptions(List<String> symbols) {
