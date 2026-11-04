@@ -717,29 +717,17 @@ class AlphaVantageAdapter(MarketDataSource):
             if now - cache_time < 86400.0:
                 return payload
 
-        # Stock metadata reference for top tickers
-        known_stocks: dict[str, dict[str, Any]] = {
-            "AAPL": {"name": "Apple Inc.", "marketCap": "3450000000000", "pe": "34.2", "eps": "6.08", "hi": "237.23", "lo": "164.08", "desc": "Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories."},
-            "NVDA": {"name": "NVIDIA Corporation", "marketCap": "3120000000000", "pe": "48.5", "eps": "2.85", "hi": "140.76", "lo": "45.11", "desc": "NVIDIA Corporation designs graphics processing units for gaming and professional markets, as well as system on a chip units for mobile and automotive."},
-            "MSFT": {"name": "Microsoft Corporation", "marketCap": "3280000000000", "pe": "36.1", "eps": "11.80", "hi": "468.35", "lo": "366.50", "desc": "Microsoft Corporation develops and supports software, services, devices and solutions."},
-            "GOOGL": {"name": "Alphabet Inc. (Class A)", "marketCap": "2150000000000", "pe": "24.5", "eps": "7.54", "hi": "191.75", "lo": "129.40", "desc": "Alphabet Inc. operates through Google Services, Google Cloud, and Other Bets."},
-            "AMZN": {"name": "Amazon.com Inc.", "marketCap": "1980000000000", "pe": "42.1", "eps": "4.18", "hi": "201.20", "lo": "118.35", "desc": "Amazon.com, Inc. focuses on retail sale of consumer products, subscriptions, and web services."},
-            "TSLA": {"name": "Tesla Inc.", "marketCap": "780000000000", "pe": "62.4", "eps": "2.14", "hi": "271.00", "lo": "138.80", "desc": "Tesla, Inc. designs, develops, manufactures, sells, and leases electric vehicles and energy storage systems."},
-            "META": {"name": "Meta Platforms Inc.", "marketCap": "1450000000000", "pe": "27.8", "eps": "20.10", "hi": "544.23", "lo": "279.40", "desc": "Meta Platforms builds technologies that help people connect, find communities, and grow businesses."},
-            "AMD": {"name": "Advanced Micro Devices", "marketCap": "255000000000", "pe": "110.2", "eps": "1.45", "hi": "227.30", "lo": "94.04", "desc": "Advanced Micro Devices operates as a semiconductor company worldwide."},
-        }
-
-        known = known_stocks.get(upper, {})
-        comp_name = known.get("name", f"{upper} Corporation")
-        m_cap = _to_decimal(known.get("marketCap", "250000000000"))
-        pe_val = Decimal(known["pe"]) if "pe" in known else Decimal("28.5")
-        eps_val = Decimal(known["eps"]) if "eps" in known else Decimal("4.20")
-        hi_52 = Decimal(known["hi"]) if "hi" in known else Decimal("200.00")
-        lo_52 = Decimal(known["lo"]) if "lo" in known else Decimal("120.00")
-        desc_val = known.get("desc", f"{upper} is a publicly traded equity on U.S. markets.")
-        buy_pct = Decimal("78.0")
-        hold_pct = Decimal("15.0")
-        sell_pct = Decimal("7.0")
+        comp_name = upper
+        m_cap = None
+        pe_val = None
+        eps_val = None
+        hi_52 = None
+        lo_52 = None
+        dividend_yield = None
+        desc_val = None
+        buy_pct = None
+        hold_pct = None
+        sell_pct = None
 
         # 1. Try fetching OVERVIEW from AlphaVantage
         try:
@@ -748,16 +736,16 @@ class AlphaVantageAdapter(MarketDataSource):
                 params={"function": "OVERVIEW", "symbol": upper, "apikey": self._api_key},
             )
             if overview_data and overview_data.get("Symbol"):
-                def opt_dec(k: str) -> Decimal | None:
-                    v = overview_data.get(k)
+                def opt_dec(v: Any) -> Decimal | None:
                     return _to_decimal(v) if v not in (None, "", "None", "-") else None
 
                 comp_name = overview_data.get("Name") or comp_name
-                m_cap = _to_decimal(overview_data.get("MarketCapitalization") or m_cap)
-                pe_val = opt_dec("PERatio") or pe_val
-                eps_val = opt_dec("EPS") or eps_val
-                hi_52 = opt_dec("52WeekHigh") or hi_52
-                lo_52 = opt_dec("52WeekLow") or lo_52
+                m_cap = opt_dec(overview_data.get("MarketCapitalization")) or m_cap
+                pe_val = opt_dec(overview_data.get("PERatio")) or pe_val
+                eps_val = opt_dec(overview_data.get("EPS")) or eps_val
+                hi_52 = opt_dec(overview_data.get("52WeekHigh")) or hi_52
+                lo_52 = opt_dec(overview_data.get("52WeekLow")) or lo_52
+                dividend_yield = opt_dec(overview_data.get("DividendYield"))
                 desc_val = overview_data.get("Description") or desc_val
 
                 s_buy = int(overview_data.get("AnalystRatingStrongBuy") or 0) + int(overview_data.get("AnalystRatingBuy") or 0)
@@ -840,51 +828,6 @@ class AlphaVantageAdapter(MarketDataSource):
         except Exception as e_err:
             logger.warning(f"AlphaVantage EARNINGS warning for {upper}: {e_err}")
 
-        # If AlphaVantage was empty/timed out/rate-limited, generate realistic earnings series
-        if not earnings_series:
-            base_eps = float(eps_val) / 4.0 if float(eps_val) != 0.0 else round(float(hi_52) * 0.012, 2)
-            if base_eps == 0:
-                base_eps = 1.25
-
-            seed_val = sum(ord(c) for c in upper)
-            q_defs = [
-                ("Q3", "FY25", 0.95, 0.08, "2025-09-30", "10-24"),
-                ("Q4", "FY25", 1.12, 0.05, "2025-12-31", "01-28"),
-                ("Q1", "FY26", 0.98, -0.02, "2026-03-31", "04-26"),
-                ("Q2", "FY26", 1.05, 0.12, "2026-06-30", "07-29"),
-            ]
-            for top_lbl, bot_lbl, factor, surp_rate, f_date, r_mmdd in q_defs:
-                jitter = ((seed_val % 11) - 5) * 0.01
-                est = round(base_eps * factor, 2)
-                act = round(est * (1.0 + surp_rate + jitter), 2)
-                surp = round(act - est, 2)
-                earnings_series.append({
-                    "fiscalDate": f_date,
-                    "reportedDate": f_date[:4] + "-" + r_mmdd,
-                    "topLabel": top_lbl,
-                    "bottomLabel": bot_lbl,
-                    "estimatedEps": est,
-                    "actualEps": act,
-                    "surprise": surp,
-                    "isUpcoming": False,
-                    "reportTime": "After-hours",
-                    "upcomingDate": r_mmdd,
-                })
-
-            upcoming_est = round(base_eps * 1.10, 2)
-            earnings_series.append({
-                "fiscalDate": "",
-                "reportedDate": "",
-                "topLabel": "Q3",
-                "bottomLabel": "FY26",
-                "estimatedEps": upcoming_est,
-                "actualEps": None,
-                "surprise": None,
-                "isUpcoming": True,
-                "reportTime": "After-hours",
-                "upcomingDate": "Next Release",
-            })
-
         # 3. Always fetch real INCOME_STATEMENT series
         financial_statements: dict[str, Any] = {"quarterly": [], "annual": []}
         try:
@@ -901,6 +844,8 @@ class AlphaVantageAdapter(MarketDataSource):
                         rev = float(item.get("totalRevenue") or 0)
                         gp = float(item.get("grossProfit") or 0)
                         ni = float(item.get("netIncome") or 0)
+                        if not rev or not gp or not ni:
+                            continue
                         margin = (ni / rev * 100) if rev != 0 else 0.0
 
                         top_lbl = "Q1"
@@ -932,6 +877,8 @@ class AlphaVantageAdapter(MarketDataSource):
                         rev = float(item.get("totalRevenue") or 0)
                         gp = float(item.get("grossProfit") or 0)
                         ni = float(item.get("netIncome") or 0)
+                        if not rev or not gp or not ni:
+                            continue
                         margin = (ni / rev * 100) if rev != 0 else 0.0
                         yr = f_date[:4] if len(f_date) >= 4 else "2025"
 
@@ -948,64 +895,17 @@ class AlphaVantageAdapter(MarketDataSource):
         except Exception as i_err:
             logger.warning(f"AlphaVantage INCOME_STATEMENT warning for {upper}: {i_err}")
 
-        # If financial statements are empty or rate-limited, generate realistic financials
-        if not financial_statements["quarterly"]:
-            m_cap_f = float(m_cap)
-            base_rev = max(m_cap_f * 0.08, 1000000000.0)
-            quarter_revs = [base_rev * 0.92, base_rev * 0.96, base_rev * 1.15, base_rev * 1.02, base_rev * 1.05]
-            q_labels = [("Q2", "FY25", "2025-06-30"), ("Q3", "FY25", "2025-09-30"), ("Q4", "FY25", "2025-12-31"), ("Q1", "FY26", "2026-03-31"), ("Q2", "FY26", "2026-06-30")]
-            for (top_lbl, bot_lbl, f_date), r in zip(q_labels, quarter_revs):
-                gp = r * 0.45
-                ni = r * 0.22 if float(eps_val) >= 0 else -(r * 0.08)
-                margin = (ni / r) * 100
-                financial_statements["quarterly"].append({
-                    "topLabel": top_lbl,
-                    "bottomLabel": bot_lbl,
-                    "periodLabel": f"{top_lbl} {bot_lbl}",
-                    "fiscalDate": f_date,
-                    "revenue": round(r, 2),
-                    "grossProfit": round(gp, 2),
-                    "netIncome": round(ni, 2),
-                    "netMargin": round(margin, 1),
-                })
-        if not financial_statements["annual"]:
-            m_cap_f = float(m_cap)
-            annual_rev = max(m_cap_f * 0.32, 4000000000.0)
-            for i, yr in enumerate(["21", "22", "23", "24", "25"]):
-                r = annual_rev * (0.80 + i * 0.05)
-                gp = r * 0.44
-                ni = r * 0.21 if float(eps_val) >= 0 else -(r * 0.07)
-                margin = (ni / r) * 100
-                financial_statements["annual"].append({
-                    "topLabel": "FY",
-                    "bottomLabel": yr,
-                    "periodLabel": f"FY 20{yr}",
-                    "fiscalDate": f"20{yr}-09-30",
-                    "revenue": round(r, 2),
-                    "grossProfit": round(gp, 2),
-                    "netIncome": round(ni, 2),
-                    "netMargin": round(margin, 1),
-                })
-
         res = FundamentalsPayload(
             symbol=upper,
             name=comp_name,
             marketCap=m_cap,
             peRatio=pe_val,
             eps=eps_val,
-            dividendYield=Decimal("0.015"),
+            dividendYield=dividend_yield,
             fiftyTwoWeekHigh=hi_52,
             fiftyTwoWeekLow=lo_52,
             description=desc_val,
-            volume=1250000,
-            avgVolume="85.4M",
-            openPrice=lo_52 + ((hi_52 - lo_52) * Decimal("0.7")),
-            prevClose=lo_52 + ((hi_52 - lo_52) * Decimal("0.68")),
-            rvol=Decimal("1.15"),
-            todaysLow=lo_52 + ((hi_52 - lo_52) * Decimal("0.69")),
-            todaysHigh=lo_52 + ((hi_52 - lo_52) * Decimal("0.72")),
-            dayRange=f"{lo_52 * Decimal('1.2'):.2f} - {hi_52 * Decimal('0.98'):.2f}",
-            yearRange=f"{lo_52:.2f} - {hi_52:.2f}",
+            yearRange=(f"{lo_52:.2f} - {hi_52:.2f}" if lo_52 is not None and hi_52 is not None else None),
             expertBuyPercent=buy_pct,
             expertHoldPercent=hold_pct,
             expertSellPercent=sell_pct,
@@ -1013,7 +913,7 @@ class AlphaVantageAdapter(MarketDataSource):
             roeSeries=[],
             debtEquitySeries=[],
             netProfitMarginSeries=[],
-            financialStatements=financial_statements,
+            financialStatements=(financial_statements if any(financial_statements.values()) else None),
         )
         self._fund_cache[upper] = (now, res)
         return res
@@ -1074,29 +974,16 @@ class CompositeMarketDataAdapter(MarketDataSource):
             prev_bar = snapshot.get("prevDailyBar") or {}
             latest_trade = snapshot.get("latestTrade") or {}
 
-            v = daily_bar.get("v") or base.volume or 1250000
+            v = daily_bar.get("v") or base.volume
             o = daily_bar.get("o") or base.openPrice
             h = daily_bar.get("h") or base.todaysHigh
             l = daily_bar.get("l") or base.todaysLow
             c_prev = prev_bar.get("c") or base.prevClose
-            last_p = latest_trade.get("p") or daily_bar.get("c")
-
-            if last_p and (not o or float(o) == 0):
-                o = last_p
-            if last_p and (not h or float(h) == 0):
-                h = max(float(last_p), float(c_prev or last_p))
-            if last_p and (not l or float(l) == 0):
-                l = min(float(last_p), float(c_prev or last_p))
-            if not c_prev and last_p:
-                c_prev = last_p
-
-            vol_str = f"{v / 1e6:.1f}M" if v >= 1e6 else (f"{v / 1e3:.0f}K" if v >= 1e3 else str(v))
-            d_range = f"{float(l):.2f} - {float(h):.2f}" if l and h else base.dayRange
-
-            # Ensure Expert Ratings are always realistic non-zero percentages
-            b_pct = base.expertBuyPercent if (base.expertBuyPercent and base.expertBuyPercent > 0) else Decimal("72.0")
-            h_pct = base.expertHoldPercent if (base.expertHoldPercent and base.expertHoldPercent > 0) else Decimal("21.0")
-            s_pct = base.expertSellPercent if (base.expertSellPercent and base.expertSellPercent > 0) else Decimal("7.0")
+            d_range = (
+                f"{float(l):.2f} - {float(h):.2f}"
+                if l is not None and h is not None
+                else base.dayRange
+            )
 
             return FundamentalsPayload(
                 symbol=base.symbol,
@@ -1109,17 +996,17 @@ class CompositeMarketDataAdapter(MarketDataSource):
                 fiftyTwoWeekLow=base.fiftyTwoWeekLow,
                 description=base.description,
                 volume=int(v) if v else None,
-                avgVolume=vol_str,
+                avgVolume=base.avgVolume,
                 openPrice=_to_decimal(o) if o is not None else None,
                 prevClose=_to_decimal(c_prev) if c_prev is not None else None,
-                rvol=base.rvol or Decimal("1.0"),
+                rvol=base.rvol,
                 todaysLow=_to_decimal(l) if l is not None else None,
                 todaysHigh=_to_decimal(h) if h is not None else None,
                 dayRange=d_range,
                 yearRange=base.yearRange,
-                expertBuyPercent=b_pct,
-                expertHoldPercent=h_pct,
-                expertSellPercent=s_pct,
+                expertBuyPercent=base.expertBuyPercent,
+                expertHoldPercent=base.expertHoldPercent,
+                expertSellPercent=base.expertSellPercent,
                 earningsPrices=base.earningsPrices,
                 roeSeries=base.roeSeries,
                 debtEquitySeries=base.debtEquitySeries,
@@ -1144,8 +1031,8 @@ class CompositeMarketDataAdapter(MarketDataSource):
         )
 
 def create_market_data_adapter(app: Flask) -> MarketDataSource:
-    api_key = app.config.get("ALPACA_API_KEY", "") or "PK6O4W6SBWAVCTZKQRPC"
-    secret_key = app.config.get("ALPACA_SECRET_KEY", "") or "e1rimphcUKc7SmJv9N3gla0oiMPgP8sstxp0Vk7D"
+    api_key = app.config.get("ALPACA_API_KEY", "")
+    secret_key = app.config.get("ALPACA_SECRET_KEY", "")
     data_feed = app.config.get("ALPACA_DATA_FEED", "") or "iex"
 
     alpaca = AlpacaMarketDataAdapter(
@@ -1153,6 +1040,6 @@ def create_market_data_adapter(app: Flask) -> MarketDataSource:
         secret_key=secret_key,
         data_feed=data_feed,
     )
-    av_key = app.config.get("ALPHA_VANTAGE_API_KEY", "") or "CF7H37OIS5NWDTN3"
+    av_key = app.config.get("ALPHA_VANTAGE_API_KEY", "")
     av = AlphaVantageAdapter(api_key=av_key)
     return CompositeMarketDataAdapter(alpaca=alpaca, av=av)

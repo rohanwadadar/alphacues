@@ -62,12 +62,12 @@ class MoverPayload:
 class FundamentalsPayload:
     symbol: str
     name: str
-    marketCap: Decimal
+    marketCap: Decimal | None
     peRatio: Decimal | None
     eps: Decimal | None
     dividendYield: Decimal | None
-    fiftyTwoWeekHigh: Decimal
-    fiftyTwoWeekLow: Decimal
+    fiftyTwoWeekHigh: Decimal | None
+    fiftyTwoWeekLow: Decimal | None
     description: str | None
     volume: int | None = None
     avgVolume: str | None = None
