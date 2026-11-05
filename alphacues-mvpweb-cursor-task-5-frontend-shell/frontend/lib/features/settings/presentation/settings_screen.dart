@@ -8,7 +8,6 @@ import '../../dashboard/presentation/widgets/dashboard_formatters.dart';
 import '../../dashboard/presentation/widgets/notification_bell.dart';
 import '../../onboarding/presentation/onboarding_guide_modal.dart';
 import '../../portfolio/data/portfolio_providers.dart';
-import '../../portfolio/presentation/portfolio_event_form_dialog.dart';
 import '../data/settings_provider.dart';
 import '../../watchlist/data/watchlist_providers.dart';
 import 'govt_id_card_modal.dart';
@@ -1100,6 +1099,7 @@ class _DashboardTransactionsSection extends ConsumerStatefulWidget {
 
 class __DashboardTransactionsSectionState
     extends ConsumerState<_DashboardTransactionsSection> {
+  bool _showAll = false;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1224,45 +1224,43 @@ class __DashboardTransactionsSectionState
                   );
                 }
 
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: transactions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) {
-                    final event = transactions[i];
-                    final isBuy = event.action.toUpperCase() == 'BUY';
-                    final chipColor =
-                        isBuy ? AppColors.positive : AppColors.negative;
+                final displayedTransactions =
+                    _showAll ? transactions : transactions.take(5).toList();
 
-                    String resolvedWatchlist = (event.watchlistName != null && event.watchlistName!.isNotEmpty)
-                        ? event.watchlistName!
-                        : '';
-                    if (resolvedWatchlist.isEmpty) {
-                      final watchlists = watchlistsAsync.valueOrNull ?? [];
-                      if (watchlists.isNotEmpty) {
-                        resolvedWatchlist = watchlists.first.name;
-                      } else {
-                        resolvedWatchlist = 'Tech Growth';
-                      }
-                    }
+                return Column(
+                  children: [
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: displayedTransactions.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 12, indent: 8, endIndent: 8),
+                      itemBuilder: (context, i) {
+                        final event = displayedTransactions[i];
+                        final isBuy = event.action.toUpperCase() == 'BUY';
+                        final chipColor =
+                            isBuy ? AppColors.positive : AppColors.negative;
 
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                        String resolvedWatchlist = (event.watchlistName != null &&
+                                event.watchlistName!.isNotEmpty)
+                            ? event.watchlistName!
+                            : '';
+                        if (resolvedWatchlist.isEmpty) {
+                          final watchlists = watchlistsAsync.valueOrNull ?? [];
+                          if (watchlists.isNotEmpty) {
+                            resolvedWatchlist = watchlists.first.name;
+                          } else {
+                            resolvedWatchlist = 'Tech Growth';
+                          }
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(7),
+                                padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: isBuy
                                       ? AppColors.positiveBackground
@@ -1271,46 +1269,78 @@ class __DashboardTransactionsSectionState
                                 ),
                                 child: Icon(
                                   isBuy
-                                      ? Icons.bookmark_add_rounded
-                                      : Icons.bookmark_remove_rounded,
+                                      ? Icons.arrow_downward_rounded
+                                      : Icons.arrow_upward_rounded,
                                   color: chipColor,
                                   size: 18,
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 12),
                               Expanded(
-                                child: Wrap(
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  spacing: 8,
-                                  runSpacing: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          event.symbol,
+                                          style:
+                                              theme.textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                chipColor.withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            isBuy
+                                                ? 'ADD TO WATCHLIST'
+                                                : 'REMOVE FROM WATCHLIST',
+                                            style: TextStyle(
+                                              color: chipColor,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
                                     Text(
-                                      event.symbol,
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.2,
+                                      '${event.volume} shares @ \$${formatPrice(event.price)}',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                        fontSize: 11,
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 7, vertical: 2.5),
-                                      decoration: BoxDecoration(
-                                        color: chipColor.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: chipColor.withValues(alpha: 0.3),
-                                          width: 0.8,
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.bookmarks_outlined,
+                                          size: 11,
+                                          color: colorScheme.primary,
                                         ),
-                                      ),
-                                      child: Text(
-                                        isBuy ? 'ADD TO WATCHLIST' : 'REMOVE FROM WATCHLIST',
-                                        style: TextStyle(
-                                          color: chipColor,
-                                          fontSize: 9.5,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 0.3,
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          isBuy
+                                              ? 'Added to: $resolvedWatchlist'
+                                              : 'Removed from: $resolvedWatchlist',
+                                          style: TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.primary,
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -1320,25 +1350,19 @@ class __DashboardTransactionsSectionState
                                 children: [
                                   Text(
                                     '\$${formatPrice(event.volume * event.price)}',
-                                    style: theme.textTheme.titleSmall?.copyWith(
+                                    style: theme.textTheme.bodyMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(height: 1),
+                                  const SizedBox(height: 2),
                                   Text(
-                                    isBuy ? 'Date of Add:' : 'Date of Removed:',
+                                    isBuy
+                                        ? 'Date of Add: ${formatEventDate(event.timeStamp)}'
+                                        : 'Date of Removed: ${formatEventDate(event.timeStamp)}',
                                     style: TextStyle(
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: chipColor,
-                                    ),
-                                  ),
-                                  Text(
-                                    formatEventDate(event.timeStamp),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurface,
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
+                                      color: chipColor,
                                     ),
                                   ),
                                   Text(
@@ -1350,138 +1374,77 @@ class __DashboardTransactionsSectionState
                                   ),
                                 ],
                               ),
-                              PopupMenuButton<String>(
-                                padding: EdgeInsets.zero,
-                                onSelected: (action) async {
-                                  if (action == 'edit') {
-                                    PortfolioEventFormDialog.show(context,
-                                        event: event);
-                                  } else if (action == 'delete') {
-                                    try {
-                                      await ref
-                                          .read(portfolioRepositoryProvider)
-                                          .deleteEvent(event.eventId);
-                                      ref.invalidate(
-                                          portfolioTransactionsProvider);
-                                      ref.invalidate(portfolioSummaryProvider);
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                              content: Text('Transaction deleted')),
-                                        );
-                                      }
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                              content: Text('Failed to delete: $e')),
-                                        );
-                                      }
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 18,
+                                  color: Colors.red.withValues(alpha: 0.7),
+                                ),
+                                tooltip: 'Delete',
+                                onPressed: () async {
+                                  try {
+                                    await ref
+                                        .read(portfolioRepositoryProvider)
+                                        .deleteEvent(event.eventId);
+                                    ref.invalidate(
+                                        portfolioTransactionsProvider);
+                                    ref.invalidate(portfolioSummaryProvider);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text('Transaction deleted')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text('Failed to delete: $e')),
+                                      );
                                     }
                                   }
                                 },
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(
-                                    value: 'edit',
-                                    child: Row(children: [
-                                      Icon(Icons.edit_outlined, size: 16),
-                                      SizedBox(width: 8),
-                                      Text('Edit', style: TextStyle(fontSize: 13)),
-                                    ]),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Row(children: [
-                                      Icon(Icons.delete_outline,
-                                          size: 16, color: Colors.red),
-                                      SizedBox(width: 8),
-                                      Text('Delete',
-                                          style: TextStyle(
-                                              fontSize: 13, color: Colors.red)),
-                                    ]),
-                                  ),
-                                ],
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 6),
-                                  child: Icon(
-                                    Icons.more_vert_rounded,
-                                    size: 18,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Divider(
-                            height: 1,
-                            color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+                        );
+                      },
+                    ),
+                    if (transactions.length > 5) ...[
+                      const SizedBox(height: 10),
+                      Center(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: BorderSide(
+                              color: colorScheme.primary.withValues(alpha: 0.4),
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.bookmarks_outlined,
-                                          size: 13.5,
-                                          color: colorScheme.primary,
-                                        ),
-                                        const SizedBox(width: 5),
-                                        Flexible(
-                                          child: Text(
-                                            isBuy
-                                                ? 'Added to: $resolvedWatchlist'
-                                                : 'Removed from: $resolvedWatchlist',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: colorScheme.onSurface,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      isBuy
-                                          ? 'Date of Add: ${formatFullDateTime(event.timeStamp)}'
-                                          : 'Date of Removed: ${formatFullDateTime(event.timeStamp)}',
-                                      style: TextStyle(
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w500,
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${event.volume} ${event.volume == 1 ? "share" : "shares"} @ \$${formatPrice(event.price)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
+                          onPressed: () {
+                            setState(() => _showAll = !_showAll);
+                          },
+                          icon: Icon(
+                            _showAll
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 18,
                           ),
-
-                        ],
+                          label: Text(
+                            _showAll
+                                ? 'Show Less'
+                                : 'View All (${transactions.length} items)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.primary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
                       ),
-                    );
-                  },
+                    ],
+                  ],
                 );
               },
             ),
