@@ -937,7 +937,7 @@ class _TransactionRow extends StatelessWidget {
     return Dismissible(
       key: ValueKey(event.eventId),
       direction: mutationsEnabled
-          ? DismissDirection.horizontal
+          ? DismissDirection.endToStart
           : DismissDirection.none,
       confirmDismiss: (direction) async {
         if (!mutationsEnabled) {
@@ -956,16 +956,11 @@ class _TransactionRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: const Icon(Icons.delete_outline, color: AppColors.onPrimary),
       ),
-      secondaryBackground: Container(
-        color: AppColors.primary,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: const Icon(Icons.edit_outlined, color: AppColors.onPrimary),
-      ),
+
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: mutationsEnabled ? onEdit : null,
+          onTap: null,
           child: ConstrainedBox(
             constraints: const BoxConstraints(
               minHeight: AppTheme.minTouchTarget,
@@ -1058,6 +1053,16 @@ class _TransactionRow extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (mutationsEnabled)
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: Colors.red.withValues(alpha: 0.7),
+                      ),
+                      tooltip: 'Delete',
+                      onPressed: onDelete,
+                    ),
                 ],
               ),
             ),
