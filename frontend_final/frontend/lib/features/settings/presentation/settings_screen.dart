@@ -1326,6 +1326,14 @@ class __DashboardTransactionsSectionState
                                   ),
                                   const SizedBox(height: 1),
                                   Text(
+                                    isBuy ? 'Date of Add:' : 'Date of Removed:',
+                                    style: TextStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: chipColor,
+                                    ),
+                                  ),
+                                  Text(
                                     formatEventDate(event.timeStamp),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: colorScheme.onSurface,
@@ -1417,26 +1425,42 @@ class __DashboardTransactionsSectionState
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Flexible(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.bookmarks_outlined,
-                                      size: 13.5,
-                                      color: colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Flexible(
-                                      child: Text(
-                                        isBuy
-                                            ? 'Added to: $resolvedWatchlist'
-                                            : 'Removed from: $resolvedWatchlist',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: colorScheme.onSurface,
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.bookmarks_outlined,
+                                          size: 13.5,
+                                          color: colorScheme.primary,
                                         ),
-                                        overflow: TextOverflow.ellipsis,
+                                        const SizedBox(width: 5),
+                                        Flexible(
+                                          child: Text(
+                                            isBuy
+                                                ? 'Added to: $resolvedWatchlist'
+                                                : 'Removed from: $resolvedWatchlist',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      isBuy
+                                          ? 'Date of Add: ${formatFullDateTime(event.timeStamp)}'
+                                          : 'Date of Removed: ${formatFullDateTime(event.timeStamp)}',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ],

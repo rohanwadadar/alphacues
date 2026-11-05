@@ -1040,7 +1040,17 @@ class _TransactionRow extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        formatFullDateTime(event.timeStamp),
+                        isBuy
+                            ? 'Date of Add: ${formatEventDate(event.timeStamp)}'
+                            : 'Date of Removed: ${formatEventDate(event.timeStamp)}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: chipColor,
+                        ),
+                      ),
+                      Text(
+                        formatAsOfTimestamp(event.timeStamp),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 10,
