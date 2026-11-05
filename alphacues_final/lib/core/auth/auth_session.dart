@@ -109,9 +109,6 @@ class AuthSessionNotifier extends Notifier<AuthState> {
   }
 
   Future<void> _hydrateFromStorage() async {
-    // Artificial delay to allow splash screen animation to play
-    await Future.delayed(const Duration(milliseconds: 2800));
-
     final access = await _tokenStore.readAccessToken();
     final refresh = await _tokenStore.readRefreshToken();
     if (access == null ||

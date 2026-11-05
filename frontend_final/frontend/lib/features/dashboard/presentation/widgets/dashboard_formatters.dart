@@ -22,3 +22,30 @@ String formatAsOfTimestamp(String asOf) {
   final period = parsed.hour >= 12 ? 'PM' : 'AM';
   return '$hour:$minute $period';
 }
+
+String formatFullDateTime(String asOf) {
+  final raw = DateTime.tryParse(asOf);
+  if (raw == null) {
+    return asOf;
+  }
+  final parsed = toUsEastern(raw);
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final month = months[parsed.month - 1];
+  final hour = parsed.hour % 12 == 0 ? 12 : parsed.hour % 12;
+  final minute = parsed.minute.toString().padLeft(2, '0');
+  final period = parsed.hour >= 12 ? 'PM' : 'AM';
+  return '$month ${parsed.day}, ${parsed.year} • $hour:$minute $period ET';
+}

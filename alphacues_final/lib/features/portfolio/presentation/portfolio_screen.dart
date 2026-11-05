@@ -998,37 +998,55 @@ class _TransactionRow extends StatelessWidget {
                       children: [
                         Text(event.symbol, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                         Text(
-                          '${event.volume} shares @ ${formatPrice(event.price)}',
+                          '${event.volume} ${event.volume == 1 ? "share" : "shares"} @ \$${formatPrice(event.price)}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                        if (event.watchlistName != null && event.watchlistName!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              isBuy ? 'Added to: ${event.watchlistName}' : 'Removed from: ${event.watchlistName}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: AppSpacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: chipColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: Text(
-                      isBuy ? 'ADD TO WATCHLIST' : 'REMOVE FROM WATCHLIST',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: chipColor,
-                        fontWeight: FontWeight.w600,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: AppSpacing.xs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: chipColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: Text(
+                          isBuy ? 'ADD TO WATCHLIST' : 'REMOVE FROM WATCHLIST',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: chipColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    formatAsOfTimestamp(event.timeStamp),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        formatFullDateTime(event.timeStamp),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

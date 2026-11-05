@@ -49,6 +49,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   candlesticks: ^3.0.1
   app_links: ^6.4.1
+  shared_preferences: ^2.5.6
 
 dev_dependencies:
   flutter_test:

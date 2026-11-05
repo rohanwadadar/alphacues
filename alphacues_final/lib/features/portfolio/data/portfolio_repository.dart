@@ -103,6 +103,7 @@ class PortfolioEvent {
     required this.action,
     required this.price,
     required this.volume,
+    this.watchlistName,
   });
 
   final String eventId;
@@ -112,6 +113,7 @@ class PortfolioEvent {
   final String action;
   final double price;
   final int volume;
+  final String? watchlistName;
 
   factory PortfolioEvent.fromJson(Map<String, dynamic> json) {
     return PortfolioEvent(
@@ -122,6 +124,7 @@ class PortfolioEvent {
       action: json['action'] as String,
       price: (json['price'] as num).toDouble(),
       volume: (json['volume'] as num).toInt(),
+      watchlistName: json['watchlistName'] as String? ?? json['watchlist_name'] as String?,
     );
   }
 }

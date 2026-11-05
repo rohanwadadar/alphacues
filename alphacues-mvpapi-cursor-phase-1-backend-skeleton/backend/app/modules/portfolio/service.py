@@ -89,6 +89,8 @@ class PortfolioService:
             "price": _decimal_to_number(event.price),
             "volume": event.volume,
             "time_stamp": _format_timestamp(event.time_stamp),
+            "watchlist_name": event.watchlist_name,
+            "watchlistName": event.watchlist_name,
         }
 
     @staticmethod
@@ -221,6 +223,7 @@ class PortfolioService:
         volume: int,
         time_stamp: datetime,
         idempotency_key: str | None = None,
+        watchlist_name: str | None = None,
     ) -> PortfolioEvent:
         if action not in PORTFOLIO_ACTIONS:
             raise ValidationError(message="Request validation failed.")
@@ -253,6 +256,7 @@ class PortfolioService:
             price=price,
             volume=volume,
             time_stamp=time_stamp,
+            watchlist_name=watchlist_name,
         )
         db.session.add(event)
 
@@ -445,7 +449,37 @@ class PortfolioService:
             last = page[-1]
             next_cursor = _encode_event_cursor(last.time_stamp, last.event_id)
 
-        transactions = [PortfolioService.event_to_dict(event) for event in page]
+        transactions = []
+        watchlist_map: dict[str, str] = {}
+        for event in page:
+            d = PortfolioService.event_to_dict(event)
+            if not d.get("watchlistName"):
+                if not watchlist_map:
+                    try:
+                        from app.modules.watchlist.models import Watchlist, WatchlistItem
+                        w_items = db.session.execute(
+                            select(WatchlistItem.symbol, Watchlist.name)
+                            .join(Watchlist, WatchlistItem.watchlist_id == Watchlist.watchlist_id)
+                            .where(Watchlist.user_id == user_id)
+                        ).fetchall()
+                        for sym, w_name in w_items:
+                            if sym not in watchlist_map:
+                                watchlist_map[sym] = w_name
+                        if not watchlist_map:
+                            primary_w = db.session.scalar(
+                                select(Watchlist.name)
+                                .where(Watchlist.user_id == user_id)
+                                .order_by(Watchlist.created_at.asc())
+                                .limit(1)
+                            )
+                            if primary_w:
+                                watchlist_map["__default__"] = primary_w
+                    except Exception:
+                        pass
+                resolved = watchlist_map.get(event.symbol) or watchlist_map.get("__default__") or "Primary Watchlist"
+                d["watchlistName"] = resolved
+                d["watchlist_name"] = resolved
+            transactions.append(d)
         return {"transactions": transactions}, pagination_meta(next_cursor=next_cursor)
 
     @staticmethod

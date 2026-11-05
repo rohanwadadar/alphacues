@@ -89,6 +89,7 @@ def record_event():
         volume=data["volume"],
         time_stamp=data["time_stamp"],
         idempotency_key=idempotency_key,
+        watchlist_name=data.get("watchlist_name") or data.get("watchlistName"),
     )
     return json_response(PortfolioService.event_to_dict(event), status_code=201)
 

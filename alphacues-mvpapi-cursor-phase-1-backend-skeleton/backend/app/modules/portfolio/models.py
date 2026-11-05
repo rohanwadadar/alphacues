@@ -40,6 +40,7 @@ class PortfolioEvent(db.Model):
     action: Mapped[str] = mapped_column(Text, nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     volume: Mapped[int] = mapped_column(Integer, nullable=False)
+    watchlist_name: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
         CheckConstraint(

@@ -16,17 +16,17 @@ void main() {
   });
 
   group('reconnectionDelayForAttempt', () {
-    test('uses exponential backoff capped at 30 s', () {
+    test('uses the socket backoff and caps at 3 s', () {
       expect(
         reconnectionDelayForAttempt(attempt: 1),
         SocketClient.reconnectionDelayMs,
       );
-      expect(reconnectionDelayForAttempt(attempt: 2), 2000);
-      expect(reconnectionDelayForAttempt(attempt: 3), 4000);
-      expect(reconnectionDelayForAttempt(attempt: 4), 8000);
-      expect(reconnectionDelayForAttempt(attempt: 5), 16000);
-      expect(reconnectionDelayForAttempt(attempt: 6), 30000);
-      expect(reconnectionDelayForAttempt(attempt: 10), 30000);
+      expect(reconnectionDelayForAttempt(attempt: 2), 1000);
+      expect(reconnectionDelayForAttempt(attempt: 3), 2000);
+      expect(reconnectionDelayForAttempt(attempt: 4), 3000);
+      expect(reconnectionDelayForAttempt(attempt: 5), 3000);
+      expect(reconnectionDelayForAttempt(attempt: 6), 3000);
+      expect(reconnectionDelayForAttempt(attempt: 10), 3000);
       expect(
         reconnectionDelayForAttempt(attempt: 99),
         SocketClient.reconnectionDelayMaxMs,
@@ -137,6 +137,48 @@ void main() {
       fake.connect();
       await Future<void>.delayed(Duration.zero);
       expect(resubscribeCount, 2);
+    });
+
+    test('app resume replaces a socket that still reports connected', () async {
+      final sockets = <FakeRealtimeSocket>[];
+      final store = InMemorySecureTokenStore();
+      await store.writeTokens(accessToken: 'token', refreshToken: 'refresh');
+
+      final container = ProviderContainer(
+        overrides: [
+          secureTokenStoreProvider.overrideWithValue(store),
+          socketClientProvider.overrideWith((ref) {
+            return SocketClient(
+              config: AppConfig.instance,
+              tokenStore: store,
+              connectionNotifier: ref.read(
+                socketConnectionStateProvider.notifier,
+              ),
+              onConnected: () {},
+              socketFactory: ({required url, required auth}) {
+                final socket = FakeRealtimeSocket();
+                sockets.add(socket);
+                return socket;
+              },
+              connectivity: null,
+              watchConnectivity: false,
+            );
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final client = container.read(socketClientProvider);
+      await client.connect();
+      expect(sockets, hasLength(1));
+      expect(sockets.single.connected, isTrue);
+
+      await client.handleAppResumed();
+
+      expect(sockets, hasLength(2));
+      expect(sockets.first.connected, isNull);
+      expect(sockets.last.connected, isTrue);
+      expect(client.isConnected, isTrue);
     });
   });
 }

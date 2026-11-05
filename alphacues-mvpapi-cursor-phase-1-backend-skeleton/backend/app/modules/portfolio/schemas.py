@@ -32,6 +32,8 @@ class PortfolioEventSchema(Schema):
         required=False,
         load_default=_utcnow,
     )
+    watchlist_name = fields.String(required=False, allow_none=True)
+    watchlistName = fields.String(required=False, allow_none=True)
 
     @validates("symbol")
     def validate_symbol_field(self, value: str) -> None:

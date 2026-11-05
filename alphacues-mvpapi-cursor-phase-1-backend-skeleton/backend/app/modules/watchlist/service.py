@@ -186,6 +186,7 @@ class WatchlistService:
                             price=Decimal(str(price_at_addition)),
                             volume=int(delta),
                             time_stamp=datetime.now(timezone.utc),
+                            watchlist_name=watchlist.name,
                         )
                     elif delta < 0:
                         pos = db.session.get(Position, (user_id, normalized))
@@ -199,6 +200,7 @@ class WatchlistService:
                                 price=Decimal(str(price_at_addition)),
                                 volume=int(actual_sell),
                                 time_stamp=datetime.now(timezone.utc),
+                                watchlist_name=watchlist.name,
                             )
                 except Exception as e:
                     current_app.logger.warning(f"Could not auto-create portfolio delta event: {e}")
@@ -240,6 +242,7 @@ class WatchlistService:
                 price=Decimal(str(add_price)),
                 volume=add_qty,
                 time_stamp=item.added_at,
+                watchlist_name=watchlist.name,
             )
         except Exception as e:
             current_app.logger.warning(f"Could not auto-create portfolio event: {e}")
@@ -284,6 +287,7 @@ class WatchlistService:
                     price=Decimal(str(eff_price)),
                     volume=int(qty),
                     time_stamp=datetime.now(timezone.utc),
+                    watchlist_name=watchlist.name,
                 )
             except Exception as e:
                 current_app.logger.warning(f"Could not auto-create portfolio sell event on watchlist remove: {e}")

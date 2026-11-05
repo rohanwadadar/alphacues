@@ -19,12 +19,34 @@ class PortfolioPosition {
     required this.volume,
     required this.totalPrice,
     required this.updatedAt,
+    this.lastPrice,
+    this.changeAmount,
+    this.changePercent,
   });
 
   final String symbol;
   final int volume;
   final double totalPrice;
   final String updatedAt;
+  final double? lastPrice;
+  final double? changeAmount;
+  final double? changePercent;
+
+  PortfolioPosition copyWith({
+    double? lastPrice,
+    double? changeAmount,
+    double? changePercent,
+  }) {
+    return PortfolioPosition(
+      symbol: symbol,
+      volume: volume,
+      totalPrice: totalPrice,
+      updatedAt: updatedAt,
+      lastPrice: lastPrice ?? this.lastPrice,
+      changeAmount: changeAmount ?? this.changeAmount,
+      changePercent: changePercent ?? this.changePercent,
+    );
+  }
 
   factory PortfolioPosition.fromJson(Map<String, dynamic> json) {
     return PortfolioPosition(
@@ -33,6 +55,14 @@ class PortfolioPosition {
       totalPrice: (json['totalPrice'] as num? ?? json['total_price'] as num)
           .toDouble(),
       updatedAt: json['updatedAt'] as String? ?? json['updated_at'] as String,
+      lastPrice: (json['lastPrice'] as num? ?? json['last_price'] as num?)
+          ?.toDouble(),
+      changeAmount:
+          (json['changeAmount'] as num? ?? json['change_amount'] as num?)
+              ?.toDouble(),
+      changePercent:
+          (json['changePercent'] as num? ?? json['change_percent'] as num?)
+              ?.toDouble(),
     );
   }
 }
@@ -73,6 +103,7 @@ class PortfolioEvent {
     required this.action,
     required this.price,
     required this.volume,
+    this.watchlistName,
   });
 
   final String eventId;
@@ -82,6 +113,7 @@ class PortfolioEvent {
   final String action;
   final double price;
   final int volume;
+  final String? watchlistName;
 
   factory PortfolioEvent.fromJson(Map<String, dynamic> json) {
     return PortfolioEvent(
@@ -92,6 +124,7 @@ class PortfolioEvent {
       action: json['action'] as String,
       price: (json['price'] as num).toDouble(),
       volume: (json['volume'] as num).toInt(),
+      watchlistName: json['watchlistName'] as String? ?? json['watchlist_name'] as String?,
     );
   }
 }

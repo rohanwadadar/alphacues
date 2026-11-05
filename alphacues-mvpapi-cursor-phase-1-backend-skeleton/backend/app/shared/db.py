@@ -48,6 +48,11 @@ def migrate_user_columns(app: Flask) -> None:
                 AlertsService.ensure_history_migrated()
             except Exception:
                 pass
+            try:
+                db.session.execute(text("ALTER TABLE portfolio_event ADD COLUMN watchlist_name TEXT"))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         except Exception:
             pass
 
@@ -56,4 +61,5 @@ def init_db(app: Flask) -> None:
     """Initialize SQLAlchemy and Alembic migration wiring."""
     db.init_app(app)
     migrate.init_app(app, db)
+    migrate_user_columns(app)
     migrate_user_columns(app)

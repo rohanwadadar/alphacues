@@ -142,8 +142,8 @@ final socketConnectionStateProvider =
 @visibleForTesting
 int reconnectionDelayForAttempt({
   required int attempt,
-  int reconnectionDelay = 1000,
-  int reconnectionDelayMax = 30000,
+  int reconnectionDelay = SocketClient.reconnectionDelayMs,
+  int reconnectionDelayMax = SocketClient.reconnectionDelayMaxMs,
 }) {
   final delay = reconnectionDelay * (1 << (attempt - 1).clamp(0, 30));
   return delay.clamp(reconnectionDelay, reconnectionDelayMax);
@@ -201,6 +201,8 @@ class SocketClient {
 
   RealtimeSocket? _socket;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  int _connectionAttempt = 0;
+  bool _resumeInProgress = false;
 
   final _quoteUpdates = StreamController<QuoteUpdatePayload>.broadcast();
   final _notifications = StreamController<NotificationNewPayload>.broadcast();
@@ -219,12 +221,19 @@ class SocketClient {
   }
 
   /// Called by [SocketLifecycleBridge] when the app returns to foreground.
-  void handleAppResumed() {
-    // TODO: On app resume, reconnect and re-subscribe from scratch.
-    // Do not assume a persistent background WebSocket on mobile.
-    if (_connectionNotifier.connectionState ==
-        SocketConnectionState.disconnected) {
-      unawaited(connect());
+  Future<void> handleAppResumed() async {
+    if (_resumeInProgress) return;
+    _resumeInProgress = true;
+    try {
+      _connectionAttempt++;
+      final previousSocket = _socket;
+      _socket = null;
+      previousSocket?.disconnect();
+      previousSocket?.dispose();
+      _connectionNotifier.setDisconnected();
+      await connect();
+    } finally {
+      _resumeInProgress = false;
     }
   }
 
@@ -234,8 +243,11 @@ class SocketClient {
       return;
     }
 
+    final attempt = ++_connectionAttempt;
     final accessToken = await _tokenStore.readAccessToken();
-    if (accessToken == null || accessToken.isEmpty) {
+    if (attempt != _connectionAttempt ||
+        accessToken == null ||
+        accessToken.isEmpty) {
       return;
     }
 
@@ -252,6 +264,7 @@ class SocketClient {
   }
 
   void disconnect() {
+    _connectionAttempt++;
     _connectivitySub?.cancel();
     _connectivitySub = null;
     _socket?.disconnect();
@@ -445,7 +458,7 @@ class _SocketLifecycleBridgeState extends ConsumerState<SocketLifecycleBridge> {
     super.initState();
     _lifecycle = AppLifecycleListener(
       onResume: () {
-        ref.read(socketClientProvider).handleAppResumed();
+        unawaited(ref.read(socketClientProvider).handleAppResumed());
       },
     );
   }
