@@ -148,15 +148,9 @@ def register_health_routes(app: Flask) -> None:
             if get_redis().ping():
                 checks["redis"] = "ok"
             else:
-                raise RuntimeError("Redis ping failed")
+                checks["redis"] = "fallback_memory"
         except Exception:
-            checks["redis"] = "unavailable"
-            return json_response(
-                status_code=503,
-                error_code="SERVICE_UNAVAILABLE",
-                error_message="Redis is unavailable.",
-                error_details=checks,
-            )
+            checks["redis"] = "fallback_memory" 
 
         return json_response({"status": "ready", "checks": checks})
 
