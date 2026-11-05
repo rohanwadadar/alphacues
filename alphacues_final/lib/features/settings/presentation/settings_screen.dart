@@ -1315,11 +1315,32 @@ class __DashboardTransactionsSectionState
                                   ],
                                 ),
                               ),
-                              Text(
-                                '\$${formatPrice(event.volume * event.price)}',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '\$${formatPrice(event.volume * event.price)}',
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    formatEventDate(event.timeStamp),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurface,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    formatAsOfTimestamp(event.timeStamp),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
                               ),
                               PopupMenuButton<String>(
                                 padding: EdgeInsets.zero,
@@ -1432,24 +1453,7 @@ class __DashboardTransactionsSectionState
                               ),
                             ],
                           ),
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.access_time_rounded,
-                                size: 12,
-                                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                formatFullDateTime(event.timeStamp),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
-                                ),
-                              ),
-                            ],
-                          ),
+
                         ],
                       ),
                     );
