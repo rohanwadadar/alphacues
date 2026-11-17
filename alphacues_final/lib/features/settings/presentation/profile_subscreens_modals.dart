@@ -1,3 +1,5 @@
+import 'package:url_launcher/url_launcher.dart';
+import '../../rewards/data/rewards_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -666,16 +668,69 @@ class ReportsStatementsModal extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. REWARDS MODAL
 // ─────────────────────────────────────────────────────────────────────────────
-class RewardsModal extends StatelessWidget {
+class RewardsModal extends ConsumerWidget {
   const RewardsModal({super.key});
 
+  Future<void> _launchShareUrl(BuildContext context, String urlString, String fallbackText) async {
+    if (urlString.isEmpty) {
+      await Clipboard.setData(ClipboardData(text: fallbackText));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invite message copied to clipboard!')),
+        );
+      }
+      return;
+    }
+
+    try {
+      final uri = Uri.parse(urlString);
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await Clipboard.setData(ClipboardData(text: fallbackText));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open app directly. Invite copied to clipboard!')),
+          );
+        }
+      }
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: fallbackText));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invite copied to clipboard!')),
+        );
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
-    const points = 1420;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rewardsAsync = ref.watch(rewardsProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final rewards = rewardsAsync.valueOrNull ??
+        const RewardsInfo(
+          balance: 1420,
+          tier: 'Silver Tier Trader',
+          pointsToNextTier: 580,
+          targetTier: 'Gold Tier Trader',
+          referralCode: 'ALPHA-VIP-2026',
+          referralUrl: 'https://alphacues.com',
+          shareText: 'Join me on AlphaCues!',
+          whatsappUrl: '',
+          metaUrl: '',
+          redemptionStatus: 'Coming Soon',
+          redemptionNotice: 'Redeem Credits — Coming Soon! Points can soon be redeemed for pro quant tools, fee rebates, and exclusive indicators.',
+        );
+
+    final points = rewards.balance;
+    final progress = ((2000 - rewards.pointsToNextTier) / 2000.0).clamp(0.05, 1.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── BALANCE CARD WITH "COMING SOON" ───────────────────────────
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -686,64 +741,255 @@ class RewardsModal extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF9333EA).withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Alpha Rewards Balance', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                  Icon(Icons.military_tech, color: Colors.amber, size: 28),
+                  const Text(
+                    'Alpha Rewards Balance',
+                    style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber, width: 1),
+                    ),
+                    child: const Text(
+                      'COMING SOON',
+                      style: TextStyle(
+                        color: Colors.amber,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
-                '$points PTS',
-                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    '$points',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'PTS',
+                    style: TextStyle(
+                      color: Colors.amber,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
-              const Text('Silver Tier Trader • 580 pts to Gold Tier', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(
+                '${rewards.tier} • ${rewards.pointsToNextTier} pts to ${rewards.targetTier}',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
               const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: const LinearProgressIndicator(
-                  value: points / 2000.0,
+                child: LinearProgressIndicator(
+                  value: progress,
                   backgroundColor: Colors.white24,
-                  valueColor: AlwaysStoppedAnimation(Colors.amber),
+                  valueColor: const AlwaysStoppedAnimation(Colors.amber),
                   minHeight: 6,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 20),
-        const Text('Refer a Trader Friend', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        const SizedBox(height: 6),
-        const Text('Share your unique code to earn 500 bonus points each when they make their first simulated trade.', style: TextStyle(color: Colors.grey, fontSize: 12)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
+
+        // ── REDEEM STATUS (COMING SOON NOTICE) ────────────────────────
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.amber.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  rewards.redemptionNotice,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.amber,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // ── REFERRAL PROGRAM ──────────────────────────────────────────
+        const Text(
+          'Refer a Trader Friend',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Share your unique referral code. When a friend registers or logs in with your code, you both earn bonus credit points!',
+          style: TextStyle(
+            color: colorScheme.onSurfaceVariant,
+            fontSize: 12,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── CODE COPY TILE ────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('ALPHA-VIP-2026', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-              TextButton.icon(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'YOUR REFERRAL CODE',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    rewards.referralCode,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+              FilledButton.tonalIcon(
                 onPressed: () {
-                  Clipboard.setData(const ClipboardData(text: 'ALPHA-VIP-2026'));
+                  Clipboard.setData(ClipboardData(text: rewards.referralCode));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Referral code copied!')),
+                    const SnackBar(content: Text('Referral code copied to clipboard!')),
                   );
                 },
-                icon: const Icon(Icons.copy, size: 16),
+                icon: const Icon(Icons.copy_rounded, size: 16),
                 label: const Text('Copy'),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // ── SHARE BUTTONS (WHATSAPP, META, COPY LINK) ─────────────────
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () => _launchShareUrl(
+                  context,
+                  rewards.whatsappUrl,
+                  rewards.shareText,
+                ),
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                label: const Text(
+                  'WhatsApp',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1877F2),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () => _launchShareUrl(
+                  context,
+                  rewards.metaUrl,
+                  rewards.shareText,
+                ),
+                icon: const Icon(Icons.public_rounded, size: 18),
+                label: const Text(
+                  'Meta / Share',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              side: BorderSide(color: colorScheme.outlineVariant),
+            ),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: rewards.referralUrl));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Referral invite link copied to clipboard!')),
+              );
+            },
+            icon: const Icon(Icons.link_rounded, size: 18),
+            label: const Text(
+              'Copy Referral Link',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
           ),
         ),
       ],
