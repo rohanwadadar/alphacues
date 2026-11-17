@@ -211,19 +211,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const _DashboardTransactionsSection(),
             const SizedBox(height: 20),
 
-            // ── 3. SECURITY ───────────────────────────────────────────────
+            // ── 3. PROFILE ────────────────────────────────────────────────
             _buildSectionGroup(
               context,
-              title: 'Security',
+              title: 'Profile',
               children: [
                 _buildTile(
                   context,
                   icon: Icons.person_outline_rounded,
                   title: 'Edit Profile Information',
-                  subtitle: '${settings.displayName} • ${settings.tradingStyle}',
+                  subtitle: ' • ',
                   onTap: () => _showEditProfileSheet(context),
                 ),
                 _buildDivider(context),
+                _buildTile(
+                  context,
+                  icon: Icons.badge_outlined,
+                  title: 'Government Identity & KYC Card',
+                  subtitle: 'View verified regulatory credential',
+                  onTap: () => GovtIdCardModal.show(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // ── 4. SECURITY ───────────────────────────────────────────────
+            _buildSectionGroup(
+              context,
+              title: 'Security',
+              children: [
                 _buildTile(
                   context,
                   icon: Icons.password_rounded,
@@ -271,19 +287,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: const PrivacySettingsModal(),
                   ),
                 ),
-                _buildDivider(context),
-                _buildTile(
-                  context,
-                  icon: Icons.badge_outlined,
-                  title: 'Government Identity & KYC Card',
-                  subtitle: 'View verified regulatory credential',
-                  onTap: () => GovtIdCardModal.show(context),
-                ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // ── 4. FINANCIAL ──────────────────────────────────────────────
+            // ── 5. FINANCIAL ──────────────────────────────────────────────
             _buildSectionGroup(
               context,
               title: 'Financial',
@@ -343,7 +351,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── 5. COMMUNICATION ──────────────────────────────────────────
+            // ── 6. COMMUNICATION ──────────────────────────────────────────
             _buildSectionGroup(
               context,
               title: 'Communication',
@@ -390,7 +398,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── 6. APP PREFERENCE & DATA USAGE ────────────────────────────
+            // ── 7. APP PREFERENCE & DATA USAGE ────────────────────────────
             _buildSectionGroup(
               context,
               title: 'App preference & Data usage',
@@ -449,7 +457,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── 7. PREFERENCES ────────────────────────────────────────────
+            // ── 8. PREFERENCES ────────────────────────────────────────────
             _buildSectionGroup(
               context,
               title: 'Preferences',
@@ -514,7 +522,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── 8. SUPPORT ────────────────────────────────────────────────
+            // ── 9. SUPPORT ────────────────────────────────────────────────
             _buildSectionGroup(
               context,
               title: 'Support',
@@ -578,7 +586,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // ── 9. LOGOUT ─────────────────────────────────────────────────
+            // ── 10. LOGOUT ─────────────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 52,
