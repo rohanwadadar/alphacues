@@ -5,9 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../core/utils/us_market_time.dart';
-import '../../../market/data/bars_provider.dart';
-import '../../../market/data/market_repository.dart' show Bar;
+import '../../../../core/widgets/loading_skeleton.dart';
 import '../../../portfolio/data/portfolio_providers.dart';
 import '../../../watchlist/data/watchlist_providers.dart';
 import '../../../watchlist/presentation/widgets/watchlist_tracking_chart.dart';
@@ -43,10 +41,6 @@ class _PortfolioSummaryWidgetState
   String _sortOrder = 'latest'; // 'latest' (Default) or 'oldest'
   num? _scrubbedBalance;
   String? _scrubbedTime;
-
-  String _formatBarTimestamp(String isoStamp, String range) {
-    return formatUsMarketTimestamp(isoStamp, range: range);
-  }
 
   void _openAllStocksModal(
     BuildContext context, {
@@ -127,8 +121,6 @@ class _PortfolioSummaryWidgetState
 
     final bool isTotalPortfolio = _selectedWatchlistId == null;
 
-    // Build holdings list for chart calculations
-    final List<({String symbol, double quantity, DateTime? buyDate, double costBasis, double entryPrice})> chartHoldings = [];
     final List<WatchlistItem> stockItems = [];
     List<WatchlistItem> displayStocks = [];
 
@@ -164,14 +156,6 @@ class _PortfolioSummaryWidgetState
           final currentPrice = matchedStock?.quote?.lastPrice ?? pos.lastPrice ?? entryPrice;
           final posVal = currentPrice * pos.volume;
           final posCost = pos.totalPrice;
-
-          chartHoldings.add((
-            symbol: pos.symbol,
-            quantity: pos.volume.toDouble(),
-            buyDate: buyDate,
-            costBasis: posCost,
-            entryPrice: entryPrice,
-          ));
 
           calculatedValue += posVal;
           calculatedCost += posCost;
@@ -241,18 +225,6 @@ class _PortfolioSummaryWidgetState
           final qty = item.quantity ?? pos?.volume.toDouble() ?? 1.0;
           wlValue += price * qty;
           wlDayChange += chg * qty;
-
-          final buyDate = firstBuyDates[item.symbol] ??
-              DateTime.tryParse(pos?.updatedAt ?? '')?.toUtc();
-          final itemCost = pos != null && pos.totalPrice > 0 ? pos.totalPrice : (price * qty);
-          final itemEntryPrice = pos != null && pos.volume > 0 ? (pos.totalPrice / pos.volume) : price;
-          chartHoldings.add((
-            symbol: item.symbol,
-            quantity: qty,
-            buyDate: buyDate,
-            costBasis: itemCost,
-            entryPrice: itemEntryPrice,
-          ));
         }
         totalValue = wlValue;
         dayChange = wlDayChange;
@@ -291,136 +263,100 @@ class _PortfolioSummaryWidgetState
       });
     }
 
-    // ── Build Dynamic Equity Performance Curve for Selected Range ─────
-    final String chartRange = _selectedRange;
+    // ── Portfolio Chart Data for Selected Range ────────────────────────
+    final chartAsync = ref.watch(portfolioChartProvider(_selectedRange));
+    final bool isChartLoading = chartAsync.isLoading && !chartAsync.hasValue;
+    final bool isChartError = chartAsync.hasError && !chartAsync.hasValue;
 
-    final List<Map<String, dynamic>> chartPoints = [];
-    if (chartHoldings.isEmpty || totalValue <= 0.0) {
-      // Flat bottom baseline when empty
-      chartPoints.addAll(List.generate(20, (_) => {'value': 0.0, 'time': ''}));
-    } else {
-      final Map<String, List<Bar>> symbolBarsMap = {};
-      for (final h in chartHoldings) {
-        final barsAsync = ref.watch(barsProvider((symbol: h.symbol, range: chartRange)));
-        if (barsAsync case AsyncData(:final value) when value.bars.isNotEmpty) {
-          symbolBarsMap[h.symbol] = value.bars;
-        }
-      }
+    final PortfolioChartData chartData =
+        chartAsync.valueOrNull ?? PortfolioChartData.empty;
+    final List<Map<String, dynamic>> chartPoints =
+        chartData.points.map((p) => p.toMap()).toList();
 
-      if (symbolBarsMap.isEmpty) {
-        // Fallback: If no historical bars returned yet, show flat line at current totalValue
-        chartPoints.addAll(List.generate(20, (_) => {'value': totalValue, 'time': 'Market Closed'}));
-      } else {
-        final Set<String> allTimeStamps = {};
-        for (final bars in symbolBarsMap.values) {
-          for (final b in bars) {
-            allTimeStamps.add(b.timeStamp);
-          }
-        }
+    // Check if chart has no historical points to display
+    final bool isChartEmpty = !isChartLoading &&
+        !isChartError &&
+        (chartPoints.isEmpty ||
+            (chartData.startValue == 0.0 &&
+                chartData.endValue == 0.0 &&
+                totalValue <= 0.0));
 
-        final sortedTimeStamps = allTimeStamps.toList()..sort();
-        if (sortedTimeStamps.isEmpty) {
-          chartPoints.addAll(List.generate(20, (_) => {'value': totalValue, 'time': 'Market Closed'}));
-        } else {
-          for (final timeStr in sortedTimeStamps) {
-            final barTime = DateTime.tryParse(timeStr)?.toUtc();
-            double pointTotal = 0.0;
+    final double startVal = chartData.startValue > 0.0
+        ? chartData.startValue
+        : (chartPoints.isNotEmpty
+            ? (chartPoints.first['value'] as num).toDouble()
+            : totalValue);
+    final double endVal = chartData.endValue > 0.0
+        ? chartData.endValue
+        : (chartPoints.isNotEmpty
+            ? (chartPoints.last['value'] as num).toDouble()
+            : totalValue);
 
-            for (final h in chartHoldings) {
-              final isBeforeAcquisition = (barTime != null && h.buyDate != null && barTime.isBefore(h.buyDate!));
-              if (isBeforeAcquisition) {
-                // Before position acquisition, stock value contribution is its entry cost baseline (flat baseline before purchase)
-                pointTotal += h.costBasis;
-              } else {
-                final bars = symbolBarsMap[h.symbol];
-                double close = h.entryPrice;
-                if (bars != null && bars.isNotEmpty) {
-                  close = bars.first.closePrice;
-                  for (final b in bars) {
-                    if (b.timeStamp.compareTo(timeStr) <= 0) {
-                      close = b.closePrice;
-                    } else {
-                      break;
-                    }
-                  }
-                }
-                if (close <= 0.0) close = h.entryPrice;
-                pointTotal += (close * h.quantity);
-              }
-            }
+    double rangeChange = chartData.rangeChange;
+    double rangeReturn = chartData.rangeChangePercent;
 
-            chartPoints.add({
-              'value': pointTotal,
-              'time': _formatBarTimestamp(timeStr, chartRange),
-            });
-          }
-        }
-      }
-    }
-
-    // If totalValue > 0 and all bars were 0:
-    // Display a flat line at totalValue
-    final hasNonZero = chartPoints.any((pt) => (pt['value'] as num) > 0.0);
-    if (!hasNonZero && totalValue > 0.0) {
-      chartPoints.clear();
-      chartPoints.addAll(List.generate(20, (_) => {'value': totalValue, 'time': 'Market Closed'}));
-    }
-
-    // Compute range-based profit and return for selected timeframe
-    double rangeChange = dayChange;
-    double rangeReturn = totalReturn;
-
-    if (_selectedRange == 'MAX' && isTotalPortfolio && totalProfit != 0.0) {
-      rangeChange = totalProfit;
-      rangeReturn = totalReturn;
-    } else if (chartPoints.isNotEmpty && _selectedRange != '1D') {
-      final startVal = (chartPoints.first['value'] as num).toDouble();
-      final endVal = (chartPoints.last['value'] as num).toDouble();
-      if (startVal > 0.0 && endVal > 0.0) {
-        rangeChange = endVal - startVal;
-        rangeReturn = (rangeChange / startVal) * 100;
-      }
+    if (rangeChange == 0.0 &&
+        rangeReturn == 0.0 &&
+        startVal > 0.0 &&
+        endVal != startVal) {
+      rangeChange = endVal - startVal;
+      rangeReturn = (rangeChange / startVal) * 100;
     }
 
     final prevCloseValue = totalValue - dayChange;
-    final todayReturnPercent = prevCloseValue > 0 ? (dayChange / prevCloseValue * 100) : 0.0;
+    final todayReturnPercent =
+        prevCloseValue > 0 ? (dayChange / prevCloseValue * 100) : 0.0;
 
+    if (_selectedRange == '1D' &&
+        isTotalPortfolio &&
+        dayChange != 0.0 &&
+        rangeChange == 0.0) {
+      rangeChange = dayChange;
+      rangeReturn = todayReturnPercent;
+    }
+
+    double displayDayChange = rangeChange;
+    double displayReturn = rangeReturn;
     final displayValue = _scrubbedBalance != null
         ? _scrubbedBalance!.toDouble()
-        : totalValue;
-
-    double displayDayChange = _selectedRange == '1D' ? dayChange : rangeChange;
-    double displayReturn = _selectedRange == '1D' ? todayReturnPercent : rangeReturn;
+        : (endVal > 0.0 ? endVal : totalValue);
 
     if (_scrubbedBalance != null && chartPoints.isNotEmpty) {
       final scrubbedVal = _scrubbedBalance!.toDouble();
-      if (_selectedRange == '1D') {
-        final baseline = prevCloseValue > 0 ? prevCloseValue : totalValue;
+      final baseline = startVal > 0.0 ? startVal : totalValue;
+      if (baseline > 0.0) {
         displayDayChange = scrubbedVal - baseline;
-        displayReturn = baseline > 0 ? (displayDayChange / baseline * 100) : 0.0;
-      } else {
-        final startVal = (chartPoints.first['value'] as num).toDouble();
-        if (startVal > 0.0) {
-          displayDayChange = scrubbedVal - startVal;
-          displayReturn = (displayDayChange / startVal * 100);
-        }
+        displayReturn = (displayDayChange / baseline * 100);
       }
     }
+
+    final bool isPositive = displayDayChange >= 0;
 
     String rangeLabel(String range) {
       switch (range) {
-        case '1D': return 'Today';
-        case '5D': return 'Past 5 Days';
-        case '1M': return 'Past Month';
-        case '3M': return 'Past 3 Months';
-        case 'YTD': return 'Year to Date';
-        case '1Y': return 'Past Year';
-        case 'MAX': return 'All Time';
-        default: return 'Today';
+        case '1D':
+          return 'Today';
+        case '5D':
+          return 'Past 5 Days';
+        case '1M':
+          return 'Past Month';
+        case '3M':
+          return 'Past 3 Months';
+        case 'YTD':
+          return 'Year to Date';
+        case '1Y':
+          return 'Past Year';
+        case 'MAX':
+          return 'All Time';
+        default:
+          return 'Today';
       }
     }
 
-    final timeLabel = _scrubbedTime ?? (_selectedRange == '1D' && displayDayChange == 0.0 ? 'Market Closed' : rangeLabel(_selectedRange));
+    final timeLabel = _scrubbedTime ??
+        (_selectedRange == '1D' && displayDayChange == 0.0
+            ? 'Market Closed'
+            : rangeLabel(_selectedRange));
 
     // ── Dropdown Widget ──────────────────────────────────────────────
     final dropdownWidget = Container(
@@ -537,77 +473,127 @@ class _PortfolioSummaryWidgetState
             runSpacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // 1-Day Change Pill
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: (displayDayChange >= 0
-                          ? const Color(0xFF22C55E)
-                          : const Color(0xFFEF4444))
-                      .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      displayDayChange >= 0
-                          ? Icons.arrow_upward_rounded
-                          : Icons.arrow_downward_rounded,
-                      size: 14,
-                      color: displayDayChange >= 0
-                          ? const Color(0xFF22C55E)
-                          : const Color(0xFFEF4444),
+              if (isChartLoading)
+                const LoadingSkeleton(
+                  width: 140,
+                  height: 24,
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                )
+              else if (isChartError)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$_selectedRange: Offline',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$_selectedRange: ${_showBalance ? formatSignedAmount(displayDayChange) : '••••'} (${formatPercent(displayReturn)})',
-                      style: TextStyle(
-                        color: displayDayChange >= 0
+                  ),
+                )
+              else if (isChartEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$_selectedRange: No trades',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (isPositive
+                            ? const Color(0xFF22C55E)
+                            : const Color(0xFFEF4444))
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPositive
+                            ? Icons.arrow_upward_rounded
+                            : Icons.arrow_downward_rounded,
+                        size: 14,
+                        color: isPositive
                             ? const Color(0xFF22C55E)
                             : const Color(0xFFEF4444),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_selectedRange: ${_showBalance ? formatSignedAmount(displayDayChange) : '••••'} (${formatPercent(displayReturn)})',
+                        style: TextStyle(
+                          color: isPositive
+                              ? const Color(0xFF22C55E)
+                              : const Color(0xFFEF4444),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Text(
-                timeLabel,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+              if (!isChartLoading && !isChartEmpty && !isChartError)
+                Text(
+                  timeLabel,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
 
           // ── INTERACTIVE CHART (Touch line + header tooltip) ───────────
-          WatchlistTrackingChart(
-            points: chartPoints,
-            selectedRange: _selectedRange,
-            isPositive: displayDayChange >= 0,
-            onScrub: (payload) {
-              setState(() {
-                if (payload != null) {
-                  _scrubbedBalance = payload['value'] as num?;
-                  _scrubbedTime = payload['time'] as String?;
-                } else {
+          if (isChartLoading)
+            _buildChartLoadingSkeleton(theme, colorScheme)
+          else if (isChartError)
+            _buildChartError(theme, colorScheme)
+          else if (isChartEmpty)
+            _buildEmptyChartPrompt(theme, colorScheme)
+          else
+            WatchlistTrackingChart(
+              points: chartPoints,
+              selectedRange: _selectedRange,
+              isPositive: isPositive,
+              onScrub: (payload) {
+                setState(() {
+                  if (payload != null) {
+                    _scrubbedBalance = payload['value'] as num?;
+                    _scrubbedTime = payload['time'] as String?;
+                  } else {
+                    _scrubbedBalance = null;
+                    _scrubbedTime = null;
+                  }
+                });
+              },
+              onRangeChanged: (range) {
+                setState(() {
+                  _selectedRange = range;
                   _scrubbedBalance = null;
                   _scrubbedTime = null;
-                }
-              });
-            },
-            onRangeChanged: (range) {
-              setState(() {
-                _selectedRange = range;
-                _scrubbedBalance = null;
-                _scrubbedTime = null;
-              });
-            },
-          ),
+                });
+              },
+            ),
           const SizedBox(height: AppSpacing.md),
 
           const Divider(height: 1),
@@ -936,6 +922,234 @@ class _PortfolioSummaryWidgetState
       visualDensity: VisualDensity.compact,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       onSelected: (_) => setState(() => _selectedStockScenario = label),
+    );
+  }
+
+  Widget _buildTimeframeRow({required bool enabled}) {
+    const timeframes = ['1D', '5D', '1M', '3M', 'YTD', '1Y', 'MAX'];
+    final theme = Theme.of(context);
+    final activeColor = theme.colorScheme.primary;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: timeframes.map((tf) {
+          final isSelected = tf == _selectedRange;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: InkWell(
+              onTap: enabled
+                  ? () {
+                      setState(() {
+                        _selectedRange = tf;
+                        _scrubbedBalance = null;
+                        _scrubbedTime = null;
+                      });
+                    }
+                  : null,
+              borderRadius: BorderRadius.circular(8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? activeColor : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  tf,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected
+                        ? Colors.white
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildChartLoadingSkeleton(
+      ThemeData theme, ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 28),
+        Container(
+          height: 180,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const LoadingSkeleton(
+                width: double.infinity,
+                height: 180,
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Loading performance data...',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildTimeframeRow(enabled: true),
+      ],
+    );
+  }
+
+  Widget _buildEmptyChartPrompt(
+      ThemeData theme, ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          height: 190,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.ssid_chart_rounded,
+                  size: 28,
+                  color: colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'No performance history yet',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Record trades to visualize your portfolio equity curve.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => context.push(AppRoutes.portfolio),
+                    icon: const Icon(Icons.add, size: 14),
+                    label: const Text('Add Trade',
+                        style: TextStyle(fontSize: 11)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: () => context.push(AppRoutes.watchlists),
+                    icon: const Icon(Icons.bookmark_add_outlined, size: 14),
+                    label: const Text('Watchlists',
+                        style: TextStyle(fontSize: 11)),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildTimeframeRow(enabled: true),
+      ],
+    );
+  }
+
+  Widget _buildChartError(
+      ThemeData theme, ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          height: 180,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 28, color: colorScheme.error),
+                const SizedBox(height: 8),
+                Text(
+                  'Unable to load chart data',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () =>
+                      ref.refresh(portfolioChartProvider(_selectedRange)),
+                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                  label: const Text('Retry', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildTimeframeRow(enabled: true),
+      ],
     );
   }
 

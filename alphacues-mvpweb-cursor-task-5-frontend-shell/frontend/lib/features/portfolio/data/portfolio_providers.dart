@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/user_scope.dart';
 import '../../../core/platform/connectivity_service.dart';
+import '../../../core/realtime/socket_events.dart';
 import '../../watchlist/data/watchlist_repository.dart'
     show ServiceUnavailableException;
 import 'portfolio_repository.dart';
@@ -29,6 +30,7 @@ Future<void> refreshPortfolioIfActive(Ref ref) async {
   }
   ref.invalidate(portfolioSummaryProvider);
   ref.invalidate(portfolioTransactionsProvider);
+  ref.invalidate(portfolioChartProvider);
   await Future.wait([
     ref.read(portfolioSummaryProvider.future),
     ref.read(portfolioTransactionsProvider.future),
@@ -44,6 +46,9 @@ void _registerPortfolioUserScope() {
   }
   if (!userScopedProviderKeys.contains(portfolioHistoryProvider)) {
     userScopedProviderKeys.add(portfolioHistoryProvider);
+  }
+  if (!userScopedProviderKeys.contains(portfolioChartProvider)) {
+    userScopedProviderKeys.add(portfolioChartProvider);
   }
   if (!userScopedProviderKeys.contains(portfolioScreenActiveProvider)) {
     userScopedProviderKeys.add(portfolioScreenActiveProvider);
@@ -84,6 +89,53 @@ class PortfolioSummaryNotifier extends AsyncNotifier<PortfolioOverview> {
       _cached = overview;
       return overview;
     });
+  }
+
+  void patchQuote(QuoteUpdatePayload quote) {
+    final current = state.asData?.value ?? _cached;
+    if (current == null) return;
+
+    var matched = false;
+    var valueDelta = 0.0;
+    var dayChangeDelta = 0.0;
+    final positions = current.positions.map((position) {
+      if (position.symbol != quote.symbol) return position;
+      matched = true;
+      if (position.lastPrice != null) {
+        valueDelta += (quote.lastPrice - position.lastPrice!) * position.volume;
+      }
+      if (position.changeAmount != null) {
+        dayChangeDelta +=
+            (quote.changeAmount - position.changeAmount!) * position.volume;
+      }
+      return position.copyWith(
+        lastPrice: quote.lastPrice,
+        changeAmount: quote.changeAmount,
+        changePercent: quote.changePercent,
+      );
+    }).toList(growable: false);
+
+    if (!matched) return;
+
+    final summary = current.summary;
+    final totalValue = summary.totalValue + valueDelta;
+    final totalProfit = summary.totalProfit + valueDelta;
+    final costBasis = positions.fold<double>(
+      0,
+      (total, position) => total + position.totalPrice,
+    );
+    final updated = PortfolioOverview(
+      summary: summary.copyWith(
+        totalValue: totalValue,
+        totalProfit: totalProfit,
+        totalReturn: costBasis > 0 ? totalProfit / costBasis * 100 : summary.totalReturn,
+        dayChange: summary.dayChange + dayChangeDelta,
+        asOf: quote.asOf,
+      ),
+      positions: positions,
+    );
+    _cached = updated;
+    state = AsyncData(updated);
   }
 }
 
@@ -205,6 +257,13 @@ final portfolioHistoryProvider =
       PortfolioHistoryNotifier.new,
     );
 
+final portfolioChartProvider =
+    FutureProvider.family<PortfolioChartData, String>((ref, range) async {
+  _registerPortfolioUserScope();
+  final repo = ref.watch(portfolioRepositoryProvider);
+  return repo.getPortfolioChart(range);
+});
+
 class PortfolioEventFormState {
   const PortfolioEventFormState({
     this.symbolError,
@@ -318,6 +377,7 @@ class PortfolioEventFormNotifier extends Notifier<PortfolioEventFormState> {
           );
       ref.invalidate(portfolioSummaryProvider);
       ref.invalidate(portfolioTransactionsProvider);
+      ref.invalidate(portfolioChartProvider);
       state = const PortfolioEventFormState();
       return true;
     } on PortfolioValidationErrorException catch (error) {
@@ -357,6 +417,7 @@ class PortfolioEventFormNotifier extends Notifier<PortfolioEventFormState> {
           );
       ref.invalidate(portfolioSummaryProvider);
       ref.invalidate(portfolioTransactionsProvider);
+      ref.invalidate(portfolioChartProvider);
       state = const PortfolioEventFormState();
       return true;
     } on PortfolioValidationErrorException catch (error) {

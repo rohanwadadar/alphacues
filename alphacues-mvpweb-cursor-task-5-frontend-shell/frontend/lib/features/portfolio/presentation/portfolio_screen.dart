@@ -36,6 +36,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
   StreamSubscription<QuoteUpdatePayload>? _quoteSub;
   List<String> _subscribedSymbols = const [];
   Set<String> _heldSymbols = const {};
+  bool _showAllTransactions = false;
 
   @override
   void initState() {
@@ -264,67 +265,84 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                         );
                       }
 
-                      return NotificationListener<ScrollNotification>(
-                        onNotification: (notification) {
-                          if (notification.metrics.pixels >=
-                              notification.metrics.maxScrollExtent - 200) {
-                            transactionsNotifier.loadMore();
-                          }
-                          return false;
-                        },
-                        child: CustomScrollView(
-                          slivers: [
-                            SliverToBoxAdapter(
-                              child: _SummaryCard(
-                                overview: overview,
-                                isDegraded: !isOnline || showStaleBanner,
-                              ),
+                      final displayedTransactions = _showAllTransactions
+                          ? transactions
+                          : transactions.take(5).toList();
+
+                      return CustomScrollView(
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: _SummaryCard(
+                              overview: overview,
+                              isDegraded: !isOnline || showStaleBanner,
                             ),
-                            if (overview.positions.isNotEmpty) ...[
-                              const SliverToBoxAdapter(
-                                child: _SectionHeader(title: 'Holdings'),
-                              ),
-                              SliverList(
-                                delegate: SliverChildBuilderDelegate((
-                                  context,
-                                  index,
-                                ) {
-                                  final position = overview.positions[index];
-                                  return _PositionRow(position: position);
-                                }, childCount: overview.positions.length),
-                              ),
-                            ],
+                          ),
+                          if (overview.positions.isNotEmpty) ...[
                             const SliverToBoxAdapter(
-                              child: _SectionHeader(title: 'Transactions'),
+                              child: _SectionHeader(title: 'Holdings'),
                             ),
                             SliverList(
                               delegate: SliverChildBuilderDelegate((
                                 context,
                                 index,
                               ) {
-                                final event = transactions[index];
-                                return _TransactionRow(
-                                  event: event,
-                                  mutationsEnabled: mutationsEnabled,
-                                  onEdit: () => PortfolioEventFormDialog.show(
-                                    context,
-                                    event: event,
-                                  ),
-                                  onDelete: () => _deleteEvent(event),
-                                );
-                              }, childCount: transactions.length),
+                                final position = overview.positions[index];
+                                return _PositionRow(position: position);
+                              }, childCount: overview.positions.length),
                             ),
-                            if (transactionsNotifier.hasMore)
-                              const SliverToBoxAdapter(
-                                child: Padding(
-                                  padding: EdgeInsets.all(AppSpacing.md),
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
+                          ],
+                          const SliverToBoxAdapter(
+                            child: _SectionHeader(title: 'Transactions'),
+                          ),
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final event = displayedTransactions[index];
+                              return _TransactionRow(
+                                event: event,
+                                mutationsEnabled: mutationsEnabled,
+                                onDelete: () => _deleteEvent(event),
+                              );
+                            }, childCount: displayedTransactions.length),
+                          ),
+                          if (transactions.length > 5)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                  vertical: AppSpacing.sm,
+                                ),
+                                child: Center(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _showAllTransactions = !_showAllTransactions;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      _showAllTransactions
+                                          ? Icons.keyboard_arrow_up_rounded
+                                          : Icons.keyboard_arrow_down_rounded,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      _showAllTransactions
+                                          ? 'Show Less'
+                                          : 'View All (${transactions.length} items)',
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       );
                     },
                   );
@@ -497,33 +515,44 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
     final prevClose = displayTotalValue - displayDayChange;
     final todayReturnPercent = prevClose > 0 ? (displayDayChange / prevClose * 100) : 0.0;
 
-    // Build dynamic multi-stock historical equity curve
-    final List<Map<String, dynamic>> chartPoints = [];
-    if (chartHoldings.isEmpty || displayTotalValue <= 0.0) {
-      chartPoints.addAll(List.generate(20, (_) => {'value': 0.0, 'time': ''}));
-    } else {
-      final Map<String, List<Bar>> symbolBarsMap = {};
-      for (final h in chartHoldings) {
-        final barsAsync = ref.watch(barsProvider((symbol: h.symbol, range: _selectedRange)));
-        if (barsAsync case AsyncData(:final value) when value.bars.isNotEmpty) {
-          symbolBarsMap[h.symbol] = value.bars;
-        }
-      }
+    // Portfolio Chart Data: load cached historical curve from backend when in Total Portfolio mode
+    final bool isTotalPortfolio = _selectedWatchlistId == null;
+    final chartAsync = isTotalPortfolio
+        ? ref.watch(portfolioChartProvider(_selectedRange))
+        : null;
+    final bool isChartLoading = isTotalPortfolio &&
+        (chartAsync?.isLoading ?? false) &&
+        !(chartAsync?.hasValue ?? false);
+    final bool isChartError = isTotalPortfolio &&
+        (chartAsync?.hasError ?? false) &&
+        !(chartAsync?.hasValue ?? false);
 
-      if (symbolBarsMap.isEmpty) {
-        chartPoints.addAll(List.generate(20, (_) => {'value': displayTotalValue, 'time': 'Market Closed'}));
-      } else {
-        final Set<String> allTimeStamps = {};
-        for (final bars in symbolBarsMap.values) {
-          for (final b in bars) {
-            allTimeStamps.add(b.timeStamp);
+    final PortfolioChartData chartData = (isTotalPortfolio && chartAsync != null)
+        ? (chartAsync.valueOrNull ?? PortfolioChartData.empty)
+        : PortfolioChartData.empty;
+
+    final List<Map<String, dynamic>> chartPoints = [];
+    if (isTotalPortfolio) {
+      chartPoints.addAll(chartData.points.map((p) => p.toMap()));
+    } else {
+      if (chartHoldings.isNotEmpty && displayTotalValue > 0.0) {
+        final Map<String, List<Bar>> symbolBarsMap = {};
+        for (final h in chartHoldings) {
+          final barsAsync = ref.watch(barsProvider((symbol: h.symbol, range: _selectedRange)));
+          if (barsAsync case AsyncData(:final value) when value.bars.isNotEmpty) {
+            symbolBarsMap[h.symbol] = value.bars;
           }
         }
 
-        final sortedTimeStamps = allTimeStamps.toList()..sort();
-        if (sortedTimeStamps.isEmpty) {
-          chartPoints.addAll(List.generate(20, (_) => {'value': displayTotalValue, 'time': 'Market Closed'}));
-        } else {
+        if (symbolBarsMap.isNotEmpty) {
+          final Set<String> allTimeStamps = {};
+          for (final bars in symbolBarsMap.values) {
+            for (final b in bars) {
+              allTimeStamps.add(b.timeStamp);
+            }
+          }
+
+          final sortedTimeStamps = allTimeStamps.toList()..sort();
           for (final timeStr in sortedTimeStamps) {
             final barTime = DateTime.tryParse(timeStr)?.toUtc();
             double pointTotal = 0.0;
@@ -531,7 +560,6 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
             for (final h in chartHoldings) {
               final isBeforeAcquisition = (barTime != null && h.buyDate != null && barTime.isBefore(h.buyDate!));
               if (isBeforeAcquisition) {
-                // Before acquisition, position value was its initial cost basis (flat baseline before purchase)
                 pointTotal += h.costBasis;
               } else {
                 final bars = symbolBarsMap[h.symbol];
@@ -560,27 +588,35 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
       }
     }
 
-    // Flatline at displayTotalValue when market closed or all points are zero
-    final hasNonZero = chartPoints.any((pt) => (pt['value'] as num) > 0.0);
-    if (!hasNonZero && displayTotalValue > 0.0) {
-      chartPoints.clear();
-      chartPoints.addAll(List.generate(20, (_) => {'value': displayTotalValue, 'time': 'Market Closed'}));
-    }
+    final bool isChartEmpty = !isChartLoading &&
+        !isChartError &&
+        (chartPoints.isEmpty ||
+            (isTotalPortfolio &&
+                chartData.startValue == 0.0 &&
+                chartData.endValue == 0.0 &&
+                displayTotalValue <= 0.0));
 
-    // Range-based return calculation
-    double rangeChange = displayDayChange;
-    double rangeReturnPct = todayReturnPercent;
+    final double startVal = (isTotalPortfolio && chartData.startValue > 0.0)
+        ? chartData.startValue
+        : (chartPoints.isNotEmpty
+            ? (chartPoints.first['value'] as num).toDouble()
+            : displayTotalValue);
+    final double endVal = (isTotalPortfolio && chartData.endValue > 0.0)
+        ? chartData.endValue
+        : (chartPoints.isNotEmpty
+            ? (chartPoints.last['value'] as num).toDouble()
+            : displayTotalValue);
 
-    if (_selectedRange == 'MAX' && _selectedWatchlistId == null && displayTotalProfit != 0.0) {
-      rangeChange = displayTotalProfit;
-      rangeReturnPct = displayReturnPct;
-    } else if (chartPoints.isNotEmpty && _selectedRange != '1D') {
-      final startVal = (chartPoints.first['value'] as num).toDouble();
-      final endVal = (chartPoints.last['value'] as num).toDouble();
-      if (startVal > 0.0 && endVal > 0.0) {
-        rangeChange = endVal - startVal;
-        rangeReturnPct = (rangeChange / startVal) * 100;
-      }
+    double rangeChange = isTotalPortfolio ? chartData.rangeChange : displayDayChange;
+    double rangeReturnPct = isTotalPortfolio ? chartData.rangeChangePercent : todayReturnPercent;
+
+    if (rangeChange == 0.0 &&
+        rangeReturnPct == 0.0 &&
+        startVal > 0.0 &&
+        endVal > 0.0 &&
+        _selectedRange != '1D') {
+      rangeChange = endVal - startVal;
+      rangeReturnPct = (rangeChange / startVal) * 100;
     }
 
     double finalDisplayDayChange = _selectedRange == '1D' ? displayDayChange : rangeChange;
@@ -594,7 +630,6 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
         finalDisplayDayChange = val - baseline;
         finalDisplayReturnPct = baseline > 0 ? (finalDisplayDayChange / baseline * 100) : 0.0;
       } else {
-        final startVal = (chartPoints.first['value'] as num).toDouble();
         if (startVal > 0.0) {
           finalDisplayDayChange = val - startVal;
           finalDisplayReturnPct = (finalDisplayDayChange / startVal * 100);
@@ -718,21 +753,78 @@ class _SummaryCardState extends ConsumerState<_SummaryCard> {
             const SizedBox(height: 16),
 
             // Bezier Performance Curve Line Chart
-            WatchlistTrackingChart(
-              points: chartPoints,
-              selectedRange: _selectedRange,
-              isPositive: displayDayChange >= 0,
-              onRangeChanged: (range) {
-                setState(() {
-                  _selectedRange = range;
-                });
-              },
-              onScrub: (point) {
-                setState(() {
-                  _scrubbedPoint = point;
-                });
-              },
-            ),
+            if (isChartLoading)
+              Container(
+                height: 180,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Loading portfolio chart...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (isChartEmpty)
+              Container(
+                height: 160,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.show_chart_rounded,
+                      size: 36,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No historical data available for this range',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              WatchlistTrackingChart(
+                points: chartPoints,
+                selectedRange: _selectedRange,
+                isPositive: displayDayChange >= 0,
+                onRangeChanged: (range) {
+                  setState(() {
+                    _selectedRange = range;
+                  });
+                },
+                onScrub: (point) {
+                  setState(() {
+                    _scrubbedPoint = point;
+                  });
+                },
+              ),
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 12),
@@ -919,13 +1011,11 @@ class _TransactionRow extends StatelessWidget {
   const _TransactionRow({
     required this.event,
     required this.mutationsEnabled,
-    required this.onEdit,
     required this.onDelete,
   });
 
   final PortfolioEvent event;
   final bool mutationsEnabled;
-  final VoidCallback onEdit;
   final Future<void> Function() onDelete;
 
   @override
@@ -945,8 +1035,6 @@ class _TransactionRow extends StatelessWidget {
         }
         if (direction == DismissDirection.endToStart) {
           await onDelete();
-        } else if (direction == DismissDirection.startToEnd) {
-          onEdit();
         }
         return false;
       },

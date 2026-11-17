@@ -30,6 +30,7 @@ Future<void> refreshPortfolioIfActive(Ref ref) async {
   }
   ref.invalidate(portfolioSummaryProvider);
   ref.invalidate(portfolioTransactionsProvider);
+  ref.invalidate(portfolioChartProvider);
   await Future.wait([
     ref.read(portfolioSummaryProvider.future),
     ref.read(portfolioTransactionsProvider.future),
@@ -45,6 +46,9 @@ void _registerPortfolioUserScope() {
   }
   if (!userScopedProviderKeys.contains(portfolioHistoryProvider)) {
     userScopedProviderKeys.add(portfolioHistoryProvider);
+  }
+  if (!userScopedProviderKeys.contains(portfolioChartProvider)) {
+    userScopedProviderKeys.add(portfolioChartProvider);
   }
   if (!userScopedProviderKeys.contains(portfolioScreenActiveProvider)) {
     userScopedProviderKeys.add(portfolioScreenActiveProvider);
@@ -253,6 +257,13 @@ final portfolioHistoryProvider =
       PortfolioHistoryNotifier.new,
     );
 
+final portfolioChartProvider =
+    FutureProvider.family<PortfolioChartData, String>((ref, range) async {
+  _registerPortfolioUserScope();
+  final repo = ref.watch(portfolioRepositoryProvider);
+  return repo.getPortfolioChart(range);
+});
+
 class PortfolioEventFormState {
   const PortfolioEventFormState({
     this.symbolError,
@@ -366,6 +377,7 @@ class PortfolioEventFormNotifier extends Notifier<PortfolioEventFormState> {
           );
       ref.invalidate(portfolioSummaryProvider);
       ref.invalidate(portfolioTransactionsProvider);
+      ref.invalidate(portfolioChartProvider);
       state = const PortfolioEventFormState();
       return true;
     } on PortfolioValidationErrorException catch (error) {
@@ -405,6 +417,7 @@ class PortfolioEventFormNotifier extends Notifier<PortfolioEventFormState> {
           );
       ref.invalidate(portfolioSummaryProvider);
       ref.invalidate(portfolioTransactionsProvider);
+      ref.invalidate(portfolioChartProvider);
       state = const PortfolioEventFormState();
       return true;
     } on PortfolioValidationErrorException catch (error) {

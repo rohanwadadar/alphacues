@@ -153,6 +153,87 @@ class PortfolioSnapshot {
   }
 }
 
+class PortfolioChartPoint {
+  const PortfolioChartPoint({
+    required this.value,
+    required this.time,
+    this.timestamp,
+  });
+
+  final double value;
+  final String time;
+  final String? timestamp;
+
+  factory PortfolioChartPoint.fromJson(Map<String, dynamic> json) {
+    return PortfolioChartPoint(
+      value: (json['value'] as num?)?.toDouble() ?? 0.0,
+      time: json['time'] as String? ?? '',
+      timestamp: json['timestamp'] as String? ?? json['time_stamp'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'value': value,
+    'time': time,
+    if (timestamp != null) 'timestamp': timestamp,
+  };
+}
+
+class PortfolioChartData {
+  const PortfolioChartData({
+    required this.points,
+    required this.startValue,
+    required this.endValue,
+    required this.rangeChange,
+    required this.rangeChangePercent,
+  });
+
+  final List<PortfolioChartPoint> points;
+  final double startValue;
+  final double endValue;
+  final double rangeChange;
+  final double rangeChangePercent;
+
+  bool get isEmpty => points.isEmpty;
+  bool get isNotEmpty => points.isNotEmpty;
+
+  factory PortfolioChartData.fromJson(Map<String, dynamic> json) {
+    final rawPoints = json['points'];
+    final points = rawPoints is List
+        ? rawPoints
+            .map((p) => PortfolioChartPoint.fromJson(
+                  Map<String, dynamic>.from(p as Map),
+                ))
+            .toList()
+        : const <PortfolioChartPoint>[];
+
+    final startVal = (json['startValue'] as num? ?? json['start_value'] as num?)?.toDouble() ??
+        (points.isNotEmpty ? points.first.value : 0.0);
+    final endVal = (json['endValue'] as num? ?? json['end_value'] as num?)?.toDouble() ??
+        (points.isNotEmpty ? points.last.value : 0.0);
+    final change = (json['rangeChange'] as num? ?? json['range_change'] as num?)?.toDouble() ??
+        (endVal - startVal);
+    final changePct = (json['rangeChangePercent'] as num? ?? json['range_change_percent'] as num?)?.toDouble() ??
+        (startVal > 0 ? (change / startVal * 100) : 0.0);
+
+    return PortfolioChartData(
+      points: points,
+      startValue: startVal,
+      endValue: endVal,
+      rangeChange: change,
+      rangeChangePercent: changePct,
+    );
+  }
+
+  static const empty = PortfolioChartData(
+    points: [],
+    startValue: 0.0,
+    endValue: 0.0,
+    rangeChange: 0.0,
+    rangeChangePercent: 0.0,
+  );
+}
+
 class PortfolioValidationErrorException implements Exception {
   const PortfolioValidationErrorException(
     this.message, {
@@ -300,6 +381,25 @@ class PortfolioRepository {
         parseData: (json) => json,
       );
       return PortfolioOverview.fromJson(envelope.data!);
+    } on DioException catch (error) {
+      throw _mapDioError(error);
+    }
+  }
+
+  Future<PortfolioChartData> getPortfolioChart(String range) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/v1/portfolio/chart',
+        queryParameters: {'range': range},
+      );
+      final envelope = parseEnvelope<Map<String, dynamic>>(
+        response.data,
+        parseData: (json) => json,
+      );
+      if (envelope.data == null) {
+        return PortfolioChartData.empty;
+      }
+      return PortfolioChartData.fromJson(envelope.data!);
     } on DioException catch (error) {
       throw _mapDioError(error);
     }
