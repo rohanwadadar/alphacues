@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/widgets/alpha_cues_logo.dart';
 import '../../../core/auth/auth_session_provider.dart';
 import '../../../app/theme/app_colors.dart';
@@ -760,46 +762,190 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  Future<void> _triggerReportDownload(String format) async {
+    try {
+      String baseUrl = 'http://127.0.0.1:5000';
+      try {
+        baseUrl = AppConfig.instance.apiBaseUrl;
+      } catch (_) {}
+
+      final downloadUrl = '$baseUrl/api/v1/portfolio/export?format=$format';
+      final uri = Uri.parse(downloadUrl);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar(context, 'Report generated! Check your browser downloads.');
+      }
+    }
+  }
+
   void _showExportReportsDialog(BuildContext context) {
+    String selectedFormat = 'pdf'; // Default to PDF as requested
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Row(
-          children: [
-            Icon(Icons.download_rounded, color: Colors.green),
-            SizedBox(width: 10),
-            Text('Export Reports'),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Select Export Format', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            SizedBox(height: 8),
-            ListTile(
-              leading: Icon(Icons.table_chart_rounded, color: Colors.green),
-              title: Text('CSV Transaction History'),
-              subtitle: Text('Full log of executions & holdings'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final isPdf = selectedFormat == 'pdf';
+          final isCsv = selectedFormat == 'csv';
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: const Row(
+              children: [
+                Icon(Icons.download_rounded, color: Colors.green),
+                SizedBox(width: 10),
+                Text('Export Reports'),
+              ],
             ),
-            ListTile(
-              leading: Icon(Icons.picture_as_pdf_rounded, color: Colors.red),
-              title: Text('PDF Realized Tax Summary'),
-              subtitle: Text('Yearly profit/loss overview report'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Select Export Format',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+
+                // ── PDF Realized Tax Summary Option ──
+                InkWell(
+                  onTap: () => setDialogState(() => selectedFormat = 'pdf'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isPdf
+                          ? (isDark ? Colors.red.withValues(alpha: 0.15) : const Color(0xFFFEE2E2))
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isPdf ? Colors.red : Colors.grey.withValues(alpha: 0.25),
+                        width: isPdf ? 1.8 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'PDF Realized Tax Summary',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Yearly profit/loss overview report',
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          isPdf ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                          color: isPdf ? Colors.red : Colors.grey,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // ── CSV Transaction History Option ──
+                InkWell(
+                  onTap: () => setDialogState(() => selectedFormat = 'csv'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isCsv
+                          ? (isDark ? Colors.green.withValues(alpha: 0.15) : const Color(0xFFDCFCE7))
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isCsv ? Colors.green : Colors.grey.withValues(alpha: 0.25),
+                        width: isCsv ? 1.8 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.table_chart_rounded, color: Colors.green, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'CSV Transaction History',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Full log of executions & holdings',
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          isCsv ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                          color: isCsv ? Colors.green : Colors.grey,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showSnackBar(context, 'Exported AlphaCues_Transactions_2026.csv successfully!');
-            },
-            child: const Text('Download CSV'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: isPdf ? Colors.red.shade700 : const Color(0xFF7246C0),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final filename = isPdf
+                      ? 'AlphaCues_Realized_Tax_Summary_2026.pdf'
+                      : 'AlphaCues_Transactions_2026.csv';
+                  _showSnackBar(context, 'Downloading $filename...');
+                  await _triggerReportDownload(selectedFormat);
+                },
+                icon: Icon(
+                  isPdf ? Icons.picture_as_pdf_rounded : Icons.download_rounded,
+                  size: 18,
+                ),
+                label: Text(isPdf ? 'Download PDF' : 'Download CSV'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

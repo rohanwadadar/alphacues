@@ -1,4 +1,5 @@
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/app_config.dart';
 import '../../rewards/data/rewards_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -596,6 +597,9 @@ class _TaxCenterModalState extends ConsumerState<TaxCenterModal> {
   }
 
   Widget _buildDocumentTile(BuildContext context, String title, String subtitle, String status) {
+    final isPdf = title.toLowerCase().contains('1099') || status.toLowerCase().contains('pdf');
+    final format = isPdf ? 'pdf' : 'csv';
+
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 10),
@@ -604,14 +608,25 @@ class _TaxCenterModalState extends ConsumerState<TaxCenterModal> {
         side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: ListTile(
-        leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+        leading: Icon(
+          isPdf ? Icons.picture_as_pdf : Icons.table_chart_rounded,
+          color: isPdf ? Colors.red : Colors.green,
+        ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: TextButton(
-          onPressed: () {
+        trailing: FilledButton.tonal(
+          onPressed: () async {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Downloading $title...')),
+              SnackBar(content: Text('Downloading $title ($format)...')),
             );
+            try {
+              String baseUrl = 'http://127.0.0.1:5000';
+              try {
+                baseUrl = AppConfig.instance.apiBaseUrl;
+              } catch (_) {}
+              final uri = Uri.parse('$baseUrl/api/v1/portfolio/export?format=$format');
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            } catch (_) {}
           },
           child: const Text('Download'),
         ),
@@ -652,10 +667,18 @@ class ReportsStatementsModal extends StatelessWidget {
             subtitle: Text('${s['date']} • ${s['size']}', style: const TextStyle(fontSize: 12)),
             trailing: IconButton(
               icon: const Icon(Icons.download, size: 20),
-              onPressed: () {
+              onPressed: () async {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Downloading ${s['period']}...')),
+                  SnackBar(content: Text('Downloading ${s['period']} (PDF)...')),
                 );
+                try {
+                  String baseUrl = 'http://127.0.0.1:5000';
+                  try {
+                    baseUrl = AppConfig.instance.apiBaseUrl;
+                  } catch (_) {}
+                  final uri = Uri.parse('$baseUrl/api/v1/portfolio/export?format=pdf');
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } catch (_) {}
               },
             ),
           ),
