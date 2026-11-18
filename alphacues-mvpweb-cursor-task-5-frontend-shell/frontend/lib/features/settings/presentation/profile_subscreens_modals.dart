@@ -703,6 +703,61 @@ class RewardsModal extends ConsumerWidget {
     }
   }
 
+  Future<void> _shareToInstagram(BuildContext context, RewardsInfo rewards) async {
+    await Clipboard.setData(ClipboardData(text: rewards.shareText));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Referral invite copied! Opening Instagram to paste in chat or bio.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+    try {
+      final uri = Uri.parse(rewards.effectiveInstagramUrl);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  Widget _buildShareButton({
+    required Color backgroundColor,
+    required String label,
+    required VoidCallback onPressed,
+    IconData? icon,
+    Widget? customIcon,
+  }) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: backgroundColor,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 0,
+      ),
+      onPressed: onPressed,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (customIcon != null)
+              customIcon
+            else if (icon != null)
+              Icon(icon, size: 17, color: Colors.white),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rewardsAsync = ref.watch(rewardsProvider);
@@ -916,53 +971,73 @@ class RewardsModal extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
-        // ── SHARE BUTTONS (WHATSAPP, META, COPY LINK) ─────────────────
+        // ── SHARE BUTTONS (WHATSAPP, INSTAGRAM, TWITTER/X, GMAIL, META, COPY LINK) ──
         Row(
           children: [
             Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF25D366),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
+              child: _buildShareButton(
+                backgroundColor: const Color(0xFF25D366),
+                icon: Icons.chat_bubble_outline_rounded,
+                label: 'WhatsApp',
                 onPressed: () => _launchShareUrl(
                   context,
-                  rewards.whatsappUrl,
+                  rewards.effectiveWhatsappUrl,
                   rewards.shareText,
-                ),
-                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                label: const Text(
-                  'WhatsApp',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1877F2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
+              child: _buildShareButton(
+                backgroundColor: const Color(0xFFE1306C),
+                icon: Icons.camera_alt_outlined,
+                label: 'Instagram',
+                onPressed: () => _shareToInstagram(context, rewards),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildShareButton(
+                backgroundColor: const Color(0xFF0F1419),
+                customIcon: const Text(
+                  '𝕏',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white),
                 ),
+                label: 'Twitter / X',
                 onPressed: () => _launchShareUrl(
                   context,
-                  rewards.metaUrl,
+                  rewards.effectiveTwitterUrl,
                   rewards.shareText,
                 ),
-                icon: const Icon(Icons.public_rounded, size: 18),
-                label: const Text(
-                  'Meta / Share',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildShareButton(
+                backgroundColor: const Color(0xFFEA4335),
+                icon: Icons.mail_outline_rounded,
+                label: 'Gmail',
+                onPressed: () => _launchShareUrl(
+                  context,
+                  rewards.effectiveGmailUrl,
+                  rewards.shareText,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildShareButton(
+                backgroundColor: const Color(0xFF1877F2),
+                icon: Icons.public_rounded,
+                label: 'Meta / Share',
+                onPressed: () => _launchShareUrl(
+                  context,
+                  rewards.effectiveMetaUrl,
+                  rewards.shareText,
                 ),
               ),
             ),

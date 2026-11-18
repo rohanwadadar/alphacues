@@ -14,6 +14,9 @@ class RewardsInfo {
     required this.shareText,
     required this.whatsappUrl,
     required this.metaUrl,
+    this.twitterUrl = '',
+    this.instagramUrl = '',
+    this.gmailUrl = '',
     required this.redemptionStatus,
     required this.redemptionNotice,
   });
@@ -27,21 +30,49 @@ class RewardsInfo {
   final String shareText;
   final String whatsappUrl;
   final String metaUrl;
+  final String twitterUrl;
+  final String instagramUrl;
+  final String gmailUrl;
   final String redemptionStatus;
   final String redemptionNotice;
 
+  String get effectiveTwitterUrl => twitterUrl.isNotEmpty
+      ? twitterUrl
+      : 'https://twitter.com/intent/tweet?text=${Uri.encodeComponent(shareText)}';
+
+  String get effectiveWhatsappUrl => whatsappUrl.isNotEmpty
+      ? whatsappUrl
+      : 'https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}';
+
+  String get effectiveMetaUrl => metaUrl.isNotEmpty
+      ? metaUrl
+      : 'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(referralUrl)}';
+
+  String get effectiveGmailUrl => gmailUrl.isNotEmpty
+      ? gmailUrl
+      : 'https://mail.google.com/mail/?view=cm&fs=1&su=${Uri.encodeComponent('Join me on AlphaCues - Simulation Trading Rewards')}&body=${Uri.encodeComponent(shareText)}';
+
+  String get effectiveInstagramUrl => instagramUrl.isNotEmpty
+      ? instagramUrl
+      : 'https://www.instagram.com/';
+
   factory RewardsInfo.fromJson(Map<String, dynamic> json) {
     final shareUrls = json['shareUrls'] as Map<String, dynamic>? ?? {};
+    final shareText = json['shareText'] as String? ?? 'Join me on AlphaCues!';
+    final referralUrl = json['referralUrl'] as String? ?? 'https://alphacues.com';
     return RewardsInfo(
       balance: (json['balance'] as num?)?.toInt() ?? 1420,
       tier: json['tier'] as String? ?? 'Silver Tier Trader',
       pointsToNextTier: (json['pointsToNextTier'] as num?)?.toInt() ?? 580,
       targetTier: json['targetTier'] as String? ?? 'Gold Tier Trader',
       referralCode: json['referralCode'] as String? ?? 'ALPHA-VIP-2026',
-      referralUrl: json['referralUrl'] as String? ?? 'https://alphacues.com',
-      shareText: json['shareText'] as String? ?? 'Join me on AlphaCues!',
+      referralUrl: referralUrl,
+      shareText: shareText,
       whatsappUrl: shareUrls['whatsapp'] as String? ?? '',
       metaUrl: shareUrls['meta'] as String? ?? '',
+      twitterUrl: shareUrls['twitter'] as String? ?? '',
+      instagramUrl: shareUrls['instagram'] as String? ?? '',
+      gmailUrl: shareUrls['gmail'] as String? ?? '',
       redemptionStatus: json['redemptionStatus'] as String? ?? 'Coming Soon',
       redemptionNotice: json['redemptionNotice'] as String? ??
           'Redeem Credits — Coming Soon! Points can soon be redeemed for pro quant tools, fee rebates, and exclusive indicators.',
